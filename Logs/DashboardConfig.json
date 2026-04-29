@@ -1,0 +1,28 @@
+{
+  "Language": "pt-br",
+  "Currency": {
+    "Symbol": "R$",
+    "Code": "BRL",
+    "Position": "before",
+    "DecimalSeparator": ",",
+    "ThousandsSeparator": "."
+  },
+  "CostPerGBMonth": 1.0833,
+  "CostPerTBMonth": 1083.33,
+  "CostPerGBYear": 13.0,
+  "CostPerTBYear": 13000.0,
+  "ExchangeRate": {
+    "Enabled": false,
+    "USDToLocal": 5.0,
+    "LastUpdated": "2026-02-02T00:00:00.000Z"
+  },
+  "DateFormat": "dd/MM/yyyy",
+  "TimeFormat": "HH:mm:ss",
+  "RefreshIntervalSeconds": 3,
+  "ReexecutionDays": 60,
+  "ZeroVersionAction": "syncOnly",
+  "LastModified": "2026-02-05T00:00:00.000Z",
+  "Version": "1.1",
+  "DashboardPort": 8080,
+  "DashboardLaunchMode": "app"
+}

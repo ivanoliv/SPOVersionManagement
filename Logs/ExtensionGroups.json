@@ -1,0 +1,164 @@
+{
+  "Groups": [
+    {
+      "Name": "Office Documents",
+      "Color": "#00d4ff",
+      "Enabled": true,
+      "Extensions": [
+        ".docx",
+        ".doc",
+        ".xlsx",
+        ".xls",
+        ".pptx",
+        ".ppt",
+        ".vsdx",
+        ".vsd",
+        ".one",
+        ".onetoc2",
+        ".mpp",
+        ".pub",
+        ".pdf",
+        ".xps"
+      ]
+    },
+    {
+      "Name": "Text & Markup",
+      "Color": "#00e676",
+      "Enabled": true,
+      "Extensions": [
+        ".txt",
+        ".rtf",
+        ".csv",
+        ".xml",
+        ".html",
+        ".htm",
+        ".md",
+        ".json",
+        ".msg",
+        ".eml",
+        ".odt",
+        ".ods",
+        ".odp"
+      ]
+    },
+    {
+      "Name": "Videos",
+      "Color": "#ff5252",
+      "Enabled": true,
+      "Extensions": [
+        ".mp4",
+        ".mov",
+        ".wmv",
+        ".avi",
+        ".mkv",
+        ".m4v",
+        ".mpg",
+        ".mpeg",
+        ".3gp",
+        ".3g2",
+        ".mts",
+        ".m2ts"
+      ]
+    },
+    {
+      "Name": "Audio",
+      "Color": "#ff9800",
+      "Enabled": true,
+      "Extensions": [
+        ".mp3",
+        ".wav",
+        ".wma",
+        ".aac",
+        ".flac",
+        ".m4a",
+        ".ogg"
+      ]
+    },
+    {
+      "Name": "Images",
+      "Color": "#ffc107",
+      "Enabled": true,
+      "Extensions": [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".bmp",
+        ".tiff",
+        ".tif",
+        ".svg",
+        ".ico",
+        ".webp"
+      ]
+    },
+    {
+      "Name": "Design & Graphics",
+      "Color": "#7b2cbf",
+      "Enabled": true,
+      "Extensions": [
+        ".psd",
+        ".ai",
+        ".indd",
+        ".sketch",
+        ".fig",
+        ".xd"
+      ]
+    },
+    {
+      "Name": "CAD & Engineering",
+      "Color": "#e91e63",
+      "Enabled": true,
+      "Extensions": [
+        ".dwg",
+        ".dxf",
+        ".step",
+        ".stp",
+        ".iges",
+        ".igs",
+        ".stl"
+      ]
+    },
+    {
+      "Name": "Development",
+      "Color": "#9e9e9e",
+      "Enabled": false,
+      "Extensions": [
+        ".ps1",
+        ".bat",
+        ".cmd",
+        ".sh",
+        ".vbs",
+        ".py",
+        ".js",
+        ".ts",
+        ".jsx",
+        ".tsx",
+        ".cs",
+        ".java",
+        ".cpp",
+        ".c",
+        ".h",
+        ".hpp",
+        ".rb",
+        ".php",
+        ".go",
+        ".rs",
+        ".swift",
+        ".kt",
+        ".scala",
+        ".css",
+        ".scss",
+        ".sass",
+        ".less",
+        ".sql",
+        ".r",
+        ".ipynb",
+        ".yaml",
+        ".yml",
+        ".toml",
+        ".ini",
+        ".conf"
+      ]
+    }
+  ]
+}

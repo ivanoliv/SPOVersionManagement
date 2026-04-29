@@ -36,6 +36,9 @@ namespace SPOVersionManagement.Services
 
             try
             {
+                if (!Directory.Exists(_logsPath))
+                    Directory.CreateDirectory(_logsPath);
+
                 string testFile = Path.Combine(_logsPath, ".writetest_" + Guid.NewGuid().ToString("N").Substring(0, 8));
                 File.WriteAllText(testFile, "test");
                 File.Delete(testFile);
@@ -92,7 +95,23 @@ namespace SPOVersionManagement.Services
         {
             string path = Path.Combine(_logsPath, "AppPaths.json");
             if (!File.Exists(path))
-                throw new FileNotFoundException("AppPaths.json not found", path);
+            {
+                // Create default AppPaths.json on first run
+                if (!Directory.Exists(_logsPath))
+                    Directory.CreateDirectory(_logsPath);
+
+                var defaults = new AppConfiguration
+                {
+                    Version = "1.3",
+                    AppVersion = "2.1.3.3",
+                    GitHubRepo = "ivanoliv/SPOVersionManagement",
+                    TelemetryEnabled = false
+                };
+                string defaultJson = JsonConvert.SerializeObject(defaults, Formatting.Indented);
+                File.WriteAllText(path, defaultJson);
+                AppConfig = defaults;
+                return;
+            }
 
             string json = File.ReadAllText(path);
             AppConfig = JsonConvert.DeserializeObject<AppConfiguration>(json);

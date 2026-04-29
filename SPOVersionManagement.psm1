@@ -98,6 +98,72 @@ $script:IncludedSites = @()
 $script:ExcludedSites = @()
 $script:AllSitesCache = $null  # Cache for Get-SPOSite -Limit All to avoid duplicate calls
 $script:AllSitesCacheTime = $null
+
+# ── First-Run Initialization ─────────────────────────────────────
+# Ensure required directories and files exist on first run
+if (-not (Test-Path $script:LogPath)) {
+    New-Item -ItemType Directory -Path $script:LogPath -Force | Out-Null
+    Write-Host "[INIT] Created Logs directory: $script:LogPath" -ForegroundColor Green
+}
+if (-not (Test-Path $script:BackupPath)) {
+    New-Item -ItemType Directory -Path $script:BackupPath -Force | Out-Null
+}
+
+# Create AppPaths.json with safe defaults if missing
+if (-not (Test-Path (Join-Path $script:LogPath "AppPaths.json"))) {
+    $defaultAppPaths = @{
+        Version = "1.3"
+        AppVersion = "2.1.3.3"
+        Description = "Centralized configuration for SPO Version Management"
+        LastModified = (Get-Date).ToString("o")
+        RootPath = (Split-Path -Parent $script:LogPath)
+        ApplicationFolder = (Split-Path -Leaf (Split-Path -Parent $script:LogPath))
+        Directories = @{ Root = ""; Logs = "Logs"; Data = "Logs"; Backup = "Logs\Backup" }
+        Files = @{
+            JobStatus = "JobStatus.json"; TenantStorage = "TenantStorage.json"
+            ExcludedSites = "ExcludedSites.json"; AllSites = "AllSites.json"
+            SiteExecutionHistory = "SiteExecutionHistory.json"
+            DashboardConfig = "DashboardConfig.json"; Dashboard = "Dashboard.html"
+            ExecutionHistory = "ExecutionHistory.csv"; SiteStorage = "SiteStorage.csv"
+            TenantStorageTimeline = "TenantStorageTimeline.json"; AppPaths = "AppPaths.json"
+        }
+        InputFiles = @{ IncludeSites = "IncludeSites.csv"; ExcludeSites = "ExcludeSites.csv" }
+        Scripts = @{
+            MainModule = "SPOVersionManagement.psm1"; FiltersModule = "SPOSiteFilters.psm1"
+            StartScript = "Start-SPOVersionManagement.ps1"; DashboardScript = "Start-Dashboard.ps1"
+        }
+        EntraIdApp = @{ TenantId = ""; ClientId = ""; CertificateThumbprint = "" }
+        GitHubRepo = ""
+        TelemetryEndpoint = ""
+        TelemetryEnabled = $false
+    }
+    $defaultAppPaths | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $script:LogPath "AppPaths.json") -Encoding UTF8
+    Write-Host "[INIT] Created default AppPaths.json (configure EntraIdApp section)" -ForegroundColor Green
+}
+
+# Create empty JSON data files if missing
+$emptyJsonFiles = @{
+    "JobStatus.json" = @{ ActiveJobs = @(); RecentCompletedJobs = @(); SkippedJobs = @(); LastUpdated = $null }
+    "TenantStorage.json" = @{ TotalQuotaTB = 0; TotalUsedTB = 0; LastUpdated = $null }
+    "ExcludedSites.json" = @{ Count = 0; Sites = @(); LastUpdated = $null }
+    "SiteExecutionHistory.json" = @{ Sites = @{}; LastUpdated = $null }
+    "SessionHistory.json" = @{ Sessions = @(); LastUpdated = $null }
+    "TenantStorageTimeline.json" = @{ Timeline = @(); LastUpdated = $null }
+}
+foreach ($fileName in $emptyJsonFiles.Keys) {
+    $filePath = Join-Path $script:LogPath $fileName
+    if (-not (Test-Path $filePath)) {
+        $emptyJsonFiles[$fileName] | ConvertTo-Json -Depth 5 | Set-Content $filePath -Encoding UTF8
+    }
+}
+
+# Create empty CSV files if missing
+@("ExecutionHistory.csv", "SiteStorage.csv") | ForEach-Object {
+    $csvPath = Join-Path $script:LogPath $_
+    if (-not (Test-Path $csvPath)) {
+        "" | Set-Content $csvPath -Encoding UTF8
+    }
+}
 #endregion
 
 #region Exported Path Functions
