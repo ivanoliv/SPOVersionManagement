@@ -224,6 +224,36 @@ Go to **API permissions** → **Add a permission**:
 |------------|----------|---------|
 | `Exchange.ManageAsApp` | **Yes** | Connect to Security & Compliance PowerShell via `Connect-IPPSSession` |
 
+> **💡 Alternative: Add permission via App Manifest**
+>
+> If the UI method still doesn't work after creating the service principal, you can
+> add the permission directly in the app manifest:
+>
+> 1. In your Purview app registration, go to **Manifest**
+> 2. Find the `"requiredResourceAccess"` array
+> 3. Add the following entry (or append to the existing array):
+>
+> ```json
+> {
+>     "resourceAppId": "00000002-0000-0ff1-ce00-000000000000",
+>     "resourceAccess": [
+>         {
+>             "id": "dc50a0fb-09a3-484d-be87-e023b12c6440",
+>             "type": "Role"
+>         }
+>     ]
+> }
+> ```
+>
+> 4. Click **Save**
+> 5. Go back to **API permissions** — you should see `Exchange.ManageAsApp` listed
+> 6. Click **Grant admin consent for [tenant]**
+>
+> | GUID | Meaning |
+> |------|---------|
+> | `00000002-0000-0ff1-ce00-000000000000` | Office 365 Exchange Online service |
+> | `dc50a0fb-09a3-484d-be87-e023b12c6440` | `Exchange.ManageAsApp` permission |
+
 ### 2.5 Grant Admin Consent
 
 1. On the **API permissions** page, click **Grant admin consent for [tenant]**
