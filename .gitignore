@@ -20,3 +20,5 @@ deploy/*.zip
 # OS
 Thumbs.db
 Desktop.ini
+
+Examples/
