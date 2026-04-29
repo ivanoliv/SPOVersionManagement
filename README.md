@@ -446,39 +446,7 @@ $paths.AllSitesFile        # Full path to AllSites.json
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 📈 Power BI Integration
-
-### Data Sources
-
-| File | Description | Usage |
-|------|-------------|-------|
-| `ExecutionHistory.csv` | Complete execution history | Main dashboard |
-| `SiteStorage.csv` | Storage data per site | Trend analysis |
-| `AllSites.json` | Detailed data of all sites | Site list |
-| `JobStatus.json` | Real-time status | Live monitoring |
-| `SiteExecutionHistory.json` | History per site | Detailed analysis |
-
-### DAX Measures Example
-
-```dax
-// Total Released Storage
-ReleasedStorageGB = SUM(ExecutionHistory[StorageReleasedBytes]) / (1024*1024*1024)
-
-// Success Rate
-SuccessRate = 
-    DIVIDE(
-        COUNTROWS(FILTER(ExecutionHistory, ExecutionHistory[Status] = "CompleteSuccess")),
-        COUNTROWS(ExecutionHistory),
-        0
-    ) * 100
-
-// Estimated Savings ($13,000/TB/year)
-AnnualSavings = ([ReleasedStorageGB] / 1024) * 13000
-```
-
----
-
-## 🔧 Advanced Features
+##  Advanced Features
 
 ### Reexecution Interval Configuration
 
