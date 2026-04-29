@@ -1,10 +1,117 @@
 # SPO Version Management
 
-**Version 2.1.3.3** | Automated version policy management system for SharePoint Online with parallel execution, interactive HTML Dashboard, retention policy management, and real-time monitoring.
+> Automated storage optimization for SharePoint Online — reduce unnecessary costs, reclaim wasted capacity, and bring governance to version history at scale.
 
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://docs.microsoft.com/powershell/)
 [![SharePoint Online](https://img.shields.io/badge/SharePoint-Online-green.svg)](https://www.microsoft.com/microsoft-365/sharepoint/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+---
+
+## The Problem
+
+SharePoint Online storage grows silently. Most organizations don't realize that a significant portion of their consumed storage is not active business content — it's **accumulated file versions** that serve no operational or compliance purpose.
+
+Common storage growth drivers include:
+
+- **Uncontrolled version history** — Document libraries retaining hundreds of versions per file with no upper limit configured
+- **No lifecycle governance** — Sites and content persist indefinitely without ownership review or disposition
+- **Misaligned retention policies** — Retention configurations that prevent cleanup even when content has no legal or business hold
+- **Inactive sites with large footprints** — Abandoned team sites, project sites, and communication sites still consuming storage
+- **Reactive storage purchasing** — Organizations buying Microsoft 365 Extra File Storage instead of identifying and removing waste
+
+The result: recurring and growing costs for storage that delivers no business value, while the environment becomes harder to govern and less suitable for AI-powered scenarios like Microsoft Copilot (which performs better against clean, well-governed content).
+
+---
+
+## The Solution
+
+SPO Version Management is a **production-grade automation suite** (PowerShell + WinForms GUI) that identifies, quantifies, and remediates excessive storage consumption in SharePoint Online — with a primary focus on **version history optimization**.
+
+It uses the official SharePoint Online Management Shell APIs (`New-SPOSiteManageVersionPolicyJob`, `New-SPOSiteFileVersionBatchDeleteJob`) to:
+
+1. **Set version limits** across all sites in the tenant (SyncListPolicy phase)
+2. **Purge excess historical versions** that exceed the configured limits (BatchDelete phase)
+3. **Monitor and report** on progress, savings, and execution history in real time
+
+The tool handles the full lifecycle: discovery → policy enforcement → version deletion → monitoring → reporting — with parallel execution, automatic retry, retention policy suspension/resume, and comprehensive dashboards.
+
+---
+
+## How It Works
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  1. DISCOVER        Enumerate all SPO sites via Admin API        │
+│  2. FILTER          Apply inclusion/exclusion rules              │
+│  3. SYNC POLICY     Set version limits (e.g., 20 major versions)│
+│  4. BATCH DELETE    Purge versions exceeding the new limits      │
+│  5. MONITOR         Track job progress in real time              │
+│  6. REPORT          Dashboard + CSV exports for Power BI         │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- **Parallel execution** — Up to 10 simultaneous jobs with automatic queue management
+- **Retention-aware** — Automatically suspends/resumes retention policies that block deletion
+- **Resumable** — Pick up where you left off after interruptions
+- **Non-destructive by default** — SyncOnly mode for assessment without changes
+
+---
+
+## Expected Outcomes
+
+| Outcome | Description |
+|---------|-------------|
+| **Storage reclamation** | Typically 20–60% reduction in version-related storage consumption |
+| **Cost avoidance** | Reduce or eliminate need for Microsoft 365 Extra File Storage purchases |
+| **Policy enforcement** | Consistent version limits applied across the entire tenant |
+| **Governance baseline** | Visibility into site activity, storage distribution, and version patterns |
+| **Copilot readiness** | Cleaner content corpus with less redundant/obsolete data for AI indexing |
+| **Operational visibility** | Real-time dashboards and Power BI–ready exports for ongoing monitoring |
+
+---
+
+## Key Capabilities
+
+| Component | What it does |
+|-----------|--------------|
+| **PowerShell Module** | Core engine — parallel job orchestration, policy sync, batch deletion |
+| **HTML Dashboard** | Real-time browser UI — charts, status badges, storage trends, settings |
+| **WinForms GUI App** | Desktop application — configuration, execution control, prerequisites check |
+| **Retention Manager** | Suspend/resume retention policies blocking version cleanup |
+| **File Archive Search** | Identify large files by extension category across the tenant |
+| **Power BI Export** | CSV execution history and site storage data for advanced analytics |
+
+---
+
+## Who This Is For
+
+- **SharePoint Administrators** managing tenants with growing storage pressure
+- **Microsoft 365 Governance teams** implementing lifecycle controls
+- **IT Cost Optimization** initiatives targeting recurring storage spend
+- **Copilot readiness programs** that need cleaner, well-governed content
+- **Managed Service Providers** running storage optimization across multiple customers
+
+---
+
+## Quick Start
+
+```powershell
+# 1. Install
+.\Install-SPOVersionManagement.ps1
+
+# 2. Configure credentials (GUI, Dashboard, or edit config\AppPaths.json)
+#    See ENTRA_ID_APP_SETUP.md for app registration guide
+
+# 3. Run assessment (no changes, data collection only)
+.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -SyncOnly
+
+# 4. Run full optimization (set policies + delete excess versions)
+.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -MajorVersionLimit 20
+
+# 5. Monitor progress
+.\Start-Dashboard.ps1
+```
 
 ---
 
