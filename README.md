@@ -264,7 +264,19 @@ Start-Process ".\web\Dashboard.html"
 
 ## 🔧 Centralized Configuration
 
-The `config\AppPaths.json` file centralizes all application paths:
+The `config\AppPaths.json` file centralizes all application paths and credentials.
+
+### Configuring Credentials (ClientId, TenantId, Thumbprint)
+
+Credentials can be entered in **3 ways** — all write to the same `config\AppPaths.json`:
+
+| Method | How |
+|--------|-----|
+| **JSON file** | Edit `config\AppPaths.json` directly (see [ENTRA_ID_APP_SETUP.md](ENTRA_ID_APP_SETUP.md)) |
+| **Dashboard** | Open Dashboard → Settings tab → SPO/Purview App sections |
+| **GUI App** | Launch `SPOVersionManagement.exe` → Configuration tab |
+
+### Path Configuration
 
 ```json
 {

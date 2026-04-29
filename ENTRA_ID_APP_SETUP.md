@@ -89,9 +89,11 @@ Go to **API permissions** → **Add a permission**:
 2. Confirm by clicking **Yes**
 3. Verify all permissions show ✅ **Granted**
 
-### 1.6 Configure AppPaths.json
+### 1.6 Configure Credentials
 
-Edit `config\AppPaths.json`:
+There are **3 ways** to enter the SPO app credentials:
+
+#### Option A: Edit `config\AppPaths.json` directly
 
 ```json
 "EntraIdApp": {
@@ -100,6 +102,22 @@ Edit `config\AppPaths.json`:
     "CertificateThumbprint": "AABBCCDD1122334455..."
 }
 ```
+
+#### Option B: Dashboard (browser)
+
+1. Open the Dashboard (`web\Dashboard.html` or via `Start-Dashboard.ps1`)
+2. Go to **Settings** tab → **SPO App Registration** section
+3. Fill in Tenant ID, Client ID, and Certificate Thumbprint
+4. Click **Save**
+
+#### Option C: GUI App (WinForms)
+
+1. Launch `SPOVersionManagement.exe` (from `src\SPOVersionManagement\bin\`)
+2. Go to the **Configuration** tab
+3. Fill in **Tenant ID**, **Client ID**, and **Certificate Thumbprint** under the Entra ID App card
+4. Click **Save**
+
+> All three methods write to the same `config\AppPaths.json` file.
 
 ### 1.7 Install Certificate on the VM
 
@@ -227,9 +245,11 @@ The app also needs an Entra ID **directory role** to manage retention policies:
 > - `Compliance Data Administrator` — broader data compliance scope
 > - Custom role with `microsoft.office365.complianceManager/allEntities/allTasks`
 
-### 2.7 Configure AppPaths.json
+### 2.7 Configure Credentials
 
-Edit `config\AppPaths.json`:
+There are **3 ways** to enter the Purview app credentials:
+
+#### Option A: Edit `config\AppPaths.json` directly
 
 ```json
 "PurviewApp": {
@@ -238,6 +258,21 @@ Edit `config\AppPaths.json`:
     "Organization": "contoso.onmicrosoft.com"
 }
 ```
+
+#### Option B: Dashboard (browser)
+
+1. Open the Dashboard → **Settings** tab → **Purview App** section
+2. Fill in Client ID, Certificate Thumbprint, and Organization
+3. Click **Save**
+
+#### Option C: GUI App (WinForms)
+
+1. Launch `SPOVersionManagement.exe`
+2. Go to the **Configuration** tab
+3. Fill in **Client ID**, **Certificate Thumbprint**, and **Organization** under the Purview App card
+4. Click **Save**
+
+> All three methods write to the same `config\AppPaths.json` file.
 
 > **Organization** is your tenant's `.onmicrosoft.com` domain. Find it in:
 > Azure Portal → Microsoft Entra ID → Overview → **Primary domain**
