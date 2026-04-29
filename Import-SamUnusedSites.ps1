@@ -1,13 +1,19 @@
 <#
 .SYNOPSIS
-    Pre-processes AllSites.json and optional SAM report into a lightweight ArchiveAnalysis.json for the Dashboard.
+    Imports SAM (SharePoint Admin Center) unused sites report and generates ArchiveAnalysis.json.
 .DESCRIPTION
     Reads the large AllSites.json (can be 300+ MB) and extracts only the fields needed by the Archive tab.
-    Optionally merges data from the SharePoint Admin Center (SAM) Content Management Assessment CSV report
+    Merges data from the SharePoint Admin Center (SAM) Content Management Assessment CSV report
     to add inactive/ownerless flags based on Microsoft's 180-day usage policy analysis.
     
     The output ArchiveAnalysis.json is typically 5-15 MB (vs 300+ MB), making the Dashboard Archive tab 
     load instantly instead of crashing the browser.
+
+    How to get the SAM report:
+    1. Go to Microsoft 365 Admin Center > SharePoint Admin Center
+    2. Navigate to Sites > Active sites > Content Management Assessment
+    3. Download the CSV report ("Report created by Content Management Assessment_*.csv")
+    4. Place in the Logs folder or specify path with -SAMReportPath
 .PARAMETER LogPath
     Path to the Logs folder (default: .\Logs)
 .PARAMETER SAMReportPath
@@ -16,9 +22,9 @@
 .PARAMETER AllSitesPath
     Path to AllSites.json (default: LogPath\AllSites.json)
 .EXAMPLE
-    .\Export-ArchiveAnalysis.ps1
+    .\Import-SamUnusedSites.ps1
 .EXAMPLE
-    .\Export-ArchiveAnalysis.ps1 -SAMReportPath ".\Logs\Report created by Content Management Assessment_20260402184309000.csv"
+    .\Import-SamUnusedSites.ps1 -SAMReportPath ".\Logs\Report created by Content Management Assessment_20260402184309000.csv"
 #>
 [CmdletBinding()]
 param(
@@ -35,7 +41,7 @@ if (-not $AllSitesPath) { $AllSitesPath = Join-Path $LogPath "AllSites.json" }
 
 Write-Host ""
 Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host "  EXPORT ARCHIVE ANALYSIS" -ForegroundColor Cyan
+Write-Host "  IMPORT SAM UNUSED SITES" -ForegroundColor Cyan
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
 

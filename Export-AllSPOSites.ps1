@@ -10,7 +10,7 @@
     URL of SharePoint Admin Center (e.g., https://contoso-admin.sharepoint.com)
 
 .PARAMETER OutputPath
-    Output CSV file path. If not specified, saves to C:\temp\SPOVersionManagement\Logs\AllSPOSites.csv
+    Output CSV file path. If not specified, saves to .\Logs\AllSPOSites.csv
 
 .EXAMPLE
     .\Export-AllSPOSites.ps1 -AdminUrl "https://contoso-admin.sharepoint.com"
@@ -24,7 +24,7 @@ param(
     [string]$AdminUrl,
     
     [Parameter(Mandatory = $false)]
-    [string]$OutputPath = "C:\temp\SPOVersionManagement\Logs\AllSPOSites.csv"
+    [string]$OutputPath = (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "Logs\AllSPOSites.csv")
 )
 
 $ErrorActionPreference = "Stop"

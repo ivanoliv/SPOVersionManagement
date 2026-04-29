@@ -123,22 +123,33 @@ Install-Module -Name Microsoft.Graph -Force
 ## 📁 File Structure
 
 ```
-C:\temp\SPOVersionManagement\
+SPOVersionManagement\
 ├── SPOVersionManagement.psm1      # Main module with all functions
 ├── SPOSiteFilters.psm1            # Inclusion/exclusion filter module
+├── SPORetentionPolicyManager.psm1 # Retention policy management module
 ├── Start-SPOVersionManagement.ps1 # Main execution script
+├── Start-SPOVersionManagement_app.ps1 # Launch WinForms GUI app
 ├── Start-Dashboard.ps1            # Opens Dashboard in browser
+├── Start-FileArchiveSearch.ps1    # File archive search by extension
+├── Start-ArchiveWebsites.ps1     # Archive websites execution
+├── Import-SamUnusedSites.ps1     # Import SAM unused sites report
+├── Export-AllSPOSites.ps1         # Exports list of all sites
 ├── Reset-SPOVersionManagement.ps1 # Reset to deploy state
 ├── Rebuild-SiteExecutionHistory.ps1 # Rebuilds history from CSV
 ├── Connect-SPOFirst.ps1           # Helper connection script
-├── Export-AllSPOSites.ps1         # Exports list of all sites
+├── Install-SPOVersionManagement.ps1 # Installer (preserves configs)
+├── Build-DeployPackage.ps1        # Build deployment ZIP
 ├── IncludeSites.csv               # List of sites to process (optional)
 ├── ExcludeSites.csv               # List of sites to exclude (optional)
+├── SharePointSiteUsageStorage PM.csv # Graph storage report template
 ├── README.md                       # This documentation
+├── src\                            # WinForms GUI application (C#)
+│   └── SPOVersionManagement\      # .NET Framework 4.8 project
 └── Logs\
     ├── Dashboard.html             # Interactive HTML Dashboard
     ├── localization.js            # Translation file (EN/PT)
     ├── AppPaths.json              # Centralized path configuration
+    ├── ExtensionGroups.json       # File archive extension categories
     ├── AllSites.json              # Cache of all sites data
     ├── JobStatus.json             # Real-time job status
     ├── TenantStorage.json         # Tenant storage status
@@ -499,6 +510,116 @@ To use in JavaScript:
 const text = t('translation.key');
 // With parameters: t('key', param1, param2) - uses {0}, {1} in text
 ```
+
+---
+
+## 📄 CSV Files Reference
+
+### ExcludeSites.csv
+
+Sites to **exclude** from version management processing. The script skips any site listed here.
+
+| Column | Description |
+|--------|-------------|
+| `SiteURL` | Full SharePoint site URL (e.g., `https://contoso.sharepoint.com/sites/Legal`) |
+| `SiteName` | Friendly name for reference (optional but recommended) |
+| `Reason` | Why the site is excluded (e.g., "Under legal hold", "Recently migrated") |
+
+```csv
+SiteURL,SiteName,Reason
+https://contoso.sharepoint.com/sites/Legal,Legal Team,Under legal hold
+https://contoso.sharepoint.com/sites/Archive,Archive,Already archived
+```
+
+### IncludeSites.csv
+
+When provided, **only** these sites will be processed (whitelist mode). If empty, all tenant sites are processed.
+
+| Column | Description |
+|--------|-------------|
+| `SiteURL` | Full SharePoint site URL to process |
+
+```csv
+SiteURL
+https://contoso.sharepoint.com/sites/Finance
+https://contoso.sharepoint.com/sites/HR
+```
+
+### SharePointSiteUsageStorage PM.csv
+
+Tenant-level storage usage timeline from Microsoft Graph API. Used by the Dashboard for storage trend charts.
+
+| Column | Description |
+|--------|-------------|
+| `Report Refresh Date` | Date when Microsoft refreshed this data |
+| `Site Type` | Always "All" for tenant aggregate |
+| `Storage Used (Byte)` | Total storage consumed in bytes |
+| `Report Date` | The specific date this measurement represents |
+| `Report Period` | Reporting window in days (typically 180) |
+
+**How to obtain:**
+1. **Via Graph API** (automated): `Get-MgReportSharePointSiteUsageStorage -Period D180`
+2. **Via Admin Center** (manual): Microsoft 365 Admin > Reports > Usage > SharePoint > Site usage > Storage
+
+---
+
+## 🔎 File Archive Search
+
+The File Archive Search feature (`Start-FileArchiveSearch.ps1`) scans SharePoint sites for files matching specific extension categories using Microsoft Graph Search API.
+
+### Extension Groups Configuration
+
+Categories are loaded from `Logs\ExtensionGroups.json`. Each group has:
+- **Name**: Category display name
+- **Color**: Hex color for UI display
+- **Enabled**: Whether to include in searches (true/false)
+- **Extensions**: Array of file extensions to match
+
+```json
+{
+  "Groups": [
+    { "Name": "Video", "Color": "#ff5722", "Enabled": true, "Extensions": [".mp4", ".mov", ".wmv", ".avi"] },
+    { "Name": "Audio", "Color": "#9c27b0", "Enabled": true, "Extensions": [".mp3", ".wav", ".flac"] },
+    { "Name": "CAD",   "Color": "#795548", "Enabled": true, "Extensions": [".dwg", ".dxf", ".step"] }
+  ]
+}
+```
+
+Edit this file directly or use the GUI (File Archive panel > Extension Groups tab) to enable/disable categories and manage extensions.
+
+If `ExtensionGroups.json` is missing or empty, built-in defaults are used (Video, Audio, Image, Design, CAD).
+
+---
+
+## 🔒 Telemetry & Privacy
+
+### What is sent
+
+The application sends **anonymous usage telemetry** to help improve the product:
+- Session start/end timestamps
+- Number of sites processed per session
+- Storage released (aggregate, no site names)
+- Feature usage flags (which panels/features are used)
+- Application version
+
+### What is NOT sent
+- Site URLs or site names
+- User names or email addresses
+- File names or document content
+- Tenant domain name
+
+### Tenant ID Protection
+
+The tenant identifier is **one-way hashed** (SHA-256) before transmission. The original tenant ID cannot be recovered from the hash. This allows aggregate statistics per organization without exposing the actual tenant identity.
+
+```
+Original: 3f2504e0-4f89-11d3-9a0c-0305e82c3301
+Transmitted: a8b4c2... (SHA-256 hash, irreversible)
+```
+
+Telemetry can be disabled in `Logs\AppPaths.json` by setting `"TelemetryEnabled": false`.
+
+---
 
 ## 📝 Changelog
 

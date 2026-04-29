@@ -67,21 +67,21 @@ if (Test-Path $script:AppPathsFile) {
 # Default values if AppPaths.json doesn't exist or failed
 if (-not $script:AppPaths) {
     Write-Host "[CONFIG] Using default configuration (AppPaths.json not found)" -ForegroundColor Yellow
-    $script:RootPath = "C:\temp\SPOVersionManagement"
-    $script:LogPath = "C:\temp\SPOVersionManagement\Logs"
-    $script:BackupPath = "C:\temp\SPOVersionManagement\Logs\Backup"
-    $script:JobStatusFile = "C:\temp\SPOVersionManagement\Logs\JobStatus.json"
-    $script:TenantStorageFile = "C:\temp\SPOVersionManagement\Logs\TenantStorage.json"
-    $script:ExcludedSitesFile = "C:\temp\SPOVersionManagement\Logs\ExcludedSites.json"
-    $script:AllSitesFile = "C:\temp\SPOVersionManagement\Logs\AllSites.json"
-    $script:SiteExecutionHistoryFile = "C:\temp\SPOVersionManagement\Logs\SiteExecutionHistory.json"
-    $script:SiteStorageFile = "C:\temp\SPOVersionManagement\Logs\SiteStorage.csv"
-    $script:ExecutionHistoryFile = "C:\temp\SPOVersionManagement\Logs\ExecutionHistory.csv"
-    $script:DashboardConfigFile = "C:\temp\SPOVersionManagement\Logs\DashboardConfig.json"
-    $script:SessionHistoryFile = "C:\temp\SPOVersionManagement\Logs\SessionHistory.json"
-    $script:TenantStorageTimelineFile = "C:\temp\SPOVersionManagement\Logs\TenantStorageTimeline.json"
-    $script:IncludeSitesFile = "C:\temp\SPOVersionManagement\IncludeSites.csv"
-    $script:ExcludeSitesInputFile = "C:\temp\SPOVersionManagement\ExcludeSites.csv"
+    $script:RootPath = $PSScriptRoot
+    $script:LogPath = Join-Path $PSScriptRoot "Logs"
+    $script:BackupPath = Join-Path $PSScriptRoot "Logs\Backup"
+    $script:JobStatusFile = Join-Path $PSScriptRoot "Logs\JobStatus.json"
+    $script:TenantStorageFile = Join-Path $PSScriptRoot "Logs\TenantStorage.json"
+    $script:ExcludedSitesFile = Join-Path $PSScriptRoot "Logs\ExcludedSites.json"
+    $script:AllSitesFile = Join-Path $PSScriptRoot "Logs\AllSites.json"
+    $script:SiteExecutionHistoryFile = Join-Path $PSScriptRoot "Logs\SiteExecutionHistory.json"
+    $script:SiteStorageFile = Join-Path $PSScriptRoot "Logs\SiteStorage.csv"
+    $script:ExecutionHistoryFile = Join-Path $PSScriptRoot "Logs\ExecutionHistory.csv"
+    $script:DashboardConfigFile = Join-Path $PSScriptRoot "Logs\DashboardConfig.json"
+    $script:SessionHistoryFile = Join-Path $PSScriptRoot "Logs\SessionHistory.json"
+    $script:TenantStorageTimelineFile = Join-Path $PSScriptRoot "Logs\TenantStorageTimeline.json"
+    $script:IncludeSitesFile = Join-Path $PSScriptRoot "IncludeSites.csv"
+    $script:ExcludeSitesInputFile = Join-Path $PSScriptRoot "ExcludeSites.csv"
 }
 
 # Unique execution ID (always generated dynamically)

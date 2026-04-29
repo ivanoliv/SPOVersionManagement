@@ -42,7 +42,7 @@ catch {
 Write-Host ""
 Write-Host "[2] Downloading report ($Period)..." -ForegroundColor Yellow
 
-$tempFile = "C:\temp\SPOVersionManagement\Logs\GraphReport_Test.csv"
+$tempFile = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "Logs\GraphReport_Test.csv"
 
 try {
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()

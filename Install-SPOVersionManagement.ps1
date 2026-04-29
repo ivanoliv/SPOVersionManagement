@@ -11,7 +11,7 @@
     Run this script from inside the extracted ZIP folder (SPOVersionManagement\).
 
 .PARAMETER DestinationPath
-    The target installation folder. Defaults to C:\temp\SPOVersionManagement.
+    The target installation folder. Defaults to the script's own directory.
 
 .PARAMETER Force
     Overwrite all files including user configs (creates backups first).
@@ -31,7 +31,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$DestinationPath = "C:\temp\SPOVersionManagement",
+    [string]$DestinationPath = (Split-Path -Parent $MyInvocation.MyCommand.Path),
     [switch]$Force
 )
 

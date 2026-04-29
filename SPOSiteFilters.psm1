@@ -3,7 +3,7 @@
 
 $script:IncludedSites = @()
 $script:ExcludedSites = @()
-$script:ExcludedSitesFile = "C:\temp\SPOVersionManagement\Logs\ExcludedSites.json"
+$script:ExcludedSitesFile = Join-Path $PSScriptRoot "Logs\ExcludedSites.json"
 
 function Import-SiteListFromCSV {
     [CmdletBinding()]
@@ -188,7 +188,7 @@ function Clear-SiteExclusionList {
     
     $script:ExcludedSites = @()
     
-    $excludedSitesFile = "C:\temp\SPOVersionManagement\Logs\ExcludedSites.json"
+    $excludedSitesFile = Join-Path $PSScriptRoot "Logs\ExcludedSites.json"
     
     @{
         Count = 0
