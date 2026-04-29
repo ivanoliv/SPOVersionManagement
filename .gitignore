@@ -1,0 +1,22 @@
+# Build outputs
+bin/
+obj/
+.vs/
+packages/
+*.user
+*.suo
+
+# Logs (keep structure but not data)
+Logs/*.json
+Logs/*.csv
+Logs/*.html
+Logs/*.js
+Logs/*.txt
+Logs/Backup/
+
+# Deploy packages
+deploy/*.zip
+
+# OS
+Thumbs.db
+Desktop.ini

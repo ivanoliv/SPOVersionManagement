@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        window.FontAwesomeConfig = {
+          autoReplaceSvg: 'nest'
+        };
+      </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Wizard - Step 1/3 - SPO Version Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&family=Cascadia+Code&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bgStart: '#1a1a2e',
+                            bgEnd: '#16213e',
+                            surface: '#0f3460',
+                            input: '#1a2744',
+                            header: '#0d1b36',
+                            border: '#2a3a5c',
+                        },
+                        accent: {
+                            cyan: '#00d4ff',
+                            purple: '#7b2cbf',
+                            gold: '#ffc107',
+                            green: '#00e676',
+                            red: '#ff5252',
+                            orange: '#ff9800'
+                        },
+                        text: {
+                            primary: '#FFFFFF',
+                            secondary: '#b0b0b0',
+                            muted: '#6c757d'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Segoe UI', 'system-ui', 'sans-serif'],
+                        mono: ['Cascadia Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #FFFFFF;
+            min-height: 100vh;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0d1b36; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a3a5c; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00d4ff; 
+        }
+        .glass-panel {
+            background: rgba(15, 52, 96, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid #2a3a5c;
+        }
+        .neon-glow:hover {
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+        }
+        .pulse-amber {
+            animation: pulse-amber 2s infinite;
+        }
+        @keyframes pulse-amber {
+            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(255, 193, 7, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        }
+        
+        /* Custom Checkbox/Radio Styles */
+        .custom-checkbox {
+            appearance: none;
+            background-color: transparent;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.15em;
+            height: 1.15em;
+            border: 1px solid #2a3a5c;
+            border-radius: 0.15em;
+            display: grid;
+            place-content: center;
+        }
+        .custom-checkbox::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em #00d4ff;
+            background-color: #00d4ff;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .custom-checkbox:checked::before {
+            transform: scale(1);
+        }
+        .custom-checkbox:checked {
+            border-color: #00d4ff;
+        }
+
+        /* Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #00e676;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #00e676;
+        }
+        .toggle-checkbox:checked + .toggle-label:after {
+            transform: translateX(100%);
+            border-color: white;
+        }
+        
+        /* Card Hover Effect */
+        .workload-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .workload-card:hover {
+            border-color: #00d4ff;
+            background-color: rgba(26, 39, 68, 0.8);
+        }
+        .workload-card.selected {
+            border-color: #00d4ff;
+            background-color: rgba(0, 212, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <!-- Top Notification Bar (Hidden by default, shown for context) -->
+    <div id="notification-bar" class="hidden bg-brand-surface border-b border-accent-cyan px-4 py-2 flex items-center justify-between text-sm">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-circle-info text-accent-cyan"></i>
+            <span>System ready. Please connect to a tenant to begin.</span>
+        </div>
+        <button class="text-text-muted hover:text-text-primary"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- Main Application Area -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Left Sidebar / Progress -->
+        <div id="sidebar" class="w-64 bg-brand-header border-r border-brand-border flex flex-col hidden md:flex">
+            <div class="p-6 border-b border-brand-border">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-8 h-8 rounded bg-accent-purple/20 border border-accent-purple flex items-center justify-center text-accent-purple">
+                        <i class="fa-brands fa-microsoft"></i>
+                    </div>
+                    <h1 class="font-semibold text-lg tracking-tight text-text-primary">SPO Manager</h1>
+                </div>
+                <p class="text-xs text-text-muted mt-1 font-mono">v2.4.0-desktop</p>
+            </div>
+
+            <div class="p-6 flex-1">
+                <h2 class="text-text-secondary text-sm font-semibold mb-6 uppercase tracking-wider">Setup Progress</h2>
+                
+                <div class="relative">
+                    <div class="absolute left-[11px] top-4 bottom-4 w-0.5 bg-brand-border"></div>
+                    
+                    <!-- Step 1: Completed (Previous) -->
+                    <div class="flex items-start gap-4 relative z-10 mb-8">
+                        <div class="w-6 h-6 rounded-full bg-brand-surface border border-accent-green flex items-center justify-center mt-0.5 shrink-0 text-accent-green">
+                            <i class="fa-solid fa-check text-[10px]"></i>
+                        </div>
+                        <div>
+                            <p class="text-text-secondary font-semibold text-sm">Tenant Connection</p>
+                            <p class="text-text-muted text-xs mt-1">Authenticated</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Active (Current) -->
+                    <div class="flex items-start gap-4 relative z-10 mb-8">
+                        <div class="w-6 h-6 rounded-full bg-accent-cyan flex items-center justify-center border-4 border-brand-header mt-0.5 shrink-0">
+                            <div class="w-2 h-2 rounded-full bg-brand-header"></div>
+                        </div>
+                        <div>
+                            <p class="text-text-primary font-semibold text-sm">Configuration</p>
+                            <p class="text-text-muted text-xs mt-1">Set default policies</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Pending -->
+                    <div class="flex items-start gap-4 relative z-10 mb-8 opacity-50">
+                        <div class="w-6 h-6 rounded-full bg-brand-surface border border-brand-border flex items-center justify-center mt-0.5 shrink-0 text-xs">
+                            3
+                        </div>
+                        <div>
+                            <p class="text-text-secondary font-semibold text-sm">Site Targeting</p>
+                            <p class="text-text-muted text-xs mt-1">Define scope</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 border-t border-brand-border">
+                <a href="#" class="flex items-center gap-2 text-text-secondary hover:text-text-primary text-sm transition-colors mb-3">
+                    <i class="fa-solid fa-book text-xs"></i> Documentation
+                </a>
+                <a href="#" class="flex items-center gap-2 text-text-secondary hover:text-text-primary text-sm transition-colors mb-3">
+                    <i class="fa-solid fa-shield-halved text-xs"></i> Security & Privacy
+                </a>
+                <a href="#" class="flex items-center gap-2 text-text-secondary hover:text-text-primary text-sm transition-colors">
+                    <i class="fa-solid fa-circle-question text-xs"></i> Help & Support
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main id="main-content" class="flex-1 overflow-y-auto relative p-6 lg:p-12 flex justify-center items-start pt-12">
+            
+            <!-- Step 1/3 Configuration Card -->
+            <div id="step-1-config" class="glass-panel w-full max-w-4xl rounded-xl shadow-2xl flex flex-col mb-12">
+                
+                <!-- Card Header -->
+                <div class="p-8 border-b border-brand-border flex justify-between items-start">
+                    <div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <h2 class="text-2xl font-bold text-text-primary">Environment & Scope Basics</h2>
+                        </div>
+                        <p class="text-text-secondary mt-2 max-w-xl">
+                            Configure the fundamental settings for your SharePoint environment management session.
+                        </p>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <div class="text-sm font-semibold text-text-secondary mb-1">Step 1 of 3</div>
+                        <div class="flex items-center gap-2 bg-brand-input px-3 py-1.5 rounded-full border border-brand-border">
+                            <div class="w-2 h-2 rounded-full bg-accent-green"></div>
+                            <span class="text-xs text-text-secondary font-mono">Status: Connected</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="p-8 space-y-10">
+                    
+                    <!-- Section 1: Workload Configuration Grid -->
+                    <div id="workload-config">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold text-text-primary">Target Workloads</h3>
+                            <p class="text-sm text-text-secondary mt-1">Select the operations you intend to perform during this session.</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Card 1 -->
+                            <label class="workload-card selected cursor-pointer bg-brand-input border border-accent-cyan rounded-lg p-5 flex flex-col relative overflow-hidden">
+                                <div class="absolute top-4 right-4">
+                                    <input type="checkbox" class="custom-checkbox" checked>
+                                </div>
+                                <div class="w-10 h-10 rounded-lg bg-accent-cyan/20 flex items-center justify-center text-accent-cyan mb-4">
+                                    <i class="fa-solid fa-code-branch"></i>
+                                </div>
+                                <h4 class="font-semibold text-text-primary text-sm mb-2">SharePoint Version Policies</h4>
+                                <p class="text-xs text-text-muted leading-relaxed">Analyze and trim excessive file versions to reclaim storage.</p>
+                            </label>
+
+                            <!-- Card 2 -->
+                            <label class="workload-card cursor-pointer bg-brand-input border border-brand-border rounded-lg p-5 flex flex-col relative overflow-hidden">
+                                <div class="absolute top-4 right-4">
+                                    <input type="checkbox" class="custom-checkbox">
+                                </div>
+                                <div class="w-10 h-10 rounded-lg bg-accent-purple/20 flex items-center justify-center text-accent-purple mb-4">
+                                    <i class="fa-solid fa-hard-drive"></i>
+                                </div>
+                                <h4 class="font-semibold text-text-primary text-sm mb-2">Storage Monitoring</h4>
+                                <p class="text-xs text-text-muted leading-relaxed">Generate tenant-wide storage consumption reports and alerts.</p>
+                            </label>
+
+                            <!-- Card 3 -->
+                            <label class="workload-card cursor-pointer bg-brand-input border border-brand-border rounded-lg p-5 flex flex-col relative overflow-hidden">
+                                <div class="absolute top-4 right-4">
+                                    <input type="checkbox" class="custom-checkbox">
+                                </div>
+                                <div class="w-10 h-10 rounded-lg bg-accent-gold/20 flex items-center justify-center text-accent-gold mb-4">
+                                    <i class="fa-solid fa-file-shield"></i>
+                                </div>
+                                <h4 class="font-semibold text-text-primary text-sm mb-2">Retention Visibility</h4>
+                                <p class="text-xs text-text-muted leading-relaxed">Audit applied retention labels and policies across sites.</p>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="h-px bg-brand-border w-full"></div>
+
+                    <!-- Section 2: Scope Configuration -->
+                    <div id="scope-config">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
+                                Scope Selection
+                                <span class="text-accent-red text-sm">*</span>
+                            </h3>
+                            <p class="text-sm text-text-secondary mt-1">Define the default boundary for operations.</p>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <label class="flex-1 flex items-start gap-3 p-4 rounded-lg border border-accent-cyan bg-brand-input/50 cursor-pointer transition-colors relative overflow-hidden">
+                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-accent-cyan"></div>
+                                <input type="radio" name="scope_selection" class="mt-1 accent-accent-cyan" checked>
+                                <div>
+                                    <span class="block text-sm font-medium text-text-primary">All Sites (Tenant-Wide)</span>
+                                    <span class="block text-xs text-text-secondary mt-1">Apply operations globally across all active SharePoint sites.</span>
+                                </div>
+                            </label>
+
+                            <label class="flex-1 flex items-start gap-3 p-4 rounded-lg border border-brand-border hover:border-brand-border/80 bg-brand-input/30 cursor-pointer transition-colors">
+                                <input type="radio" name="scope_selection" class="mt-1 accent-accent-cyan">
+                                <div>
+                                    <span class="block text-sm font-medium text-text-primary">Selected Sites Only</span>
+                                    <span class="block text-xs text-text-secondary mt-1">Restrict operations to specific URLs (configured in next step).</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="h-px bg-brand-border w-full"></div>
+
+                    <!-- Section 3: Execution Defaults (Safe-Mode) -->
+                    <div id="execution-defaults">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold text-text-primary">Execution Defaults</h3>
+                            <p class="text-sm text-text-secondary mt-1">Configure safety parameters for automated tasks.</p>
+                        </div>
+
+                        <div class="bg-brand-input/50 border border-brand-border rounded-lg p-5 flex items-center justify-between">
+                            <div class="flex items-start gap-4">
+                                <div class="w-10 h-10 rounded bg-accent-green/10 flex items-center justify-center text-accent-green shrink-0">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-semibold text-text-primary mb-1">Safe-Mode (Dry-Run)</h4>
+                                    <p class="text-xs text-text-secondary max-w-md">
+                                        When enabled, operations will only generate logs and reports without modifying actual tenant data. Highly recommended for initial runs.
+                                    </p>
+                                    <div class="mt-2 flex items-center gap-2">
+                                        <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-accent-green/10 text-accent-green text-[10px] font-mono font-bold border border-accent-green/20">
+                                            <div class="w-1.5 h-1.5 rounded-full bg-accent-green"></div>
+                                            Dry-run enabled
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Toggle Switch -->
+                            <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="safe-mode-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-brand-input appearance-none cursor-pointer z-10 transition-all duration-300 right-0 border-accent-green" checked/>
+                                <label for="safe-mode-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-accent-green cursor-pointer transition-colors duration-300"></label>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Card Footer / Actions -->
+                <div class="p-6 border-t border-brand-border bg-brand-header/50 rounded-b-xl flex justify-between items-center">
+                    <button class="text-sm text-text-muted hover:text-text-primary transition-colors flex items-center gap-2 px-4 py-2 rounded-lg">
+                        Skip Setup
+                    </button>
+                    
+                    <div class="flex gap-3">
+                        <button class="text-sm text-text-primary bg-brand-input hover:bg-brand-border border border-brand-border transition-colors px-6 py-2 rounded-lg font-semibold">
+                            Back
+                        </button>
+                        <button class="bg-gradient-to-r from-accent-cyan to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white font-bold py-2 px-8 rounded-lg shadow-[0_0_15px_rgba(0,212,255,0.3)] neon-glow transition-all flex items-center gap-2">
+                            Next <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Terminal Output Preview (Decorative/Contextual) -->
+            <div class="absolute bottom-6 left-6 right-6 hidden lg:block opacity-50 pointer-events-none">
+                <div class="font-mono text-[10px] text-text-muted max-w-2xl">
+                    <p>[SYS] Tenant connection verified: contoso.onmicrosoft.com</p>
+                    <p>[SYS] Loading Step 1 configuration module...</p>
+                    <p>[INFO] Safe-mode defaults engaged.</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Bottom Status Bar -->
+    <div id="status-bar" class="bg-brand-header border-t border-brand-border h-8 flex items-center justify-between px-4 text-xs font-mono text-text-muted shrink-0 z-50">
+        <div class="flex items-center gap-4">
+            <span class="flex items-center gap-1"><i class="fa-solid fa-server text-[10px]"></i> Local Cache: Ready</span>
+            <span class="flex items-center gap-1 text-accent-green"><i class="fa-solid fa-link text-[10px]"></i> MS Graph: Connected</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span>Session: ID-9482</span>
+            <span>Mem: 48MB</span>
+        </div>
+    </div>
+
+</body>
+</html>

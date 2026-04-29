@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        window.FontAwesomeConfig = {
+          autoReplaceSvg: 'nest'
+        };
+      </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Wizard - Step 3/3 - SPO Version Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&family=Cascadia+Code&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bgStart: '#1a1a2e',
+                            bgEnd: '#16213e',
+                            surface: '#0f3460',
+                            input: '#1a2744',
+                            header: '#0d1b36',
+                            border: '#2a3a5c',
+                        },
+                        accent: {
+                            cyan: '#00d4ff',
+                            purple: '#7b2cbf',
+                            gold: '#ffc107',
+                            green: '#00e676',
+                            red: '#ff5252',
+                            orange: '#ff9800'
+                        },
+                        text: {
+                            primary: '#FFFFFF',
+                            secondary: '#b0b0b0',
+                            muted: '#6c757d'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Segoe UI', 'system-ui', 'sans-serif'],
+                        mono: ['Cascadia Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #FFFFFF;
+            min-height: 100vh;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0d1b36; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a3a5c; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00d4ff; 
+        }
+        .glass-panel {
+            background: rgba(15, 52, 96, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid #2a3a5c;
+        }
+        .neon-glow:hover {
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+        }
+        
+        /* Custom Checkbox */
+        .impact-checkbox {
+            appearance: none;
+            background-color: transparent;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.5em;
+            height: 1.5em;
+            border: 2px solid #ff9800;
+            border-radius: 0.25em;
+            display: grid;
+            place-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .impact-checkbox::before {
+            content: "";
+            width: 0.85em;
+            height: 0.85em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em #00e676;
+            background-color: #00e676;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        
+        .impact-checkbox:checked {
+            border-color: #00e676;
+        }
+
+        .impact-checkbox:checked::before {
+            transform: scale(1);
+        }
+        
+        /* Tooltip Container */
+        .tooltip-container .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <!-- Top Notification Bar -->
+    <div id="notification-bar" class="hidden bg-brand-surface border-b border-accent-cyan px-4 py-2 flex items-center justify-between text-sm">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-circle-info text-accent-cyan"></i>
+            <span>System ready. Please connect to a tenant to begin.</span>
+        </div>
+        <button class="text-text-muted hover:text-text-primary"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- Main Application Area -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Left Sidebar / Progress -->
+        <div id="sidebar" class="w-64 bg-brand-header border-r border-brand-border flex flex-col hidden md:flex">
+            <div class="p-6 border-b border-brand-border">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-8 h-8 rounded bg-accent-purple/20 border border-accent-purple flex items-center justify-center text-accent-purple">
+                        <i class="fa-brands fa-microsoft"></i>
+                    </div>
+                    <h1 class="font-semibold text-lg tracking-tight text-text-primary">SPO Manager</h1>
+                </div>
+                <p class="text-xs text-text-muted mt-1 font-mono">v2.4.0-desktop</p>
+            </div>
+
+            <div class="p-6 flex-1">
+                <h2 class="text-text-secondary text-sm font-semibold mb-6 uppercase tracking-wider">Setup Progress</h2>
+                
+                <div class="relative">
+                    <div class="absolute left-[11px] top-4 bottom-4 w-0.5 bg-brand-border"></div>
+                    
+                    <!-- Step 1: Completed -->
+                    <div class="flex items-start gap-4 relative z-10 mb-8">
+                        <div class="w-6 h-6 rounded-full bg-brand-surface border border-accent-green flex items-center justify-center mt-0.5 shrink-0 text-accent-green">
+                            <i class="fa-solid fa-check text-[10px]"></i>
+                        </div>
+                        <div>
+                            <p class="text-text-secondary font-semibold text-sm">Tenant Connection</p>
+                            <p class="text-text-muted text-xs mt-1">Authenticated</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Completed -->
+                    <div class="flex items-start gap-4 relative z-10 mb-8">
+                        <div class="w-6 h-6 rounded-full bg-brand-surface border border-accent-green flex items-center justify-center mt-0.5 shrink-0 text-accent-green">
+                            <i class="fa-solid fa-check text-[10px]"></i>
+                        </div>
+                        <div>
+                            <p class="text-text-secondary font-semibold text-sm">Performance & Caching</p>
+                            <p class="text-text-muted text-xs mt-1">Configured</p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Active (Current) -->
+                    <div class="flex items-start gap-4 relative z-10 mb-8">
+                        <div class="w-6 h-6 rounded-full bg-accent-cyan flex items-center justify-center border-4 border-brand-header mt-0.5 shrink-0 shadow-[0_0_10px_rgba(0,212,255,0.5)]">
+                            <div class="w-2 h-2 rounded-full bg-brand-header"></div>
+                        </div>
+                        <div>
+                            <p class="text-text-primary font-semibold text-sm">Review & Finish</p>
+                            <p class="text-text-muted text-xs mt-1">Confirm setup</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 border-t border-brand-border">
+                <a href="#" class="flex items-center gap-2 text-text-secondary hover:text-text-primary text-sm transition-colors mb-3">
+                    <i class="fa-solid fa-book text-xs"></i> Documentation
+                </a>
+                <a href="#" class="flex items-center gap-2 text-text-secondary hover:text-text-primary text-sm transition-colors mb-3">
+                    <i class="fa-solid fa-shield-halved text-xs"></i> Security & Privacy
+                </a>
+                <a href="#" class="flex items-center gap-2 text-text-secondary hover:text-text-primary text-sm transition-colors">
+                    <i class="fa-solid fa-circle-question text-xs"></i> Help & Support
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main id="main-content" class="flex-1 overflow-y-auto relative p-6 lg:p-12 flex justify-center items-start pt-12">
+            
+            <!-- Step 3/3 Configuration Card -->
+            <div id="step-3-config" class="glass-panel w-full max-w-4xl rounded-xl shadow-2xl flex flex-col mb-12 border-accent-cyan/30">
+                
+                <!-- Card Header -->
+                <div class="p-8 border-b border-brand-border flex justify-between items-start bg-brand-surface/50 rounded-t-xl">
+                    <div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <h2 class="text-2xl font-bold text-text-primary">Review & Finish</h2>
+                        </div>
+                        <p class="text-text-secondary mt-2 max-w-xl">
+                            Please review your configuration before finalizing. You can modify these settings later in the Config tab.
+                        </p>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <div class="text-sm font-semibold text-text-secondary mb-1">Step 3 of 3</div>
+                        <div class="flex items-center gap-2 bg-brand-input px-3 py-1.5 rounded-full border border-brand-border">
+                            <div class="w-2 h-2 rounded-full bg-accent-cyan animate-pulse shadow-[0_0_8px_rgba(0,212,255,0.8)]"></div>
+                            <span class="text-xs text-text-secondary font-mono">Status: Finalizing</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="p-8 space-y-8">
+                    
+                    <!-- Section 1: Summary Card -->
+                    <div id="summary-card" class="bg-brand-input/40 border border-brand-border rounded-lg p-6 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-accent-cyan"></div>
+                        
+                        <h3 class="text-lg font-semibold text-text-primary mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-accent-cyan"></i> Configuration Summary
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Tenant Info -->
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Target Tenant</p>
+                                    <p class="text-sm font-mono text-text-primary bg-brand-header/50 px-3 py-2 rounded border border-brand-border">contoso.sharepoint.com</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Authentication</p>
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-shield-check text-accent-green text-sm"></i>
+                                        <p class="text-sm text-text-primary">App-Only (Certificate)</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Performance Info -->
+                            <div class="space-y-4">
+                                <div>
+                                    <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Performance Profile</p>
+                                    <div class="flex items-center gap-3">
+                                        <span class="bg-brand-header/50 px-2 py-1 rounded text-xs border border-brand-border font-mono">Threads: 5</span>
+                                        <span class="bg-brand-header/50 px-2 py-1 rounded text-xs border border-brand-border font-mono">Backoff: Standard</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Data Caching</p>
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-database text-accent-cyan text-sm"></i>
+                                        <p class="text-sm text-text-primary">Enabled (4h TTL)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Impact Confirmation -->
+                    <div id="impact-confirmation" class="bg-accent-orange/10 border border-accent-orange/30 rounded-lg p-6">
+                        <div class="flex items-start gap-4">
+                            <div class="w-12 h-12 rounded-full bg-accent-orange/20 flex items-center justify-center text-accent-orange shrink-0 border border-accent-orange/50 mt-1">
+                                <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold text-text-primary mb-2">Tenant-Wide Impact Warning</h3>
+                                <p class="text-sm text-text-secondary mb-4 leading-relaxed">
+                                    The settings configured here will dictate how the tool interacts with your SharePoint environment. Version management operations can significantly impact storage metrics and recovery capabilities across all targeted site collections.
+                                </p>
+                                
+                                <label class="flex items-center gap-3 cursor-pointer group bg-brand-header/50 p-3 rounded border border-brand-border hover:border-accent-orange/50 transition-colors">
+                                    <input type="checkbox" class="impact-checkbox" id="confirm-impact">
+                                    <span class="text-sm text-text-primary font-medium group-hover:text-accent-orange transition-colors">
+                                        I acknowledge the impact of these configuration settings on the tenant environment.
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Next Steps Guidance -->
+                    <div id="next-steps-guidance" class="bg-brand-input/20 border border-brand-border rounded-lg p-5 flex items-center gap-4">
+                        <i class="fa-solid fa-circle-info text-text-muted text-xl"></i>
+                        <div>
+                            <p class="text-sm text-text-secondary">
+                                After finishing, you will be directed to the <strong class="text-text-primary">Home Dashboard</strong>. 
+                                To begin managing versions, navigate to the <strong class="text-accent-cyan">Execution</strong> tab.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Card Footer / Actions -->
+                <div class="p-6 border-t border-brand-border bg-brand-header/80 rounded-b-xl flex justify-between items-center">
+                    <button class="text-sm text-text-muted hover:text-text-primary transition-colors flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-brand-input">
+                        Skip
+                    </button>
+                    
+                    <div class="flex gap-3">
+                        <button class="text-sm text-text-primary bg-brand-input hover:bg-brand-border border border-brand-border transition-colors px-6 py-2 rounded-lg font-semibold">
+                            Back
+                        </button>
+                        <button class="bg-gradient-to-r from-accent-green to-[#00b359] hover:from-[#00b359] hover:to-[#00994d] text-white font-bold py-2 px-8 rounded-lg shadow-[0_0_15px_rgba(0,230,118,0.3)] neon-glow transition-all flex items-center gap-2 opacity-50 cursor-not-allowed" id="finish-btn" disabled>
+                            Finish & Save <i class="fa-solid fa-check text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Terminal Output Preview (Decorative/Contextual) -->
+            <div class="absolute bottom-6 left-6 right-6 hidden lg:block opacity-50 pointer-events-none">
+                <div class="font-mono text-[10px] text-text-muted max-w-2xl">
+                    <p>[SYS] Loading Step 3 review module...</p>
+                    <p>[INFO] Configuration schema validated successfully.</p>
+                    <p>[WARN] Awaiting user acknowledgment of tenant impact.</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Bottom Status Bar -->
+    <div id="status-bar" class="bg-brand-header border-t border-brand-border h-8 flex items-center justify-between px-4 text-xs font-mono text-text-muted shrink-0 z-50">
+        <div class="flex items-center gap-4">
+            <span class="flex items-center gap-1 text-accent-green"><i class="fa-solid fa-server text-[10px]"></i> Local Cache: Active</span>
+            <span class="flex items-center gap-1 text-accent-green"><i class="fa-solid fa-link text-[10px]"></i> MS Graph: Connected</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <span>Session: ID-9482</span>
+            <span>Mem: 54MB</span>
+        </div>
+    </div>
+
+    <script>
+        // Simple logic to enable/disable finish button based on checkbox
+        document.getElementById('confirm-impact').addEventListener('change', function(e) {
+            const btn = document.getElementById('finish-btn');
+            if(e.target.checked) {
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.removeAttribute('disabled');
+            } else {
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                btn.setAttribute('disabled', 'true');
+            }
+        });
+    </script>
+</body>
+</html>
