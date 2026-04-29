@@ -200,8 +200,8 @@ The tool handles the full lifecycle: discovery → policy enforcement → versio
 ## 📋 Requirements
 
 ### PowerShell
-- PowerShell 5.1 or PowerShell 7+
-- Windows PowerShell or PowerShell Core
+- PowerShell 5.1 **and** PowerShell 7+ (PnP.PowerShell requires 7+)
+- Windows PowerShell 5.1 for SPO Management Shell cmdlets
 
 ### Required Modules
 ```powershell
