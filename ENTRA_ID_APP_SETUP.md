@@ -19,7 +19,7 @@ version policy management, and batch version deletion.
 1. Go to **Azure Portal** → **Microsoft Entra ID** → **App registrations** → **New registration**
 2. Fill in:
    - **Name**: `SPO Version Management`
-   - **Supported account types**: `Accounts in this organizational directory only`
+   - **Supported account types**: `Single tenant only - [YourTenant]`
 3. Click **Register**
 4. Copy these values:
    - **Application (client) ID** → put in `AppPaths.json` → `EntraIdApp.ClientId`
@@ -152,7 +152,7 @@ ExchangeOnlineManagement module.
 1. Go to **Azure Portal** → **Microsoft Entra ID** → **App registrations** → **New registration**
 2. Fill in:
    - **Name**: `SPO Version Management - Purview`
-   - **Supported account types**: `Accounts in this organizational directory only`
+   - **Supported account types**: `Single tenant only - [YourTenant]`
 3. Click **Register**
 4. Copy the **Application (client) ID** → put in `AppPaths.json` → `PurviewApp.ClientId`
 
