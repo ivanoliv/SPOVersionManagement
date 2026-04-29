@@ -1,4 +1,4 @@
-﻿# Start-SPOVersionManagement.ps1
+# Start-SPOVersionManagement.ps1
 # Main script for SharePoint Online version management
 # 
 # Usage:
@@ -68,7 +68,7 @@ $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Read version from AppPaths.json
 $appVersion = "unknown"
-$appPathsPath = Join-Path $scriptPath "Logs\AppPaths.json"
+$appPathsPath = Join-Path $scriptPath "config\AppPaths.json"
 if (Test-Path $appPathsPath) {
     try {
         $appPathsData = Get-Content $appPathsPath -Raw | ConvertFrom-Json
@@ -296,8 +296,8 @@ catch {
 }
 
 #region Tenant mismatch detection
-$logPath = Join-Path $scriptPath "Logs"
-$sessionHistoryPath = Join-Path $logPath "SessionHistory.json"
+$configPath = Join-Path $scriptPath "config"
+$sessionHistoryPath = Join-Path $configPath "SessionHistory.json"
 if (-not $ResetDatabase -and (Test-Path $sessionHistoryPath)) {
     try {
         $historyData = Get-Content $sessionHistoryPath -Raw | ConvertFrom-Json
@@ -811,7 +811,7 @@ if (-not $resumeExecution) {
 # Open Dashboard
 Write-Host ""
 Write-Host "[5/6] Dashboard..." -ForegroundColor Yellow
-$dashboardPath = "$scriptPath\Logs\Dashboard.html"
+$dashboardPath = "$scriptPath\web\Dashboard.html"
 if (Test-Path $dashboardPath) {
     Write-Host "  Dashboard available at: $dashboardPath" -ForegroundColor Cyan
     if ($OpenDashboard) {
@@ -834,7 +834,7 @@ if ($SyncOnly -and -not $InputSiteSyncListCSV) {
     Write-Host "  Open the Dashboard to view current tenant status." -ForegroundColor Cyan
     Write-Host "================================================================" -ForegroundColor Green
     if ($OpenDashboard) {
-        Start-Process "$scriptPath\Logs\Dashboard.html"
+        Start-Process "$scriptPath\web\Dashboard.html"
     }
     exit 0
 }
@@ -1020,12 +1020,12 @@ try {
         Write-Host "  ================================================================" -ForegroundColor Magenta
         
         $retentionConnectParams = @{
-            LogPath = Join-Path $scriptPath "Logs"
+            LogPath = Join-Path $scriptPath "config"
         }
         
         # Check if PurviewApp is configured in AppPaths.json
         $purviewConfigured = $false
-        $purviewAppPathsFile = Join-Path $scriptPath "Logs\AppPaths.json"
+        $purviewAppPathsFile = Join-Path $scriptPath "config\AppPaths.json"
         if (Test-Path $purviewAppPathsFile) {
             try {
                 $purviewAppPaths = Get-Content $purviewAppPathsFile -Raw | ConvertFrom-Json

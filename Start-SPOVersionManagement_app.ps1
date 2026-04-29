@@ -1,4 +1,4 @@
-﻿# Start-SPOVersionManagement_app.ps1
+# Start-SPOVersionManagement_app.ps1
 # App-based (Entra ID) authentication variant for unattended/automated execution
 #
 # Connects to SharePoint Online and Microsoft Graph using certificate-based
@@ -103,7 +103,7 @@ $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Read version from AppPaths.json
 $appVersion = "unknown"
-$appPathsPath = Join-Path $scriptPath "Logs\AppPaths.json"
+$appPathsPath = Join-Path $scriptPath "config\AppPaths.json"
 if (Test-Path $appPathsPath) {
     try {
         $appPathsData = Get-Content $appPathsPath -Raw | ConvertFrom-Json
@@ -186,7 +186,7 @@ if ($ResetDatabase) {
 
 #region Load Entra ID credentials from AppPaths.json if not provided via parameters
 if (-not $TenantId -or -not $ClientId) {
-    $appPathsFile = Join-Path $scriptPath "Logs\AppPaths.json"
+    $appPathsFile = Join-Path $scriptPath "config\AppPaths.json"
     if (Test-Path $appPathsFile) {
         try {
             $appPathsJson = Get-Content $appPathsFile -Raw | ConvertFrom-Json
@@ -786,7 +786,7 @@ if (-not $resumeExecution) {
 #region Dashboard
 Write-Host ""
 Write-Host "[6/7] Dashboard..." -ForegroundColor Yellow
-$dashboardPath = "$scriptPath\Logs\Dashboard.html"
+$dashboardPath = "$scriptPath\web\Dashboard.html"
 if (Test-Path $dashboardPath) {
     Write-Host "  Dashboard: $dashboardPath" -ForegroundColor Cyan
     if ($OpenDashboard) {
@@ -806,7 +806,7 @@ if ($SyncOnly -and -not $InputSiteSyncListCSV) {
     Write-Host "  Open the Dashboard to view current tenant status." -ForegroundColor Cyan
     Write-Host "================================================================" -ForegroundColor Green
     if ($OpenDashboard) {
-        Start-Process "$scriptPath\Logs\Dashboard.html"
+        Start-Process "$scriptPath\web\Dashboard.html"
     }
     exit 0
 }

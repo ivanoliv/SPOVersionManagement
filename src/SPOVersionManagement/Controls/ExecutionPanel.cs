@@ -383,7 +383,7 @@ namespace SPOVersionManagement.Controls
 
             _chkUseFileCache = MkChk(filesCard, "Use AllSites.json cache (skip Get-SPOSite)", 14, fy);
             PL(filesCard, "Cache:", 340, fy, 44);
-            string defCache = Path.Combine(_config.LogsPath, "AllSites.json");
+            string defCache = Path.Combine(_config.ConfigPath, "AllSites.json");
             _txtCacheFile = FileRow(filesCard, 388, fy, 320, "JSON|*.json|All|*.*", File.Exists(defCache) ? defCache : null);
             _txtCacheFile.Enabled = false;
             _chkUseFileCache.CheckedChanged += (s, e) => _txtCacheFile.Enabled = _chkUseFileCache.Checked;

@@ -13,8 +13,11 @@ param(
 
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# Carregar caminho do Logs a partir do AppPaths.json
-$appPathsFile = Join-Path $scriptPath "Logs\AppPaths.json"
+# Load paths from AppPaths.json
+$appPathsFile = Join-Path $scriptPath "config\AppPaths.json"
+if (-not (Test-Path $appPathsFile)) {
+    $appPathsFile = Join-Path $scriptPath "Logs\AppPaths.json"
+}
 if (-not (Test-Path $appPathsFile)) {
     $appPathsFile = Join-Path $scriptPath "AppPaths.json"
 }
@@ -23,18 +26,24 @@ if (Test-Path $appPathsFile) {
     try {
         $appPaths = Get-Content $appPathsFile -Raw | ConvertFrom-Json
         $rootPath = Join-Path $appPaths.RootPath $appPaths.ApplicationFolder
+        $configPath = if ($appPaths.Directories.Config) { Join-Path $rootPath $appPaths.Directories.Config } else { Join-Path $rootPath "config" }
+        $webPath = if ($appPaths.Directories.Web) { Join-Path $rootPath $appPaths.Directories.Web } else { Join-Path $rootPath "web" }
         $logsPath = Join-Path $rootPath $appPaths.Directories.Logs
     }
     catch {
+        $configPath = Join-Path $scriptPath "config"
+        $webPath = Join-Path $scriptPath "web"
         $logsPath = Join-Path $scriptPath "Logs"
     }
 } else {
+    $configPath = Join-Path $scriptPath "config"
+    $webPath = Join-Path $scriptPath "web"
     $logsPath = Join-Path $scriptPath "Logs"
 }
 
 # Read version from AppPaths.json
 $appVersion = "unknown"
-$appPathsPath = Join-Path $logsPath "AppPaths.json"
+$appPathsPath = Join-Path $configPath "AppPaths.json"
 if (Test-Path $appPathsPath) {
     try {
         $appPathsData = Get-Content $appPathsPath -Raw | ConvertFrom-Json
@@ -77,7 +86,15 @@ try {
             $localPath = $request.Url.LocalPath
             if ($localPath -eq "/") { $localPath = "/Dashboard.html" }
             
-            $filePath = Join-Path $logsPath $localPath.TrimStart('/')
+            # Resolve file path: web/ for HTML/JS/CSS, config/ for JSON, Logs/ for CSV
+            $requestedFile = $localPath.TrimStart('/')
+            if ($requestedFile -match '\.(html|js|css)$') {
+                $filePath = Join-Path $webPath $requestedFile
+            } elseif ($requestedFile -match '\.json$') {
+                $filePath = Join-Path $configPath $requestedFile
+            } else {
+                $filePath = Join-Path $logsPath $requestedFile
+            }
             
             # Ignorar favicon
             if ($localPath -eq "/favicon.ico") {
@@ -89,7 +106,7 @@ try {
             Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $($request.HttpMethod) $localPath" -ForegroundColor Gray
             
             try {
-                # Handle POST requests - save JSON files to Logs folder
+                # Handle POST requests - save JSON files to config folder
                 if ($request.HttpMethod -eq 'POST') {
                     $allowedFiles = @('ArchiveQueue.json', 'DashboardConfig.json')
                     $fileName = $localPath.TrimStart('/')
@@ -97,7 +114,7 @@ try {
                         $reader = [System.IO.StreamReader]::new($request.InputStream, $request.ContentEncoding)
                         $body = $reader.ReadToEnd()
                         $reader.Close()
-                        $savePath = Join-Path $logsPath $fileName
+                        $savePath = Join-Path $configPath $fileName
                         [System.IO.File]::WriteAllText($savePath, $body, [System.Text.Encoding]::UTF8)
                         Write-Host "[$(Get-Date -Format 'HH:mm:ss')] SAVED $fileName ($($body.Length) bytes)" -ForegroundColor Green
                         $response.StatusCode = 200

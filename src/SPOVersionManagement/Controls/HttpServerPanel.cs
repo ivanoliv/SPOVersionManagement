@@ -428,8 +428,7 @@ namespace SPOVersionManagement.Controls
                 if (_dashboardServer != null)
                 {
                     string dashFileName = _configService.AppConfig?.Files?.Dashboard ?? "Dashboard.html";
-                    string dashboardPath = System.IO.Path.Combine(_configService.LogsPath, dashFileName);
-                    string rootDir = System.IO.Path.GetDirectoryName(dashboardPath) ?? _configService.LogsPath;
+                    string rootDir = _configService.WebPath;
 
                     _txtLogs.AppendText($"[{DateTime.Now:HH:mm:ss}] Starting server on port {port}...\r\n");
                     _dashboardServer.Start(port, rootDir);

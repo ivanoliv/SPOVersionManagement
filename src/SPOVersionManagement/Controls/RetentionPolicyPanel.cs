@@ -346,7 +346,7 @@ namespace SPOVersionManagement.Controls
         {
             try
             {
-                string dbPath = Path.Combine(_configService.LogsPath, "RetentionPolicyDatabase.json");
+                string dbPath = Path.Combine(_configService.ConfigPath, "RetentionPolicyDatabase.json");
                 if (!File.Exists(dbPath))
                 {
                     _lblStatus.Text = "No retention policy data available";

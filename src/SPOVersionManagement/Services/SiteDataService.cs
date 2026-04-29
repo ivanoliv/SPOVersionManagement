@@ -25,7 +25,7 @@ namespace SPOVersionManagement.Services
             if (!forceReload && _catalogCache != null && (DateTime.UtcNow - _catalogLoadedAt).TotalMinutes < 5)
                 return _catalogCache;
 
-            string path = Path.Combine(_config.LogsPath, "AllSites.json");
+            string path = Path.Combine(_config.ConfigPath, "AllSites.json");
             var sites = new List<SiteCatalogEntry>();
             if (!EnsureJsonFile(path, "[]"))
                 return sites;
@@ -110,7 +110,7 @@ namespace SPOVersionManagement.Services
 
         public ArchiveQueueData LoadArchiveQueue()
         {
-            string path = Path.Combine(_config.LogsPath, "ArchiveQueue.json");
+            string path = Path.Combine(_config.ConfigPath, "ArchiveQueue.json");
             var empty = new ArchiveQueueData();
             string defaultJson = JsonConvert.SerializeObject(empty, Formatting.Indented);
 
@@ -138,13 +138,13 @@ namespace SPOVersionManagement.Services
         public void SaveArchiveQueue(ArchiveQueueData queue)
         {
             queue.LastUpdated = DateTime.UtcNow.ToString("o");
-            string path = Path.Combine(_config.LogsPath, "ArchiveQueue.json");
+            string path = Path.Combine(_config.ConfigPath, "ArchiveQueue.json");
             File.WriteAllText(path, JsonConvert.SerializeObject(queue, Formatting.Indented));
         }
 
         public FileArchiveQueueData LoadFileArchiveQueue()
         {
-            string path = Path.Combine(_config.LogsPath, "FileArchiveQueue.json");
+            string path = Path.Combine(_config.ConfigPath, "FileArchiveQueue.json");
             var empty = new FileArchiveQueueData();
             string defaultJson = JsonConvert.SerializeObject(empty, Formatting.Indented);
 
@@ -172,7 +172,7 @@ namespace SPOVersionManagement.Services
         public void SaveFileArchiveQueue(FileArchiveQueueData queue)
         {
             queue.LastUpdated = DateTime.UtcNow.ToString("o");
-            string path = Path.Combine(_config.LogsPath, "FileArchiveQueue.json");
+            string path = Path.Combine(_config.ConfigPath, "FileArchiveQueue.json");
             File.WriteAllText(path, JsonConvert.SerializeObject(queue, Formatting.Indented));
         }
 
@@ -223,7 +223,7 @@ namespace SPOVersionManagement.Services
 
         private List<SiteCatalogEntry> LoadArchiveAnalysisArray(string propertyName)
         {
-            string path = Path.Combine(_config.LogsPath, "ArchiveAnalysis.json");
+            string path = Path.Combine(_config.ConfigPath, "ArchiveAnalysis.json");
             var sites = new List<SiteCatalogEntry>();
             if (!EnsureJsonFile(path, "{}"))
                 return sites;

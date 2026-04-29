@@ -39,7 +39,7 @@ $ErrorActionPreference = "Stop"
 $sourcePath = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # --- Read version ---
-$appPathsFile = Join-Path $sourcePath "Logs\AppPaths.json"
+$appPathsFile = Join-Path $sourcePath "config\AppPaths.json"
 $version = "unknown"
 if (Test-Path $appPathsFile) {
     $appPaths = Get-Content $appPathsFile -Raw | ConvertFrom-Json
@@ -90,8 +90,9 @@ $alwaysUpdate = @(
     "Start-ArchiveWebsites.ps1",
     "README.md",
     "ENTRA_ID_APP_SETUP.md",
-    "Logs\Dashboard.html",
-    "Logs\localization.js"
+    "web\Dashboard.html",
+    "web\localization.js",
+    "config\ExtensionGroups.json"
 )
 
 # --- Files to preserve if they exist at destination (user configs) ---
@@ -107,6 +108,8 @@ $updateFolders = @()
 New-Item -Path $DestinationPath -ItemType Directory -Force | Out-Null
 New-Item -Path (Join-Path $DestinationPath "Logs") -ItemType Directory -Force | Out-Null
 New-Item -Path (Join-Path $DestinationPath "Logs\Backup") -ItemType Directory -Force | Out-Null
+New-Item -Path (Join-Path $DestinationPath "config") -ItemType Directory -Force | Out-Null
+New-Item -Path (Join-Path $DestinationPath "web") -ItemType Directory -Force | Out-Null
 
 $updatedCount = 0
 $preservedCount = 0
@@ -161,8 +164,8 @@ foreach ($file in $preserveFiles) {
 # --- Handle AppPaths.json (merge new keys) ---
 Write-Host ""
 Write-Host "Updating AppPaths.json..." -ForegroundColor Yellow
-$srcAppPaths = Join-Path $sourcePath "Logs\AppPaths.json"
-$dstAppPaths = Join-Path $DestinationPath "Logs\AppPaths.json"
+$srcAppPaths = Join-Path $sourcePath "config\AppPaths.json"
+$dstAppPaths = Join-Path $DestinationPath "config\AppPaths.json"
 
 if ((Test-Path $dstAppPaths) -and -not $Force) {
     # Merge: update AppVersion and add any new keys, but keep user values
@@ -215,8 +218,8 @@ if ((Test-Path $dstAppPaths) -and -not $Force) {
 # --- Handle DashboardConfig.json (merge new keys) ---
 Write-Host ""
 Write-Host "Updating DashboardConfig.json..." -ForegroundColor Yellow
-$srcDashConfig = Join-Path $sourcePath "Logs\DashboardConfig.json"
-$dstDashConfig = Join-Path $DestinationPath "Logs\DashboardConfig.json"
+$srcDashConfig = Join-Path $sourcePath "config\DashboardConfig.json"
+$dstDashConfig = Join-Path $DestinationPath "config\DashboardConfig.json"
 
 if ((Test-Path $dstDashConfig) -and -not $Force) {
     $srcDC = Get-Content $srcDashConfig -Raw | ConvertFrom-Json
@@ -292,8 +295,8 @@ if ($isUpdate) {
     Write-Host "Backups saved to: $DestinationPath\Logs\Backup\" -ForegroundColor Cyan
 } else {
     Write-Host "Next steps:" -ForegroundColor Cyan
-    Write-Host "  1. Edit Logs\AppPaths.json with your tenant paths" -ForegroundColor White
-    Write-Host "  2. Edit Logs\DashboardConfig.json for your preferences" -ForegroundColor White
+    Write-Host "  1. Edit config\AppPaths.json with your tenant paths" -ForegroundColor White
+    Write-Host "  2. Edit config\DashboardConfig.json for your preferences" -ForegroundColor White
     Write-Host "  3. Run .\Start-SPOVersionManagement.ps1 -AdminUrl https://yourtenant-admin.sharepoint.com" -ForegroundColor White
 }
 Write-Host ""

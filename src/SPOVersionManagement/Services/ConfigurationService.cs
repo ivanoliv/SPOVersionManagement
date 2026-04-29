@@ -11,6 +11,8 @@ namespace SPOVersionManagement.Services
     {
         private readonly string _rootPath;
         private string _logsPath;
+        private string _configPath;
+        private string _webPath;
         private bool _hasWritePermission;
 
         public AppConfiguration AppConfig { get; private set; }
@@ -18,6 +20,8 @@ namespace SPOVersionManagement.Services
 
         public string RootPath => _rootPath;
         public string LogsPath => _logsPath;
+        public string ConfigPath => _configPath;
+        public string WebPath => _webPath;
         public bool HasWritePermission => _hasWritePermission;
         public string PermissionMessage { get; private set; }
 
@@ -25,6 +29,8 @@ namespace SPOVersionManagement.Services
         {
             _rootPath = rootPath;
             _logsPath = Path.Combine(rootPath, "Logs");
+            _configPath = Path.Combine(rootPath, "config");
+            _webPath = Path.Combine(rootPath, "web");
             CheckPermissions();
             Load();
         }
@@ -38,8 +44,12 @@ namespace SPOVersionManagement.Services
             {
                 if (!Directory.Exists(_logsPath))
                     Directory.CreateDirectory(_logsPath);
+                if (!Directory.Exists(_configPath))
+                    Directory.CreateDirectory(_configPath);
+                if (!Directory.Exists(_webPath))
+                    Directory.CreateDirectory(_webPath);
 
-                string testFile = Path.Combine(_logsPath, ".writetest_" + Guid.NewGuid().ToString("N").Substring(0, 8));
+                string testFile = Path.Combine(_configPath, ".writetest_" + Guid.NewGuid().ToString("N").Substring(0, 8));
                 File.WriteAllText(testFile, "test");
                 File.Delete(testFile);
                 _hasWritePermission = true;
@@ -59,7 +69,7 @@ namespace SPOVersionManagement.Services
         /// </summary>
         public string GetUserDataFolderSuggestion()
         {
-            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SPOVersionManagement", "Logs");
+            return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SPOVersionManagement", "config");
         }
 
         public void SwitchToUserDataFolder()
@@ -69,10 +79,10 @@ namespace SPOVersionManagement.Services
                 Directory.CreateDirectory(userDir);
 
             // Copy existing configs if they don't exist in the new location
-            CopyIfMissing("AppPaths.json", _logsPath, userDir);
-            CopyIfMissing("DashboardConfig.json", _logsPath, userDir);
+            CopyIfMissing("AppPaths.json", _configPath, userDir);
+            CopyIfMissing("DashboardConfig.json", _configPath, userDir);
 
-            _logsPath = userDir;
+            _configPath = userDir;
             CheckPermissions();
             Load();
         }
@@ -93,12 +103,12 @@ namespace SPOVersionManagement.Services
 
         private void LoadAppConfig()
         {
-            string path = Path.Combine(_logsPath, "AppPaths.json");
+            string path = Path.Combine(_configPath, "AppPaths.json");
             if (!File.Exists(path))
             {
                 // Create default AppPaths.json on first run
-                if (!Directory.Exists(_logsPath))
-                    Directory.CreateDirectory(_logsPath);
+                if (!Directory.Exists(_configPath))
+                    Directory.CreateDirectory(_configPath);
 
                 var defaults = new AppConfiguration
                 {
@@ -122,7 +132,7 @@ namespace SPOVersionManagement.Services
 
         private void LoadDashboardConfig()
         {
-            string path = Path.Combine(_logsPath, "DashboardConfig.json");
+            string path = Path.Combine(_configPath, "DashboardConfig.json");
             if (!File.Exists(path))
             {
                 DashboardConfig = new DashboardConfiguration
@@ -158,7 +168,7 @@ namespace SPOVersionManagement.Services
             if (!_hasWritePermission)
                 throw new UnauthorizedAccessException(PermissionMessage);
 
-            string path = Path.Combine(_logsPath, "AppPaths.json");
+            string path = Path.Combine(_configPath, "AppPaths.json");
 
             JObject existing = File.Exists(path)
                 ? JObject.Parse(File.ReadAllText(path))
@@ -185,7 +195,7 @@ namespace SPOVersionManagement.Services
             if (!_hasWritePermission)
                 throw new UnauthorizedAccessException(PermissionMessage);
 
-            string path = Path.Combine(_logsPath, "DashboardConfig.json");
+            string path = Path.Combine(_configPath, "DashboardConfig.json");
 
             JObject existing = File.Exists(path)
                 ? JObject.Parse(File.ReadAllText(path))
@@ -213,17 +223,32 @@ namespace SPOVersionManagement.Services
             if (!Directory.Exists(destinationFolder))
                 Directory.CreateDirectory(destinationFolder);
 
-            string[] filesToBackup = new[]
+            string[] configFilesToBackup = new[]
             {
                 "AppPaths.json", "DashboardConfig.json", "JobStatus.json",
-                "SiteExecutionHistory.json", "SessionHistory.json", "ExecutionHistory.csv",
+                "SiteExecutionHistory.json", "SessionHistory.json",
                 "AllSites.json", "TenantStorage.json", "TenantStorageTimeline.json",
-                "SiteStorage.csv", "ExcludedSites.json", "RetentionPolicyDatabase.json",
+                "ExcludedSites.json", "RetentionPolicyDatabase.json",
                 "RetentionPolicyLog.json", "ArchiveAnalysis.json", "ArchiveQueue.json"
             };
 
+            string[] logsFilesToBackup = new[]
+            {
+                "ExecutionHistory.csv", "SiteStorage.csv"
+            };
+
             int copied = 0;
-            foreach (var f in filesToBackup)
+            foreach (var f in configFilesToBackup)
+            {
+                string src = Path.Combine(_configPath, f);
+                if (File.Exists(src))
+                {
+                    File.Copy(src, Path.Combine(destinationFolder, f), overwrite: true);
+                    copied++;
+                }
+            }
+
+            foreach (var f in logsFilesToBackup)
             {
                 string src = Path.Combine(_logsPath, f);
                 if (File.Exists(src))
@@ -293,7 +318,7 @@ namespace SPOVersionManagement.Services
             int cleared = 0;
             foreach (var fileName in filesToClear)
             {
-                string path = Path.Combine(_logsPath, fileName);
+                string path = Path.Combine(_configPath, fileName);
                 if (!File.Exists(path))
                     continue;
 
@@ -321,7 +346,10 @@ namespace SPOVersionManagement.Services
             if (prop == null) return null;
             string filename = prop.GetValue(AppConfig.Files) as string;
             if (string.IsNullOrEmpty(filename)) return null;
-            return Path.Combine(_logsPath, filename);
+            // CSV files go to Logs/, JSON files go to config/
+            if (filename.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+                return Path.Combine(_logsPath, filename);
+            return Path.Combine(_configPath, filename);
         }
 
         public string ResolveScriptPath(string scriptKey)

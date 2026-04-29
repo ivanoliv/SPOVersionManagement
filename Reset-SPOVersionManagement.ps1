@@ -32,6 +32,8 @@ param(
 
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $logsPath = Join-Path $scriptPath "Logs"
+$configPath = Join-Path $scriptPath "config"
+$webPath = Join-Path $scriptPath "web"
 $backupPath = Join-Path $logsPath "Backup"
 
 # Define essential files to KEEP
@@ -49,15 +51,20 @@ $essentialRootFiles = @(
 )
 
 $essentialRootFolders = @(
-    "Logs"
+    "Logs",
+    "config",
+    "web"
 )
 
 $essentialLogsFiles = @(
+    # CSV files stay in Logs/
+)
+
+$essentialConfigFiles = @(
     "AppPaths.json",
-    "Dashboard.html",
     "DashboardConfig.json",
-    "localization.js",
-    # JSON files to reset (not delete)
+    "ExtensionGroups.json",
+    # JSON database files to reset (not delete)
     "JobStatus.json",
     "TenantStorage.json",
     "SiteExecutionHistory.json",
@@ -65,6 +72,11 @@ $essentialLogsFiles = @(
     "AllSites.json",
     "SessionHistory.json",
     "StorageHistory.json"
+)
+
+$essentialWebFiles = @(
+    "Dashboard.html",
+    "localization.js"
 )
 
 $essentialLogsFolders = @(
@@ -282,7 +294,7 @@ Write-Host ""
 Write-Host "  Resetting JSON files to default structure..." -ForegroundColor Cyan
 
 # JobStatus.json
-$jobStatusFile = Join-Path $logsPath "JobStatus.json"
+$jobStatusFile = Join-Path $configPath "JobStatus.json"
 @{
     LastUpdated = (Get-Date).ToString("o")
     ActiveJobs = @()
@@ -298,7 +310,7 @@ $jobStatusFile = Join-Path $logsPath "JobStatus.json"
 Write-Host "    [RESET] JobStatus.json" -ForegroundColor Green
 
 # TenantStorage.json
-$tenantStorageFile = Join-Path $logsPath "TenantStorage.json"
+$tenantStorageFile = Join-Path $configPath "TenantStorage.json"
 @{
     LastUpdated = (Get-Date).ToString("o")
     StorageUsedGB = 0
@@ -310,7 +322,7 @@ $tenantStorageFile = Join-Path $logsPath "TenantStorage.json"
 Write-Host "    [RESET] TenantStorage.json" -ForegroundColor Green
 
 # SiteExecutionHistory.json
-$siteHistoryFile = Join-Path $logsPath "SiteExecutionHistory.json"
+$siteHistoryFile = Join-Path $configPath "SiteExecutionHistory.json"
 @{
     LastUpdated = (Get-Date).ToString("o")
     Sites = @{}
@@ -318,7 +330,7 @@ $siteHistoryFile = Join-Path $logsPath "SiteExecutionHistory.json"
 Write-Host "    [RESET] SiteExecutionHistory.json" -ForegroundColor Green
 
 # ExcludedSites.json
-$excludedFile = Join-Path $logsPath "ExcludedSites.json"
+$excludedFile = Join-Path $configPath "ExcludedSites.json"
 @{
     ExcludedSites = @()
     LastUpdated = (Get-Date).ToString("o")
@@ -326,7 +338,7 @@ $excludedFile = Join-Path $logsPath "ExcludedSites.json"
 Write-Host "    [RESET] ExcludedSites.json" -ForegroundColor Green
 
 # AllSites.json
-$allSitesFile = Join-Path $logsPath "AllSites.json"
+$allSitesFile = Join-Path $configPath "AllSites.json"
 @{
     ExportedAt = (Get-Date).ToString("o")
     TotalSites = 0
@@ -335,14 +347,14 @@ $allSitesFile = Join-Path $logsPath "AllSites.json"
 Write-Host "    [RESET] AllSites.json" -ForegroundColor Green
 
 # SessionHistory.json
-$sessionHistoryFile = Join-Path $logsPath "SessionHistory.json"
+$sessionHistoryFile = Join-Path $configPath "SessionHistory.json"
 @{
     Sessions = @()
 } | ConvertTo-Json -Depth 10 | Set-Content -Path $sessionHistoryFile -Encoding UTF8
 Write-Host "    [RESET] SessionHistory.json" -ForegroundColor Green
 
 # StorageHistory.json
-$storageHistoryFile = Join-Path $logsPath "StorageHistory.json"
+$storageHistoryFile = Join-Path $configPath "StorageHistory.json"
 @{
     History = @()
     LastUpdated = (Get-Date).ToString("o")
@@ -350,7 +362,7 @@ $storageHistoryFile = Join-Path $logsPath "StorageHistory.json"
 Write-Host "    [RESET] StorageHistory.json" -ForegroundColor Green
 
 # DashboardConfig.json - Reset to defaults but keep file
-$dashboardConfigFile = Join-Path $logsPath "DashboardConfig.json"
+$dashboardConfigFile = Join-Path $configPath "DashboardConfig.json"
 @{
     RefreshIntervalSeconds = 5
     Language = "en"

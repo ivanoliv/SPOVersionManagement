@@ -116,7 +116,7 @@ namespace SPOVersionManagement.Services
         /// </summary>
         public List<SessionRecord> LoadSessionHistory()
         {
-            string path = Path.Combine(_config.LogsPath, "SessionHistory.json");
+            string path = Path.Combine(_config.ConfigPath, "SessionHistory.json");
             if (!File.Exists(path))
                 return new List<SessionRecord>();
 
@@ -145,7 +145,7 @@ namespace SPOVersionManagement.Services
 
             foreach (var file in files)
             {
-                string path = Path.Combine(_config.LogsPath, file);
+                string path = Path.Combine(_config.ConfigPath, file);
                 if (!File.Exists(path))
                     continue;
 

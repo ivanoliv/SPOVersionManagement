@@ -91,7 +91,7 @@ Go to **API permissions** → **Add a permission**:
 
 ### 1.6 Configure AppPaths.json
 
-Edit `Logs\AppPaths.json`:
+Edit `config\AppPaths.json`:
 
 ```json
 "EntraIdApp": {
@@ -229,7 +229,7 @@ The app also needs an Entra ID **directory role** to manage retention policies:
 
 ### 2.7 Configure AppPaths.json
 
-Edit `Logs\AppPaths.json`:
+Edit `config\AppPaths.json`:
 
 ```json
 "PurviewApp": {

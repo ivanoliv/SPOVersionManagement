@@ -1283,7 +1283,7 @@ namespace SPOVersionManagement.Controls
 
             try
             {
-                await _psHost.StartArchiveSitesAsync(adminUrl, Path.Combine(_config.LogsPath, "ArchiveQueue.json"), _archiveCts.Token);
+                await _psHost.StartArchiveSitesAsync(adminUrl, Path.Combine(_config.ConfigPath, "ArchiveQueue.json"), _archiveCts.Token);
             }
             catch (Exception ex)
             {
@@ -2084,7 +2084,7 @@ namespace SPOVersionManagement.Controls
                 else if (_currentView == "queue") fileName = "ArchiveQueue.json";
                 else return "--";
 
-                string path = Path.Combine(_config.LogsPath, fileName);
+                string path = Path.Combine(_config.ConfigPath, fileName);
                 if (!File.Exists(path))
                     return "--";
 

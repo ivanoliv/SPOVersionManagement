@@ -1,4 +1,4 @@
-﻿#Requires -Modules Microsoft.Online.SharePoint.PowerShell
+#Requires -Modules Microsoft.Online.SharePoint.PowerShell
 
 <#
 .SYNOPSIS
@@ -12,8 +12,11 @@
 # Determine the module directory
 $script:ModuleRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# Path configuration file (look in Logs first, then in Root)
-$script:AppPathsFile = Join-Path $script:ModuleRoot "Logs\AppPaths.json"
+# Path configuration file (look in config/ first, then Logs/ for backward compat, then Root)
+$script:AppPathsFile = Join-Path $script:ModuleRoot "config\AppPaths.json"
+if (-not (Test-Path $script:AppPathsFile)) {
+    $script:AppPathsFile = Join-Path $script:ModuleRoot "Logs\AppPaths.json"
+}
 if (-not (Test-Path $script:AppPathsFile)) {
     $script:AppPathsFile = Join-Path $script:ModuleRoot "AppPaths.json"
 }
@@ -38,18 +41,30 @@ if (Test-Path $script:AppPathsFile) {
         } else { 
             Join-Path $script:LogPath "Backup" 
         }
+        $script:ConfigPath = if ($script:AppPaths.Directories.Config) {
+            Join-Path $script:RootPath $script:AppPaths.Directories.Config
+        } else {
+            Join-Path $script:RootPath "config"
+        }
+        $script:WebPath = if ($script:AppPaths.Directories.Web) {
+            Join-Path $script:RootPath $script:AppPaths.Directories.Web
+        } else {
+            Join-Path $script:RootPath "web"
+        }
         
-        # Data files (build full paths from LogPath)
-        $script:JobStatusFile = Join-Path $script:LogPath $script:AppPaths.Files.JobStatus
-        $script:TenantStorageFile = Join-Path $script:LogPath $script:AppPaths.Files.TenantStorage
-        $script:ExcludedSitesFile = Join-Path $script:LogPath $script:AppPaths.Files.ExcludedSites
-        $script:AllSitesFile = Join-Path $script:LogPath $(if ($script:AppPaths.Files.AllSites) { $script:AppPaths.Files.AllSites } else { "AllSites.json" })
-        $script:SiteExecutionHistoryFile = Join-Path $script:LogPath $(if ($script:AppPaths.Files.SiteExecutionHistory) { $script:AppPaths.Files.SiteExecutionHistory } else { "SiteExecutionHistory.json" })
+        # JSON data files (in config/)
+        $script:JobStatusFile = Join-Path $script:ConfigPath $script:AppPaths.Files.JobStatus
+        $script:TenantStorageFile = Join-Path $script:ConfigPath $script:AppPaths.Files.TenantStorage
+        $script:ExcludedSitesFile = Join-Path $script:ConfigPath $script:AppPaths.Files.ExcludedSites
+        $script:AllSitesFile = Join-Path $script:ConfigPath $(if ($script:AppPaths.Files.AllSites) { $script:AppPaths.Files.AllSites } else { "AllSites.json" })
+        $script:SiteExecutionHistoryFile = Join-Path $script:ConfigPath $(if ($script:AppPaths.Files.SiteExecutionHistory) { $script:AppPaths.Files.SiteExecutionHistory } else { "SiteExecutionHistory.json" })
+        $script:DashboardConfigFile = Join-Path $script:ConfigPath $(if ($script:AppPaths.Files.DashboardConfig) { $script:AppPaths.Files.DashboardConfig } else { "DashboardConfig.json" })
+        $script:SessionHistoryFile = Join-Path $script:ConfigPath $(if ($script:AppPaths.Files.SessionHistory) { $script:AppPaths.Files.SessionHistory } else { "SessionHistory.json" })
+        $script:TenantStorageTimelineFile = Join-Path $script:ConfigPath $(if ($script:AppPaths.Files.TenantStorageTimeline) { $script:AppPaths.Files.TenantStorageTimeline } else { "TenantStorageTimeline.json" })
+        
+        # CSV files (in Logs/)
         $script:SiteStorageFile = Join-Path $script:LogPath $script:AppPaths.Files.SiteStorage
         $script:ExecutionHistoryFile = Join-Path $script:LogPath $script:AppPaths.Files.ExecutionHistory
-        $script:DashboardConfigFile = Join-Path $script:LogPath $(if ($script:AppPaths.Files.DashboardConfig) { $script:AppPaths.Files.DashboardConfig } else { "DashboardConfig.json" })
-        $script:SessionHistoryFile = Join-Path $script:LogPath $(if ($script:AppPaths.Files.SessionHistory) { $script:AppPaths.Files.SessionHistory } else { "SessionHistory.json" })
-        $script:TenantStorageTimelineFile = Join-Path $script:LogPath $(if ($script:AppPaths.Files.TenantStorageTimeline) { $script:AppPaths.Files.TenantStorageTimeline } else { "TenantStorageTimeline.json" })
         
         # Input files (relative to RootPath)
         $script:IncludeSitesFile = Join-Path $script:RootPath $script:AppPaths.InputFiles.IncludeSites
@@ -70,16 +85,18 @@ if (-not $script:AppPaths) {
     $script:RootPath = $PSScriptRoot
     $script:LogPath = Join-Path $PSScriptRoot "Logs"
     $script:BackupPath = Join-Path $PSScriptRoot "Logs\Backup"
-    $script:JobStatusFile = Join-Path $PSScriptRoot "Logs\JobStatus.json"
-    $script:TenantStorageFile = Join-Path $PSScriptRoot "Logs\TenantStorage.json"
-    $script:ExcludedSitesFile = Join-Path $PSScriptRoot "Logs\ExcludedSites.json"
-    $script:AllSitesFile = Join-Path $PSScriptRoot "Logs\AllSites.json"
-    $script:SiteExecutionHistoryFile = Join-Path $PSScriptRoot "Logs\SiteExecutionHistory.json"
+    $script:ConfigPath = Join-Path $PSScriptRoot "config"
+    $script:WebPath = Join-Path $PSScriptRoot "web"
+    $script:JobStatusFile = Join-Path $PSScriptRoot "config\JobStatus.json"
+    $script:TenantStorageFile = Join-Path $PSScriptRoot "config\TenantStorage.json"
+    $script:ExcludedSitesFile = Join-Path $PSScriptRoot "config\ExcludedSites.json"
+    $script:AllSitesFile = Join-Path $PSScriptRoot "config\AllSites.json"
+    $script:SiteExecutionHistoryFile = Join-Path $PSScriptRoot "config\SiteExecutionHistory.json"
     $script:SiteStorageFile = Join-Path $PSScriptRoot "Logs\SiteStorage.csv"
     $script:ExecutionHistoryFile = Join-Path $PSScriptRoot "Logs\ExecutionHistory.csv"
-    $script:DashboardConfigFile = Join-Path $PSScriptRoot "Logs\DashboardConfig.json"
-    $script:SessionHistoryFile = Join-Path $PSScriptRoot "Logs\SessionHistory.json"
-    $script:TenantStorageTimelineFile = Join-Path $PSScriptRoot "Logs\TenantStorageTimeline.json"
+    $script:DashboardConfigFile = Join-Path $PSScriptRoot "config\DashboardConfig.json"
+    $script:SessionHistoryFile = Join-Path $PSScriptRoot "config\SessionHistory.json"
+    $script:TenantStorageTimelineFile = Join-Path $PSScriptRoot "config\TenantStorageTimeline.json"
     $script:IncludeSitesFile = Join-Path $PSScriptRoot "IncludeSites.csv"
     $script:ExcludeSitesInputFile = Join-Path $PSScriptRoot "ExcludeSites.csv"
 }
@@ -101,6 +118,9 @@ $script:AllSitesCacheTime = $null
 
 # ── First-Run Initialization ─────────────────────────────────────
 # Ensure required directories and files exist on first run
+$script:ConfigPath = Join-Path $script:ModuleRoot "config"
+$script:WebPath = Join-Path $script:ModuleRoot "web"
+
 if (-not (Test-Path $script:LogPath)) {
     New-Item -ItemType Directory -Path $script:LogPath -Force | Out-Null
     Write-Host "[INIT] Created Logs directory: $script:LogPath" -ForegroundColor Green
@@ -108,17 +128,25 @@ if (-not (Test-Path $script:LogPath)) {
 if (-not (Test-Path $script:BackupPath)) {
     New-Item -ItemType Directory -Path $script:BackupPath -Force | Out-Null
 }
+if (-not (Test-Path $script:ConfigPath)) {
+    New-Item -ItemType Directory -Path $script:ConfigPath -Force | Out-Null
+    Write-Host "[INIT] Created config directory: $script:ConfigPath" -ForegroundColor Green
+}
+if (-not (Test-Path $script:WebPath)) {
+    New-Item -ItemType Directory -Path $script:WebPath -Force | Out-Null
+    Write-Host "[INIT] Created web directory: $script:WebPath" -ForegroundColor Green
+}
 
 # Create AppPaths.json with safe defaults if missing
-if (-not (Test-Path (Join-Path $script:LogPath "AppPaths.json"))) {
+if (-not (Test-Path (Join-Path $script:ConfigPath "AppPaths.json"))) {
     $defaultAppPaths = @{
         Version = "1.3"
         AppVersion = "2.1.3.3"
         Description = "Centralized configuration for SPO Version Management"
         LastModified = (Get-Date).ToString("o")
-        RootPath = (Split-Path -Parent $script:LogPath)
-        ApplicationFolder = (Split-Path -Leaf (Split-Path -Parent $script:LogPath))
-        Directories = @{ Root = ""; Logs = "Logs"; Data = "Logs"; Backup = "Logs\Backup" }
+        RootPath = $script:ModuleRoot
+        ApplicationFolder = ""
+        Directories = @{ Root = ""; Logs = "Logs"; Data = "Logs"; Backup = "Logs\Backup"; Config = "config"; Web = "web" }
         Files = @{
             JobStatus = "JobStatus.json"; TenantStorage = "TenantStorage.json"
             ExcludedSites = "ExcludedSites.json"; AllSites = "AllSites.json"
@@ -126,6 +154,7 @@ if (-not (Test-Path (Join-Path $script:LogPath "AppPaths.json"))) {
             DashboardConfig = "DashboardConfig.json"; Dashboard = "Dashboard.html"
             ExecutionHistory = "ExecutionHistory.csv"; SiteStorage = "SiteStorage.csv"
             TenantStorageTimeline = "TenantStorageTimeline.json"; AppPaths = "AppPaths.json"
+            ExtensionGroups = "ExtensionGroups.json"
         }
         InputFiles = @{ IncludeSites = "IncludeSites.csv"; ExcludeSites = "ExcludeSites.csv" }
         Scripts = @{
@@ -137,8 +166,38 @@ if (-not (Test-Path (Join-Path $script:LogPath "AppPaths.json"))) {
         TelemetryEndpoint = ""
         TelemetryEnabled = $false
     }
-    $defaultAppPaths | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $script:LogPath "AppPaths.json") -Encoding UTF8
-    Write-Host "[INIT] Created default AppPaths.json (configure EntraIdApp section)" -ForegroundColor Green
+    $defaultAppPaths | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $script:ConfigPath "AppPaths.json") -Encoding UTF8
+    Write-Host "[INIT] Created default config\AppPaths.json (configure EntraIdApp section)" -ForegroundColor Green
+}
+
+# Create default DashboardConfig.json if missing
+if (-not (Test-Path (Join-Path $script:ConfigPath "DashboardConfig.json"))) {
+    @{
+        Language = "en"
+        Currency = @{ Symbol = "$"; Code = "USD"; Position = "before"; DecimalSeparator = "."; ThousandsSeparator = "," }
+        CostPerTBYear = 13000
+        DateFormat = "MM/dd/yyyy"
+        RefreshIntervalSeconds = 3
+        ReexecutionDays = 0
+        ZeroVersionAction = "ask"
+        DashboardPort = 8080
+        DashboardLaunchMode = "app"
+    } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $script:ConfigPath "DashboardConfig.json") -Encoding UTF8
+    Write-Host "[INIT] Created default config\DashboardConfig.json" -ForegroundColor Green
+}
+
+# Create default ExtensionGroups.json if missing
+if (-not (Test-Path (Join-Path $script:ConfigPath "ExtensionGroups.json"))) {
+    @{
+        Groups = @(
+            @{ Name = "Video"; Color = "#ff5722"; Enabled = $true; Extensions = @(".mp4",".mov",".wmv",".avi",".mkv",".m4v") }
+            @{ Name = "Audio"; Color = "#9c27b0"; Enabled = $true; Extensions = @(".mp3",".wav",".wma",".aac",".flac",".m4a",".ogg") }
+            @{ Name = "Image"; Color = "#4caf50"; Enabled = $true; Extensions = @(".jpg",".jpeg",".png",".gif",".bmp",".tiff",".svg") }
+            @{ Name = "Design"; Color = "#ff9800"; Enabled = $true; Extensions = @(".psd",".ai",".indd",".sketch",".fig",".xd") }
+            @{ Name = "CAD"; Color = "#795548"; Enabled = $true; Extensions = @(".dwg",".dxf",".step",".stp",".iges",".stl") }
+        )
+    } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $script:ConfigPath "ExtensionGroups.json") -Encoding UTF8
+    Write-Host "[INIT] Created default config\ExtensionGroups.json" -ForegroundColor Green
 }
 
 # Create empty JSON data files if missing
@@ -151,7 +210,7 @@ $emptyJsonFiles = @{
     "TenantStorageTimeline.json" = @{ Timeline = @(); LastUpdated = $null }
 }
 foreach ($fileName in $emptyJsonFiles.Keys) {
-    $filePath = Join-Path $script:LogPath $fileName
+    $filePath = Join-Path $script:ConfigPath $fileName
     if (-not (Test-Path $filePath)) {
         $emptyJsonFiles[$fileName] | ConvertTo-Json -Depth 5 | Set-Content $filePath -Encoding UTF8
     }
@@ -3156,7 +3215,7 @@ function Sync-ExternalJobResults {
     $externalDeleteJobs = @()
     
     # Read existing JobStatus.json to get current completed jobs
-    $jobStatusFile = Join-Path $script:LogPath "JobStatus.json"
+    $jobStatusFile = Join-Path $script:ConfigPath "JobStatus.json"
     $existingCompletedJobs = @()
     $existingJobUrls = @{}
     
@@ -3424,7 +3483,7 @@ function Start-SPOVersionPolicyOrchestration {
         try {
             $retStatus = Get-RetentionPolicyManagerStatus
             if ($retStatus.Connected) {
-                $retDb = Export-RetentionPolicyDatabase -OutputPath (Join-Path $script:LogPath "RetentionPolicyDatabase.json")
+                $retDb = Export-RetentionPolicyDatabase -OutputPath (Join-Path $script:ConfigPath "RetentionPolicyDatabase.json")
                 
                 # Display all SharePoint retention policies upfront
                 if ($retDb -and $retDb.Policies -and $retDb.Policies.Count -gt 0) {
@@ -3522,7 +3581,7 @@ function Start-SPOVersionPolicyOrchestration {
     $sitesToProcess = @()
     
     if ($Resume) {
-        $jobStatusFile = Join-Path $script:LogPath "JobStatus.json"
+        $jobStatusFile = Join-Path $script:ConfigPath "JobStatus.json"
         if (Test-Path $jobStatusFile) {
             try {
                 $existingStatus = Get-Content $jobStatusFile -Raw | ConvertFrom-Json
@@ -3707,7 +3766,7 @@ function Start-SPOVersionPolicyOrchestration {
     
     # If resuming, restore counters and active jobs
     if ($Resume) {
-        $jobStatusFile = Join-Path $script:LogPath "JobStatus.json"
+        $jobStatusFile = Join-Path $script:ConfigPath "JobStatus.json"
         if (Test-Path $jobStatusFile) {
             try {
                 $existingStatus = Get-Content $jobStatusFile -Raw | ConvertFrom-Json
@@ -3769,7 +3828,7 @@ function Start-SPOVersionPolicyOrchestration {
                 if ($batchResult.SuspendedCount -gt 0) {
                     $batchRetentionMode = $true
                     # Export updated retention state for Dashboard
-                    try { $null = Export-RetentionPolicyDatabase -OutputPath (Join-Path $script:LogPath "RetentionPolicyDatabase.json") } catch { }
+                    try { $null = Export-RetentionPolicyDatabase -OutputPath (Join-Path $script:ConfigPath "RetentionPolicyDatabase.json") } catch { }
                     Write-Host "  [RETENTION-BATCH] $($batchResult.SuspendedCount) site(s) suspended - waiting for hold release..." -ForegroundColor Yellow
                     # Wait once for propagation (instead of per-site waits)
                     $holdReleased = Wait-RetentionPolicyRelease -SiteUrl $batchDeleteUrls[0] -MaxWaitMinutes 30 -CheckIntervalSeconds 60
@@ -4166,7 +4225,7 @@ function Start-SPOVersionPolicyOrchestration {
                         if ($ManageRetentionPolicy -and $phase -eq "BatchDelete") {
                             try {
                                 $null = Resume-SiteRetentionPolicy -SiteUrl $siteUrl
-                                $null = Export-RetentionPolicyDatabase -OutputPath (Join-Path $script:LogPath "RetentionPolicyDatabase.json")
+                                $null = Export-RetentionPolicyDatabase -OutputPath (Join-Path $script:ConfigPath "RetentionPolicyDatabase.json")
                             } catch { }
                         }
                     }
@@ -4330,7 +4389,7 @@ function Start-SPOVersionPolicyOrchestration {
                         try {
                             $null = Resume-SiteRetentionPolicy -SiteUrl $job.SiteUrl
                             # Export updated retention state for Dashboard
-                            $null = Export-RetentionPolicyDatabase -OutputPath (Join-Path $script:LogPath "RetentionPolicyDatabase.json")
+                            $null = Export-RetentionPolicyDatabase -OutputPath (Join-Path $script:ConfigPath "RetentionPolicyDatabase.json")
                         }
                         catch {
                             Write-Warning "    [RETENTION] Error resuming policies for $($job.SiteUrl): $_"
@@ -4425,7 +4484,7 @@ function Start-SPOVersionPolicyOrchestration {
         try {
             $retStatus = Get-RetentionPolicyManagerStatus
             if ($retStatus.Connected) {
-                $null = Export-RetentionPolicyDatabase -OutputPath (Join-Path $script:LogPath "RetentionPolicyDatabase.json")
+                $null = Export-RetentionPolicyDatabase -OutputPath (Join-Path $script:ConfigPath "RetentionPolicyDatabase.json")
             }
         }
         catch {

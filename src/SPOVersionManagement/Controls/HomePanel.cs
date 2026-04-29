@@ -232,7 +232,7 @@ namespace SPOVersionManagement.Controls
         {
             try
             {
-                string path = Path.Combine(_config.LogsPath, "TenantStorage.json");
+                string path = Path.Combine(_config.ConfigPath, "TenantStorage.json");
                 if (!File.Exists(path))
                 {
                     ResetTenantStorageView();

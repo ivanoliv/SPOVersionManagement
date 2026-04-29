@@ -3,7 +3,7 @@
     Builds a deploy package (ZIP) for SPO Version Management.
 
 .DESCRIPTION
-    Reads the AppVersion from Logs\AppPaths.json, copies all distributable files
+    Reads the AppVersion from config\AppPaths.json, copies all distributable files
     to a staging folder, and compresses them into a versioned ZIP file under deploy\.
     The ZIP includes the Install-SPOVersionManagement.ps1 installer at the root.
 
@@ -18,7 +18,7 @@ $ErrorActionPreference = "Stop"
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # --- Read version from AppPaths.json ---
-$appPathsFile = Join-Path $scriptPath "Logs\AppPaths.json"
+$appPathsFile = Join-Path $scriptPath "config\AppPaths.json"
 if (-not (Test-Path $appPathsFile)) {
     Write-Error "AppPaths.json not found at: $appPathsFile"
     return
@@ -61,12 +61,17 @@ $rootFiles = @(
     "ENTRA_ID_APP_SETUP.md"
 )
 
-# Logs directory files (dashboard + configs)
-$logsFiles = @(
-    "Logs\Dashboard.html",
-    "Logs\localization.js",
-    "Logs\AppPaths.json",
-    "Logs\DashboardConfig.json"
+# config/ directory files (JSON configs + databases)
+$configFiles = @(
+    "config\AppPaths.json",
+    "config\DashboardConfig.json",
+    "config\ExtensionGroups.json"
+)
+
+# web/ directory files (Dashboard UI)
+$webFiles = @(
+    "web\Dashboard.html",
+    "web\localization.js"
 )
 
 # Folders to include entirely
@@ -83,6 +88,8 @@ Write-Host "Staging directory: $stagingPath" -ForegroundColor Gray
 # Create directory structure
 New-Item -Path $stagingRoot -ItemType Directory -Force | Out-Null
 New-Item -Path (Join-Path $stagingRoot "Logs") -ItemType Directory -Force | Out-Null
+New-Item -Path (Join-Path $stagingRoot "config") -ItemType Directory -Force | Out-Null
+New-Item -Path (Join-Path $stagingRoot "web") -ItemType Directory -Force | Out-Null
 
 # --- Copy root files ---
 $copiedCount = 0
@@ -98,7 +105,7 @@ foreach ($file in $rootFiles) {
 }
 
 # --- Copy Logs files ---
-foreach ($file in $logsFiles) {
+foreach ($file in $configFiles + $webFiles) {
     $src = Join-Path $scriptPath $file
     if (Test-Path $src) {
         Copy-Item -Path $src -Destination (Join-Path $stagingRoot $file) -Force

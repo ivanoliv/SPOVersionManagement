@@ -63,7 +63,7 @@ if (-not (Test-Path $OutputPath)) { New-Item -ItemType Directory -Path $OutputPa
 
 # ── Load extension groups from config if not provided ──────────────
 if (-not $Categories -or $Categories.Count -eq 0) {
-    $extGroupsPath = Join-Path $scriptRoot "Logs\ExtensionGroups.json"
+    $extGroupsPath = Join-Path $scriptRoot "config\ExtensionGroups.json"
     if (Test-Path $extGroupsPath) {
         try {
             $extConfig = Get-Content $extGroupsPath -Raw | ConvertFrom-Json
@@ -120,7 +120,7 @@ try {
     } else {
         if (-not $ClientId -or -not $CertificateThumbprint -or -not $TenantId) {
             # Try loading from AppPaths.json
-            $appPathsFile = Join-Path $scriptRoot "Logs\AppPaths.json"
+            $appPathsFile = Join-Path $scriptRoot "config\AppPaths.json"
             if (Test-Path $appPathsFile) {
                 $appPaths = Get-Content $appPathsFile -Raw | ConvertFrom-Json
                 if ($appPaths.EntraIdApp) {

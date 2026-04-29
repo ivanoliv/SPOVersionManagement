@@ -443,19 +443,19 @@ namespace SPOVersionManagement.Forms
             if (string.IsNullOrWhiteSpace(dashFileName))
                 dashFileName = "Dashboard.html";
 
-            string dashboardPath = Path.Combine(_configService.LogsPath, dashFileName);
+            string dashboardPath = Path.Combine(_configService.WebPath, dashFileName);
             string launchMode = (_configService.DashboardConfig.DashboardLaunchMode ?? "app").Trim().ToLowerInvariant();
 
             try
             {
                 if (launchMode == "powershell")
                 {
-                    _psHost.LaunchDashboard(port, _configService.LogsPath);
+                    _psHost.LaunchDashboard(port, _configService.WebPath);
                     SetStatus($"Dashboard launched via PowerShell on port {port}");
                     return;
                 }
 
-                string rootDir = Path.GetDirectoryName(dashboardPath) ?? _configService.LogsPath;
+                string rootDir = _configService.WebPath;
                 if (!File.Exists(dashboardPath))
                     throw new FileNotFoundException("Dashboard HTML file not found.", dashboardPath);
 
@@ -472,7 +472,7 @@ namespace SPOVersionManagement.Forms
             catch (Exception ex)
             {
                 // Fallback keeps dashboard available even if HttpListener cannot bind.
-                _psHost.LaunchDashboard(port, _configService.LogsPath);
+                _psHost.LaunchDashboard(port, _configService.WebPath);
                 SetStatus($"App server unavailable ({ex.Message}). Launched via PowerShell on port {port}");
             }
         }

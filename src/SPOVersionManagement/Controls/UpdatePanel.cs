@@ -401,10 +401,12 @@ namespace SPOVersionManagement.Controls
             try
             {
                 var logsPath = _config.LogsPath;
+                var configPath = _config.ConfigPath;
                 var lines = new List<string>
                 {
                     $"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
-                    $"LogsPath : {logsPath}",
+                    $"ConfigPath: {configPath}",
+                    $"LogsPath  : {logsPath}",
                     new string('-', 104),
                     "File                            Exists  Last Write           Rows/Items   Size",
                     new string('-', 104)
@@ -413,18 +415,18 @@ namespace SPOVersionManagement.Controls
                 // Define all files to process
                 var fileStats = new (string, Func<int>)[]
                 {
-                    ("AllSites.json", () => CountArrayFromJson(Path.Combine(logsPath, "AllSites.json"))),
-                    ("ArchiveQueue.json", () => CountArrayFromJson(Path.Combine(logsPath, "ArchiveQueue.json"))),
-                    ("ArchiveAnalysis.json", () => CountArrayFromJson(Path.Combine(logsPath, "ArchiveAnalysis.json"))),
-                    ("SiteExecutionHistory.json", () => CountArrayFromJson(Path.Combine(logsPath, "SiteExecutionHistory.json"))),
-                    ("SessionHistory.json", () => CountArrayFromJson(Path.Combine(logsPath, "SessionHistory.json"))),
+                    ("AllSites.json", () => CountArrayFromJson(Path.Combine(configPath, "AllSites.json"))),
+                    ("ArchiveQueue.json", () => CountArrayFromJson(Path.Combine(configPath, "ArchiveQueue.json"))),
+                    ("ArchiveAnalysis.json", () => CountArrayFromJson(Path.Combine(configPath, "ArchiveAnalysis.json"))),
+                    ("SiteExecutionHistory.json", () => CountArrayFromJson(Path.Combine(configPath, "SiteExecutionHistory.json"))),
+                    ("SessionHistory.json", () => CountArrayFromJson(Path.Combine(configPath, "SessionHistory.json"))),
                     ("ExecutionHistory.csv", () => CountCsvRows(Path.Combine(logsPath, "ExecutionHistory.csv"))),
-                    ("JobStatus.json", () => CountDictionaryKeys(Path.Combine(logsPath, "JobStatus.json"))),
-                    ("RetentionPolicyDatabase.json", () => CountJsonItems(Path.Combine(logsPath, "RetentionPolicyDatabase.json"))),
-                    ("RetentionPolicyLog.json", () => CountJsonItems(Path.Combine(logsPath, "RetentionPolicyLog.json"))),
-                    ("ExcludedSites.json", () => CountJsonItems(Path.Combine(logsPath, "ExcludedSites.json"))),
-                    ("TenantStorage.json", () => CountJsonItems(Path.Combine(logsPath, "TenantStorage.json"))),
-                    ("TenantStorageTimeline.json", () => CountArrayFromJson(Path.Combine(logsPath, "TenantStorageTimeline.json"))),
+                    ("JobStatus.json", () => CountDictionaryKeys(Path.Combine(configPath, "JobStatus.json"))),
+                    ("RetentionPolicyDatabase.json", () => CountJsonItems(Path.Combine(configPath, "RetentionPolicyDatabase.json"))),
+                    ("RetentionPolicyLog.json", () => CountJsonItems(Path.Combine(configPath, "RetentionPolicyLog.json"))),
+                    ("ExcludedSites.json", () => CountJsonItems(Path.Combine(configPath, "ExcludedSites.json"))),
+                    ("TenantStorage.json", () => CountJsonItems(Path.Combine(configPath, "TenantStorage.json"))),
+                    ("TenantStorageTimeline.json", () => CountArrayFromJson(Path.Combine(configPath, "TenantStorageTimeline.json"))),
                     ("SiteStorage.csv", () => CountCsvRows(Path.Combine(logsPath, "SiteStorage.csv"))),
                 };
 
@@ -434,7 +436,8 @@ namespace SPOVersionManagement.Controls
                     var (fileName, countFactory) = fileStats[i];
                     int percentage = (int)((i + 1) * 100 / fileStats.Length);
                     progressCallback?.Invoke(percentage, $"Processing: {fileName}");
-                    AddFileStats(lines, logsPath, fileName, countFactory);
+                    string fileRoot = fileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase) ? logsPath : configPath;
+                    AddFileStats(lines, fileRoot, fileName, countFactory);
                 }
 
                 lines.Add(string.Empty);

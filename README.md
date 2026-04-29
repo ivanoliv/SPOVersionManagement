@@ -145,17 +145,19 @@ SPOVersionManagement\
 ├── README.md                       # This documentation
 ├── src\                            # WinForms GUI application (C#)
 │   └── SPOVersionManagement\      # .NET Framework 4.8 project
+├── config\
+│   ├── AppPaths.json              # Centralized path configuration
+│   ├── DashboardConfig.json       # Dashboard settings
+│   ├── ExtensionGroups.json       # File archive extension categories
+│   ├── AllSites.json              # Cache of all sites data
+│   ├── JobStatus.json             # Real-time job status
+│   ├── TenantStorage.json         # Tenant storage status
+│   ├── ExcludedSites.json         # List of excluded sites
+│   └── SiteExecutionHistory.json  # Site execution history
+├── web\
+│   ├── Dashboard.html             # Interactive HTML Dashboard
+│   └── localization.js            # Translation file (EN/PT)
 └── Logs\
-    ├── Dashboard.html             # Interactive HTML Dashboard
-    ├── localization.js            # Translation file (EN/PT)
-    ├── AppPaths.json              # Centralized path configuration
-    ├── ExtensionGroups.json       # File archive extension categories
-    ├── AllSites.json              # Cache of all sites data
-    ├── JobStatus.json             # Real-time job status
-    ├── TenantStorage.json         # Tenant storage status
-    ├── ExcludedSites.json         # List of excluded sites
-    ├── SiteExecutionHistory.json  # Site execution history
-    ├── DashboardConfig.json       # Dashboard settings
     ├── ExecutionHistory.csv       # Complete history for Power BI
     ├── SiteStorage.csv            # Site storage data
     └── Execution_*.csv            # Individual logs per execution
@@ -254,7 +256,7 @@ The Dashboard provides a complete view of the processing:
 .\Start-Dashboard.ps1
 
 # Or open directly
-Start-Process ".\Logs\Dashboard.html"
+Start-Process ".\web\Dashboard.html"
 
 # Or use -OpenDashboard parameter in main script
 .\Start-SPOVersionManagement.ps1 -AdminUrl "..." -OpenDashboard
@@ -262,7 +264,7 @@ Start-Process ".\Logs\Dashboard.html"
 
 ## 🔧 Centralized Configuration
 
-The `Logs\AppPaths.json` file centralizes all application paths:
+The `config\AppPaths.json` file centralizes all application paths:
 
 ```json
 {
@@ -421,7 +423,7 @@ Get-PendingSessions
 
 ### Dashboard Configuration
 
-Settings are stored in `Logs\DashboardConfig.json`:
+Settings are stored in `config\DashboardConfig.json`:
 
 ```json
 {
@@ -468,7 +470,7 @@ Get-SPOSiteFileVersionBatchDeleteJobProgress -Identity "https://site.sharepoint.
 ```
 
 ### Dashboard not updating
-- Check if JSON files are being generated in the `Logs\` folder
+- Check if JSON files are being generated in the `config\` and `Logs\` folders
 - Try reloading the page (F5)
 - Check browser console (F12) for errors
 
@@ -491,7 +493,7 @@ The Dashboard supports multiple languages. To switch between languages:
 
 ### Adding Translations
 
-Translations are in the `Logs/localization.js` file. To add a new string:
+Translations are in the `web/localization.js` file. To add a new string:
 
 ```javascript
 "translation.key": {
@@ -569,7 +571,7 @@ The File Archive Search feature (`Start-FileArchiveSearch.ps1`) scans SharePoint
 
 ### Extension Groups Configuration
 
-Categories are loaded from `Logs\ExtensionGroups.json`. Each group has:
+Categories are loaded from `config\ExtensionGroups.json`. Each group has:
 - **Name**: Category display name
 - **Color**: Hex color for UI display
 - **Enabled**: Whether to include in searches (true/false)
@@ -617,7 +619,7 @@ Original: 3f2504e0-4f89-11d3-9a0c-0305e82c3301
 Transmitted: a8b4c2... (SHA-256 hash, irreversible)
 ```
 
-Telemetry can be disabled in `Logs\AppPaths.json` by setting `"TelemetryEnabled": false`.
+Telemetry can be disabled in `config\AppPaths.json` by setting `"TelemetryEnabled": false`.
 
 ---
 

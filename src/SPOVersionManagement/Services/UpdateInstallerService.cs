@@ -46,22 +46,22 @@ namespace SPOVersionManagement.Services
                 string backupDir = Path.Combine(_rootPath, "Logs", "Backup",
                     "PreUpdate_" + DateTime.Now.ToString("yyyyMMdd_HHmmss"));
                 Directory.CreateDirectory(backupDir);
-                BackupFile("Logs\\AppPaths.json", backupDir);
-                BackupFile("Logs\\DashboardConfig.json", backupDir);
+                BackupFile("config\\AppPaths.json", backupDir);
+                BackupFile("config\\DashboardConfig.json", backupDir);
                 OnPercentage?.Invoke(30);
 
                 // 3. Merge AppPaths.json
                 Report("Merging AppPaths.json (preserving your settings)...");
                 MergeJsonConfig(
-                    Path.Combine(_rootPath, "Logs", "AppPaths.json"),
-                    Path.Combine(sourceDir, "Logs", "AppPaths.json"));
+                    Path.Combine(_rootPath, "config", "AppPaths.json"),
+                    Path.Combine(sourceDir, "config", "AppPaths.json"));
                 OnPercentage?.Invoke(50);
 
                 // 4. Merge DashboardConfig.json
                 Report("Merging DashboardConfig.json...");
                 MergeJsonConfig(
-                    Path.Combine(_rootPath, "Logs", "DashboardConfig.json"),
-                    Path.Combine(sourceDir, "Logs", "DashboardConfig.json"));
+                    Path.Combine(_rootPath, "config", "DashboardConfig.json"),
+                    Path.Combine(sourceDir, "config", "DashboardConfig.json"));
                 OnPercentage?.Invoke(60);
 
                 // 5. Copy updated files (skip config JSONs and user data)

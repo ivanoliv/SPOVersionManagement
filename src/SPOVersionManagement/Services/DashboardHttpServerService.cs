@@ -179,15 +179,31 @@ namespace SPOVersionManagement.Services
 
         private string ResolveFilePath(string relativePath)
         {
-            string combined = Path.Combine(_rootDirectory, relativePath);
-            string normalized = Path.GetFullPath(combined);
-            if (!normalized.StartsWith(_rootDirectory, StringComparison.OrdinalIgnoreCase))
-                return null;
-
-            if (File.Exists(normalized))
+            // Try web/ directory first (HTML, JS, CSS)
+            string webPath = Path.Combine(_rootDirectory, relativePath);
+            string normalized = Path.GetFullPath(webPath);
+            if (normalized.StartsWith(Path.GetFullPath(_rootDirectory), StringComparison.OrdinalIgnoreCase) && File.Exists(normalized))
                 return normalized;
 
-            // Fallback: find file by case-insensitive name in same directory.
+            // Try config/ directory for JSON files (sibling to web/)
+            string rootParent = Path.GetDirectoryName(_rootDirectory);
+            if (rootParent != null)
+            {
+                string configDir = Path.Combine(rootParent, "config");
+                string configPath = Path.Combine(configDir, relativePath);
+                string normalizedConfig = Path.GetFullPath(configPath);
+                if (normalizedConfig.StartsWith(Path.GetFullPath(configDir), StringComparison.OrdinalIgnoreCase) && File.Exists(normalizedConfig))
+                    return normalizedConfig;
+
+                // Try Logs/ directory for CSV files
+                string logsDir = Path.Combine(rootParent, "Logs");
+                string logsPath = Path.Combine(logsDir, relativePath);
+                string normalizedLogs = Path.GetFullPath(logsPath);
+                if (normalizedLogs.StartsWith(Path.GetFullPath(logsDir), StringComparison.OrdinalIgnoreCase) && File.Exists(normalizedLogs))
+                    return normalizedLogs;
+            }
+
+            // Fallback: find file by case-insensitive name in web directory.
             string dir = Path.GetDirectoryName(normalized);
             string file = Path.GetFileName(normalized);
             if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir) && !string.IsNullOrEmpty(file))

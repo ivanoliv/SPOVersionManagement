@@ -74,7 +74,7 @@ namespace SPOVersionManagement.Controls
 
         private void LoadConfig()
         {
-            string path = Path.Combine(_config.LogsPath, "ExtensionGroups.json");
+            string path = Path.Combine(_config.ConfigPath, "ExtensionGroups.json");
             if (File.Exists(path))
             {
                 try { _groupConfig = JsonConvert.DeserializeObject<ExtensionGroupConfig>(File.ReadAllText(path)); } catch { }
@@ -85,7 +85,7 @@ namespace SPOVersionManagement.Controls
 
         private void SaveConfig()
         {
-            string path = Path.Combine(_config.LogsPath, "ExtensionGroups.json");
+            string path = Path.Combine(_config.ConfigPath, "ExtensionGroups.json");
             File.WriteAllText(path, JsonConvert.SerializeObject(_groupConfig, Formatting.Indented));
         }
 

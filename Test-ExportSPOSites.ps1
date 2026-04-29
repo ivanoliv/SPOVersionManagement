@@ -1,4 +1,4 @@
-﻿# Test-ExportSPOSites.ps1
+# Test-ExportSPOSites.ps1
 # Diagnostic script: connects to SPO and exports Get-SPOSite raw output to CSV
 # Use this to verify what properties SPO returns for your tenant
 
@@ -28,7 +28,7 @@ Write-Host "=== SPO SITES EXPORT DIAGNOSTIC ===" -ForegroundColor Cyan
 Write-Host ""
 
 #region Load credentials from AppPaths.json if not provided
-$appPathsFile = Join-Path $scriptPath "Logs\AppPaths.json"
+$appPathsFile = Join-Path $scriptPath "config\AppPaths.json"
 if (Test-Path $appPathsFile) {
     try {
         $appPathsJson = Get-Content $appPathsFile -Raw | ConvertFrom-Json

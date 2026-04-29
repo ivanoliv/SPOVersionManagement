@@ -83,7 +83,7 @@ namespace SPOVersionManagement
         {
             // Try current directory first
             string current = AppDomain.CurrentDomain.BaseDirectory;
-            if (File.Exists(Path.Combine(current, "Logs", "AppPaths.json")))
+            if (File.Exists(Path.Combine(current, "config", "AppPaths.json")))
                 return current;
 
             // Walk up from executable location
@@ -92,7 +92,7 @@ namespace SPOVersionManagement
             {
                 dir = Path.GetDirectoryName(dir);
                 if (dir == null) break;
-                if (File.Exists(Path.Combine(dir, "Logs", "AppPaths.json")))
+                if (File.Exists(Path.Combine(dir, "config", "AppPaths.json")))
                     return dir;
             }
 

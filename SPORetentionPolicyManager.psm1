@@ -1,4 +1,4 @@
-﻿#region SPORetentionPolicyManager.psm1
+#region SPORetentionPolicyManager.psm1
 # Module for managing retention policy exclusions during version cleanup
 #
 # This module temporarily adds sites to retention policy exclusion lists
@@ -1305,7 +1305,7 @@ function Export-RetentionPolicyDatabase {
         $OutputPath = if ($script:RetentionPolicyLogFile) {
             Join-Path (Split-Path $script:RetentionPolicyLogFile -Parent) "RetentionPolicyDatabase.json"
         } else {
-            Join-Path (Get-Location) "Logs\RetentionPolicyDatabase.json"
+            Join-Path (Get-Location) "config\RetentionPolicyDatabase.json"
         }
     }
 
