@@ -220,7 +220,7 @@ Track month-over-month:
 | Risk | Depends on script quality | Non-destructive assessment mode, pilot-first |
 | Cost | Free (your time) | Free (your time, but 10x less of it) |
 
-The tool is free and open-source (MIT license). It uses the same official Microsoft APIs you would use in a custom script — but adds orchestration, monitoring, error handling, and governance that would take weeks to build from scratch.
+The tool is free and open-source (MIT license). It uses the same official Microsoft APIs you would use in a custom script — [`New-SPOSiteManageVersionPolicyJob`](https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositemanageversionpolicyjob) for policy enforcement and [`New-SPOSiteFileVersionBatchDeleteJob`](https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositefileversionbatchdeletejob) for batch deletion — but adds orchestration, monitoring, error handling, and governance that would take weeks to build from scratch.
 
 ---
 

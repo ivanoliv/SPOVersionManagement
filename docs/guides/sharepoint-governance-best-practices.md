@@ -277,7 +277,7 @@ Notify stakeholders before implementing version management:
 
 | Governance Requirement | How It's Met |
 |------------------------|---------------|
-| **Supported operations only** | Uses official Microsoft cmdlets (`New-SPOSiteManageVersionPolicyJob`, `New-SPOSiteFileVersionBatchDeleteJob`) |
+| **Supported operations only** | Uses official Microsoft cmdlets ([`New-SPOSiteManageVersionPolicyJob`](https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositemanageversionpolicyjob), [`New-SPOSiteFileVersionBatchDeleteJob`](https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositefileversionbatchdeletejob)) |
 | **Non-destructive assessment** | SyncOnly mode evaluates impact without deleting any data |
 | **Audit trail** | Every operation logged with timestamp, site URL, status, and bytes freed |
 | **Compliance-aware** | Auto-detects retention policies; suspend/resume with full audit |

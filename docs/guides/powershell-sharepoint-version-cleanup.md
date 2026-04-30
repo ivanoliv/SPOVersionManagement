@@ -22,6 +22,23 @@ This means:
 
 ---
 
+## Built on Official Microsoft APIs
+
+All version management operations in this guide — and in SPO Version Management — use two officially documented cmdlets from the SharePoint Online Management Shell:
+
+| Cmdlet | Purpose | Documentation |
+|--------|---------|---------------|
+| `New-SPOSiteManageVersionPolicyJob` | Applies version limits to all document libraries in a site | [Microsoft Learn](https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositemanageversionpolicyjob) |
+| `New-SPOSiteFileVersionBatchDeleteJob` | Deletes versions exceeding configured limits (goes to recycle bin) | [Microsoft Learn](https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositefileversionbatchdeletejob) |
+
+These are the same APIs Microsoft uses internally for tenant-scale version lifecycle management. They are fully supported, documented, and maintained by the SharePoint product team. Using them ensures:
+
+- **Compatibility** — guaranteed to work with current and future SharePoint Online versions
+- **Supportability** — covered by Microsoft support if issues arise
+- **Compliance** — operations respect platform-level retention and compliance settings
+
+---
+
 ## Prerequisites
 
 ### Required Modules
@@ -63,9 +80,11 @@ Connect-SPOService -Url "https://contoso-admin.sharepoint.com" `
 
 ## Core Cmdlets for Version Management
 
+The two primary cmdlets below are official, documented SharePoint Online Management Shell commands. They are the same mechanisms SharePoint uses internally for version lifecycle management.
+
 ### 1. Apply Version Policy (SyncListPolicy)
 
-Sets the version limit on all document libraries within a site. Does **not** delete existing versions.
+The [`New-SPOSiteManageVersionPolicyJob`](https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositemanageversionpolicyjob) cmdlet sets the version limit on all document libraries within a site. This is an official Microsoft API — fully supported, documented, and safe for production use. Does **not** delete existing versions.
 
 ```powershell
 # Set version limit to 20 major versions for all libraries in a site
@@ -106,7 +125,7 @@ $progress | Select-Object Status, LibrariesProcessed, LibrariesTotal
 
 ### 3. Delete Excess Versions (BatchDelete)
 
-Removes versions that exceed the configured limits. Only works after a policy has been set.
+The [`New-SPOSiteFileVersionBatchDeleteJob`](https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositefileversionbatchdeletejob) cmdlet removes versions that exceed the configured limits. This is Microsoft's official batch deletion API — deleted versions go to the site recycle bin (93-day recovery window). Only works after a policy has been set.
 
 ```powershell
 # Delete versions exceeding the limit

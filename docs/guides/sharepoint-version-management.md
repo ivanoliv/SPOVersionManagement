@@ -174,7 +174,7 @@ Sites under compliance retention policies cannot have versions deleted until the
 | Concern | How It's Addressed |
 |---------|--------------------|
 | Data loss | Deleted versions go to the site recycle bin (93-day retention). Recovery is possible. |
-| Unsupported operations | Uses only official Microsoft cmdlets (`New-SPOSiteManageVersionPolicyJob`, `New-SPOSiteFileVersionBatchDeleteJob`) |
+| Unsupported operations | Uses only official Microsoft cmdlets ([`New-SPOSiteManageVersionPolicyJob`](https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositemanageversionpolicyjob), [`New-SPOSiteFileVersionBatchDeleteJob`](https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositefileversionbatchdeletejob)) |
 | Compliance violations | Retention policies are detected and handled automatically (suspend/resume with audit trail) |
 | Unexpected scope | Non-destructive SyncOnly mode lets you assess before executing any deletion |
 | No rollback | Pilot-first approach: start with 10–20 sites, verify results, then scale |
@@ -193,7 +193,7 @@ No. Only historical versions are deleted. The current (latest) version of every 
 Depends on tenant size. A 5,000-site tenant with 10 concurrent jobs typically completes in 2–6 hours.
 
 **Is this supported by Microsoft?**
-The tool uses official, documented Microsoft APIs (`New-SPOSiteManageVersionPolicyJob`, `New-SPOSiteFileVersionBatchDeleteJob`). These are supported cmdlets in the SharePoint Online Management Shell.
+The tool uses official, documented Microsoft APIs ([`New-SPOSiteManageVersionPolicyJob`](https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositemanageversionpolicyjob), [`New-SPOSiteFileVersionBatchDeleteJob`](https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositefileversionbatchdeletejob)). These are supported cmdlets in the SharePoint Online Management Shell.
 
 ---
 
