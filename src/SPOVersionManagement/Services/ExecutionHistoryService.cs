@@ -29,14 +29,43 @@ namespace SPOVersionManagement.Services
                 return records;
 
             var lines = File.ReadAllLines(path);
-            if (lines.Length < 2) return records;
+            if (lines.Length == 0) return records;
 
-            string[] headers = ParseCsvLine(lines[0]);
+            // Determine if the first line is a header row or data
+            // Headers contain column names like "Timestamp","SiteUrl" etc.
+            // Data starts with a date (ISO 8601 format)
+            string[] firstCols = ParseCsvLine(lines[0]);
+            bool hasHeader = firstCols.Length > 0 &&
+                !string.IsNullOrEmpty(firstCols[0]) &&
+                !char.IsDigit(firstCols[0].TrimStart()[0]);
+
             var headerIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < headers.Length; i++)
-                headerIndex[headers[i].Trim()] = i;
+            int startRow;
 
-            for (int row = 1; row < lines.Length; row++)
+            if (hasHeader)
+            {
+                for (int i = 0; i < firstCols.Length; i++)
+                    headerIndex[firstCols[i].Trim()] = i;
+                startRow = 1;
+                if (lines.Length < 2) return records;
+            }
+            else
+            {
+                // Positional mapping matching the PowerShell CSV output order
+                string[] defaultHeaders = {
+                    "Timestamp", "SiteUrl", "JobType", "WorkItemId", "Status",
+                    "RequestTimeUTC", "CompleteTimeUTC", "DurationMinutes",
+                    "ListsProcessed", "ListsSynced", "ListSyncFailed",
+                    "FilesProcessed", "VersionsProcessed", "VersionsDeleted",
+                    "VersionsFailed", "StorageReleasedInBytes", "StorageReleasedMB",
+                    "ErrorMessage", "InitialStorageUsedBytes", "FinalStorageUsedBytes"
+                };
+                for (int i = 0; i < defaultHeaders.Length; i++)
+                    headerIndex[defaultHeaders[i]] = i;
+                startRow = 0;
+            }
+
+            for (int row = startRow; row < lines.Length; row++)
             {
                 if (string.IsNullOrWhiteSpace(lines[row])) continue;
                 string[] cols = ParseCsvLine(lines[row]);

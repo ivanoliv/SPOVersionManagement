@@ -162,6 +162,9 @@ namespace SPOVersionManagement.Theme
             grid.DefaultCellStyle.Font = FontBody;
 
             grid.AlternatingRowsDefaultCellStyle.BackColor = BgMedium;
+            grid.AlternatingRowsDefaultCellStyle.ForeColor = TextPrimary;
+            grid.AlternatingRowsDefaultCellStyle.SelectionBackColor = BgCard;
+            grid.AlternatingRowsDefaultCellStyle.SelectionForeColor = AccentCyan;
 
             grid.ColumnHeadersDefaultCellStyle.BackColor = BgHeader;
             grid.ColumnHeadersDefaultCellStyle.ForeColor = AccentCyan;

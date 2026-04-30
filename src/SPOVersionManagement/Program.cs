@@ -15,8 +15,8 @@ namespace SPOVersionManagement
         /// </summary>
         public static void Main(string rootPath)
         {
-            // GitHub API requires TLS 1.2 — .NET 4.8 defaults to older protocols
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
+            // GitHub API requires TLS 1.2
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
             if (string.IsNullOrEmpty(rootPath) || !Directory.Exists(rootPath))
             {
@@ -37,8 +37,8 @@ namespace SPOVersionManagement
         [STAThread]
         public static void Main(string[] args)
         {
-            // GitHub API requires TLS 1.2 — .NET 4.8 defaults to older protocols
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
+            // GitHub API requires TLS 1.2
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
             string rootPath;
 
@@ -88,10 +88,24 @@ namespace SPOVersionManagement
 
         private static string FindRootPath()
         {
-            // Try current directory first
-            string current = AppDomain.CurrentDomain.BaseDirectory;
+            // Try current directory first (BaseDirectory)
+            string current = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\', '/');
             if (File.Exists(Path.Combine(current, "config", "AppPaths.json")))
                 return current;
+
+            // If exe is in an "app" subfolder, check parent directly
+            string dirName = Path.GetFileName(current);
+            if (string.Equals(dirName, "app", StringComparison.OrdinalIgnoreCase))
+            {
+                string parent = Path.GetDirectoryName(current);
+                if (parent != null && File.Exists(Path.Combine(parent, "config", "AppPaths.json")))
+                    return parent;
+            }
+
+            // Try Environment.CurrentDirectory (where user launched from)
+            string cwd = Environment.CurrentDirectory;
+            if (File.Exists(Path.Combine(cwd, "config", "AppPaths.json")))
+                return cwd;
 
             // Walk up from executable location
             string dir = current;

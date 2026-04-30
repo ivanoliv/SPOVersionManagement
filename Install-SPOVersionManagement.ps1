@@ -101,7 +101,8 @@ $alwaysUpdate = @(
 # --- Files to preserve if they exist at destination (user configs) ---
 $preserveFiles = @(
     "IncludeSites.csv",
-    "ExcludeSites.csv"
+    "ExcludeSites.csv",
+    "config\TelemetrySentLog.json"
 )
 
 # --- Folders to always update ---

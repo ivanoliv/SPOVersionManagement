@@ -405,6 +405,7 @@ namespace SPOVersionManagement.Forms
             {
                 _dataSyncPanel = new DataSyncPanel();
                 _dataSyncPanel.Initialize(_configService, _psHost);
+                _dataSyncPanel.StatusMessage += (s, msg) => SetStatus(msg);
             }
             return _dataSyncPanel;
         }
