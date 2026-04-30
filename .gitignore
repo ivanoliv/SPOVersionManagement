@@ -27,7 +27,8 @@ SharePointSiteUsageStorage*.csv
 *.csv.bak
 
 # Internal / not for distribution
-docs/
+docs/*
+!docs/index.html
 Examples/
 .github/
 _analysis_results.txt
