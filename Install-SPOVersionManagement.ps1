@@ -206,6 +206,9 @@ if ((Test-Path $dstAppPaths) -and -not $Force) {
     $backupName = "AppPaths_backup_$timestamp.json"
     Copy-Item -Path $dstAppPaths -Destination (Join-Path $DestinationPath "Logs\Backup\$backupName") -Force
     
+    # Always update RootPath to actual install location
+    $dstConfig | Add-Member -NotePropertyName 'RootPath' -NotePropertyValue $DestinationPath -Force
+
     # Save merged config
     $dstConfig | ConvertTo-Json -Depth 10 | Set-Content -Path $dstAppPaths -Encoding UTF8
     Write-Host "  [Merged] AppPaths.json (v$version, user paths preserved)" -ForegroundColor Green
@@ -216,6 +219,10 @@ if ((Test-Path $dstAppPaths) -and -not $Force) {
         Write-Host "  [Backup] AppPaths.json -> Logs\Backup\$backupName" -ForegroundColor DarkYellow
     }
     Copy-Item -Path $srcAppPaths -Destination $dstAppPaths -Force
+    # Set RootPath to actual install location
+    $freshConfig = Get-Content $dstAppPaths -Raw | ConvertFrom-Json
+    $freshConfig | Add-Member -NotePropertyName 'RootPath' -NotePropertyValue $DestinationPath -Force
+    $freshConfig | ConvertTo-Json -Depth 10 | Set-Content -Path $dstAppPaths -Encoding UTF8
     $updatedCount++
     Write-Host "  [Installed] AppPaths.json" -ForegroundColor Green
 }

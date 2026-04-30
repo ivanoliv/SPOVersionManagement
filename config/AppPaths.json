@@ -3,7 +3,7 @@
   "AppVersion": "2.3.1.1",
   "Description": "Configuração centralizada de diretórios e arquivos da aplicação SPO Version Management",
   "LastModified": "2026-04-30T00:43:22.9911072Z",
-  "RootPath": "C:\\development",
+  "RootPath": "",
   "ApplicationFolder": "SPOVersionManagement",
   "Directories": {
     "Root": "",
@@ -63,5 +63,5 @@
     "SiteStorage": "./SiteStorage.csv",
     "TenantStorageTimeline": "./TenantStorageTimeline.json"
   },
-  "AdminUrl": "https://m365x45011370-admin.sharepoint.com/"
+  "AdminUrl": ""
 }
