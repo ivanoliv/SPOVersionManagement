@@ -130,6 +130,28 @@ foreach ($file in $configFiles + $webFiles + $appFiles) {
     }
 }
 
+# --- Sanitize AppPaths.json (remove secrets before packing) ---
+$stagedAppPaths = Join-Path $stagingRoot "config\AppPaths.json"
+if (Test-Path $stagedAppPaths) {
+    $cfg = Get-Content $stagedAppPaths -Raw | ConvertFrom-Json
+    # Clear tenant-specific secrets
+    if ($cfg.EntraIdApp) {
+        $cfg.EntraIdApp.TenantId = ""
+        $cfg.EntraIdApp.ClientId = ""
+        $cfg.EntraIdApp.CertificateThumbprint = ""
+    }
+    if ($cfg.PurviewApp) {
+        $cfg.PurviewApp.ClientId = ""
+        $cfg.PurviewApp.CertificateThumbprint = ""
+        $cfg.PurviewApp.Organization = ""
+    }
+    $cfg.AdminUrl = ""
+    $cfg.RootPath = ""
+    $cfg.TelemetrySalt = ""
+    $cfg | ConvertTo-Json -Depth 10 | Set-Content -Path $stagedAppPaths -Encoding UTF8
+    Write-Host "  [Sanitized] config\AppPaths.json (secrets removed)" -ForegroundColor Cyan
+}
+
 # --- Copy folders ---
 foreach ($folder in $folders) {
     $src = Join-Path $scriptPath $folder
