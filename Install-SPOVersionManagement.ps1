@@ -77,7 +77,6 @@ $alwaysUpdate = @(
     "SPOSiteFilters.psm1",
     "SPORetentionPolicyManager.psm1",
     "Start-SPOVersionManagement.ps1",
-    "Start-SPOVersionManagement_app.ps1",
     "Start-Dashboard.ps1",
     "Connect-SPOFirst.ps1",
     "Export-AllSPOSites.ps1",
@@ -92,7 +91,11 @@ $alwaysUpdate = @(
     "ENTRA_ID_APP_SETUP.md",
     "web\Dashboard.html",
     "web\localization.js",
-    "config\ExtensionGroups.json"
+    "config\ExtensionGroups.json",
+    "app\SPOVersionManagement.exe",
+    "app\SPOVersionManagement.exe.config",
+    "app\Newtonsoft.Json.dll",
+    "app\System.Management.Automation.dll"
 )
 
 # --- Files to preserve if they exist at destination (user configs) ---
@@ -110,6 +113,7 @@ New-Item -Path (Join-Path $DestinationPath "Logs") -ItemType Directory -Force | 
 New-Item -Path (Join-Path $DestinationPath "Logs\Backup") -ItemType Directory -Force | Out-Null
 New-Item -Path (Join-Path $DestinationPath "config") -ItemType Directory -Force | Out-Null
 New-Item -Path (Join-Path $DestinationPath "web") -ItemType Directory -Force | Out-Null
+New-Item -Path (Join-Path $DestinationPath "app") -ItemType Directory -Force | Out-Null
 
 $updatedCount = 0
 $preservedCount = 0

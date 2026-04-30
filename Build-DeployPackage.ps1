@@ -49,7 +49,6 @@ $rootFiles = @(
     "SPOSiteFilters.psm1",
     "SPORetentionPolicyManager.psm1",
     "Start-SPOVersionManagement.ps1",
-    "Start-SPOVersionManagement_app.ps1",
     "Start-Dashboard.ps1",
     "Connect-SPOFirst.ps1",
     "Export-AllSPOSites.ps1",
@@ -80,6 +79,14 @@ $webFiles = @(
     "web\localization.js"
 )
 
+# app/ directory files (Windows App executable)
+$appFiles = @(
+    "app\SPOVersionManagement.exe",
+    "app\SPOVersionManagement.exe.config",
+    "app\Newtonsoft.Json.dll",
+    "app\System.Management.Automation.dll"
+)
+
 # Folders to include entirely
 $folders = @()
 
@@ -96,6 +103,7 @@ New-Item -Path $stagingRoot -ItemType Directory -Force | Out-Null
 New-Item -Path (Join-Path $stagingRoot "Logs") -ItemType Directory -Force | Out-Null
 New-Item -Path (Join-Path $stagingRoot "config") -ItemType Directory -Force | Out-Null
 New-Item -Path (Join-Path $stagingRoot "web") -ItemType Directory -Force | Out-Null
+New-Item -Path (Join-Path $stagingRoot "app") -ItemType Directory -Force | Out-Null
 
 # --- Copy root files ---
 $copiedCount = 0
@@ -111,7 +119,7 @@ foreach ($file in $rootFiles) {
 }
 
 # --- Copy Logs files ---
-foreach ($file in $configFiles + $webFiles) {
+foreach ($file in $configFiles + $webFiles + $appFiles) {
     $src = Join-Path $scriptPath $file
     if (Test-Path $src) {
         Copy-Item -Path $src -Destination (Join-Path $stagingRoot $file) -Force
