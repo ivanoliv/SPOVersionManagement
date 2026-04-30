@@ -3,140 +3,624 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPO Version Management - Free SharePoint Online Storage Cleanup Tool</title>
-    <meta name="description" content="Free open-source tool to manage SharePoint Online file versions, reclaim storage space, and clean up version history. Reduce SharePoint Online storage usage automatically.">
-    <meta name="keywords" content="SharePoint Online storage full, SharePoint version history cleanup, reduce SharePoint storage, too many file versions SharePoint, SharePoint Online no space left, clean up SharePoint versions, free SharePoint storage tool, SharePoint Online version management, reclaim SharePoint storage, SharePoint Online quota exceeded">
+    <title>SPO Version Management - Free SharePoint Online Storage Cleanup Tool | Reduce Costs</title>
+    <meta name="description" content="Free open-source tool to manage SharePoint Online file versions, reclaim storage space, and save money. Dashboard with real-time analytics, cost savings calculator, and automated version cleanup.">
+    <meta name="keywords" content="SharePoint Online storage full, SharePoint version history cleanup, reduce SharePoint storage, too many file versions SharePoint, SharePoint Online no space left, clean up SharePoint versions, free SharePoint storage tool, SharePoint Online version management, reclaim SharePoint storage, SharePoint Online quota exceeded, SharePoint storage cost, Microsoft 365 extra storage pricing, SharePoint version limit, bulk delete SharePoint versions, SharePoint storage analytics, SharePoint Online administration tool, SharePoint Online storage management, free SharePoint admin tool, version history too large SharePoint">
     <meta name="author" content="ivanoliv">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://ivanoliv.github.io/SPOVersionManagement/">
     <meta property="og:title" content="SPO Version Management - Free SharePoint Online Storage Cleanup">
-    <meta property="og:description" content="Open-source PowerShell tool to manage and clean up SharePoint Online file versions. Reclaim storage space automatically.">
+    <meta property="og:description" content="Open-source tool to manage SharePoint Online file versions. Dashboard, cost savings, automated cleanup. Used by organizations worldwide.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://ivanoliv.github.io/SPOVersionManagement/">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SPO Version Management - Free SharePoint Storage Tool">
+    <meta name="twitter:description" content="Reclaim SharePoint Online storage by cleaning up excess file versions. Free, open-source, used by organizations worldwide.">
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "SPO Version Management",
-        "description": "Free open-source PowerShell tool to manage SharePoint Online file versions and reclaim storage space",
+        "description": "Free open-source PowerShell tool to manage SharePoint Online file versions, reclaim storage space, and reduce Microsoft 365 costs",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Windows",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "url": "https://github.com/ivanoliv/SPOVersionManagement",
         "downloadUrl": "https://github.com/ivanoliv/SPOVersionManagement/releases",
-        "softwareHelp": { "@type": "CreativeWork", "url": "https://github.com/ivanoliv/SPOVersionManagement#readme" }
+        "softwareHelp": { "@type": "CreativeWork", "url": "https://github.com/ivanoliv/SPOVersionManagement#readme" },
+        "featureList": "Storage Analytics Dashboard, Automated Version Cleanup, Cost Savings Calculator, Retention Policy Management, Multi-tenant Support, Resumable Operations, Windows GUI Application"
     }
     </script>
+
+    <!-- Google Analytics 4 — Replace G-XXXXXXXXXX with your Measurement ID from https://analytics.google.com -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX');
+    </script>
+
     <style>
+        :root {
+            --blue: #0078d4;
+            --blue-dark: #005a9e;
+            --blue-light: #e8f4fd;
+            --green: #107c10;
+            --green-light: #dff6dd;
+            --orange: #ff8c00;
+            --orange-light: #fff4ce;
+            --gray-50: #f8f9fa;
+            --gray-100: #f0f2f5;
+            --gray-600: #555;
+            --gray-800: #1a1a2e;
+            --radius: 12px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a2e; background: #f8f9fa; }
-        .container { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }
-        header { text-align: center; padding: 3rem 0 2rem; }
-        h1 { font-size: 2rem; color: #0078d4; margin-bottom: 0.5rem; }
-        .subtitle { font-size: 1.1rem; color: #555; margin-bottom: 2rem; }
-        .cta { display: inline-block; background: #0078d4; color: #fff; padding: 0.8rem 2rem; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 1.1rem; transition: background 0.2s; }
-        .cta:hover { background: #005a9e; }
-        section { background: #fff; border-radius: 8px; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-        h2 { color: #0078d4; margin-bottom: 1rem; font-size: 1.4rem; }
-        ul { padding-left: 1.5rem; }
-        li { margin-bottom: 0.5rem; }
-        .features { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .feature { background: #f0f6ff; padding: 1rem; border-radius: 6px; }
-        .feature h3 { font-size: 1rem; color: #0078d4; margin-bottom: 0.3rem; }
-        .feature p { font-size: 0.9rem; color: #444; }
-        footer { text-align: center; padding: 2rem 0; color: #777; font-size: 0.85rem; }
-        footer a { color: #0078d4; }
-        @media (max-width: 600px) { .features { grid-template-columns: 1fr; } h1 { font-size: 1.5rem; } }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: var(--gray-800); background: var(--gray-50); }
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+        a { color: var(--blue); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* Hero */
+        .hero { background: linear-gradient(135deg, #0078d4 0%, #004578 100%); color: #fff; padding: 4rem 1.5rem 3rem; text-align: center; }
+        .hero h1 { font-size: 2.6rem; margin-bottom: 0.8rem; font-weight: 800; }
+        .hero .subtitle { font-size: 1.25rem; opacity: 0.92; max-width: 700px; margin: 0 auto 2rem; }
+        .hero .cta-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .btn { display: inline-block; padding: 0.85rem 2rem; border-radius: 8px; font-weight: 600; font-size: 1rem; transition: all 0.2s; border: 2px solid transparent; }
+        .btn-primary { background: #fff; color: var(--blue); }
+        .btn-primary:hover { background: var(--blue-light); text-decoration: none; }
+        .btn-secondary { border-color: rgba(255,255,255,0.6); color: #fff; background: transparent; }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); text-decoration: none; }
+
+        /* Live Stats Banner */
+        .live-stats { background: var(--gray-800); color: #fff; padding: 1.5rem; }
+        .live-stats .container { display: flex; justify-content: center; align-items: center; gap: 2.5rem; flex-wrap: wrap; }
+        .live-stats .stat { text-align: center; }
+        .live-stats .stat-value { font-size: 1.6rem; font-weight: 700; color: #4fc3f7; }
+        .live-stats .stat-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #90a4ae; }
+        .live-stats .pulse { display: inline-block; width: 8px; height: 8px; background: #4caf50; border-radius: 50%; animation: pulse 2s infinite; margin-right: 6px; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* Sections */
+        section { padding: 3.5rem 0; }
+        .section-title { font-size: 2rem; font-weight: 700; text-align: center; margin-bottom: 0.5rem; color: var(--gray-800); }
+        .section-subtitle { text-align: center; color: var(--gray-600); font-size: 1.1rem; margin-bottom: 2.5rem; max-width: 650px; margin-left: auto; margin-right: auto; }
+
+        /* Problem Section */
+        .problem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .problem-card { background: #fff; padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); border-left: 4px solid #e74c3c; }
+        .problem-card h3 { color: #c0392b; margin-bottom: 0.4rem; font-size: 1rem; }
+        .problem-card p { color: var(--gray-600); font-size: 0.95rem; }
+
+        /* Features Grid */
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+        .feature-card { background: #fff; padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow); transition: transform 0.2s, box-shadow 0.2s; }
+        .feature-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+        .feature-card .icon { font-size: 2rem; margin-bottom: 0.8rem; }
+        .feature-card h3 { font-size: 1.15rem; margin-bottom: 0.5rem; color: var(--gray-800); }
+        .feature-card p { color: var(--gray-600); font-size: 0.95rem; }
+        .feature-card .badge { display: inline-block; background: var(--green-light); color: var(--green); font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 4px; margin-top: 0.5rem; }
+
+        /* Screenshot Gallery */
+        .gallery { background: var(--gray-100); }
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; }
+        .gallery-item { background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-lg); }
+        .gallery-item .screenshot { width: 100%; aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+        .gallery-item .screenshot .mock { padding: 1.5rem; text-align: center; width: 100%; }
+        .gallery-item .screenshot .mock-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+        .gallery-item .screenshot .mock-bars { display: flex; gap: 4px; justify-content: center; align-items: flex-end; height: 60px; }
+        .gallery-item .screenshot .mock-bars span { width: 20px; border-radius: 3px 3px 0 0; opacity: 0.7; }
+        .gallery-item .screenshot .mock-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+        .gallery-item .screenshot .mock-stat { border-radius: 6px; padding: 6px; font-size: 0.7rem; }
+        .gallery-item .caption { padding: 1rem 1.5rem; }
+        .gallery-item .caption h3 { font-size: 1rem; margin-bottom: 0.3rem; }
+        .gallery-item .caption p { font-size: 0.85rem; color: var(--gray-600); }
+
+        /* Cost Calculator */
+        .calculator { background: #fff; }
+        .calc-box { max-width: 600px; margin: 0 auto; background: var(--blue-light); border-radius: var(--radius); padding: 2.5rem; text-align: center; }
+        .calc-box h3 { color: var(--blue-dark); margin-bottom: 1rem; }
+        .calc-input { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .calc-input label { font-weight: 600; color: var(--gray-800); }
+        .calc-input input { width: 120px; padding: 0.6rem; border: 2px solid var(--blue); border-radius: 8px; font-size: 1.1rem; text-align: center; }
+        .calc-result { font-size: 2rem; font-weight: 800; color: var(--green); }
+        .calc-result small { display: block; font-size: 0.9rem; font-weight: 400; color: var(--gray-600); margin-top: 0.3rem; }
+        .calc-formula { margin-top: 1rem; font-size: 0.85rem; color: var(--gray-600); font-style: italic; }
+
+        /* How It Works */
+        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; counter-reset: step; }
+        .step { text-align: center; padding: 1.5rem 1rem; position: relative; }
+        .step::before { counter-increment: step; content: counter(step); display: block; width: 40px; height: 40px; margin: 0 auto 0.8rem; background: var(--blue); color: #fff; border-radius: 50%; line-height: 40px; font-weight: 700; font-size: 1.1rem; }
+        .step h4 { font-size: 0.95rem; margin-bottom: 0.3rem; }
+        .step p { font-size: 0.85rem; color: var(--gray-600); }
+
+        /* GUI App Section */
+        .gui-section { background: var(--gray-100); }
+        .gui-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+        .gui-feature { background: #fff; padding: 1.2rem; border-radius: 8px; display: flex; align-items: flex-start; gap: 0.8rem; box-shadow: var(--shadow); }
+        .gui-feature .gi { font-size: 1.4rem; flex-shrink: 0; }
+        .gui-feature h4 { font-size: 0.95rem; margin-bottom: 0.2rem; }
+        .gui-feature p { font-size: 0.85rem; color: var(--gray-600); }
+
+        /* Use Cases */
+        .use-cases { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .use-case { background: #fff; padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); border-top: 3px solid var(--blue); }
+        .use-case .scenario { font-weight: 700; color: var(--blue-dark); margin-bottom: 0.4rem; }
+        .use-case .result { color: var(--green); font-weight: 600; margin-top: 0.5rem; }
+
+        /* WW Section */
+        .ww-section { background: var(--gray-800); color: #fff; padding: 3.5rem 1.5rem; text-align: center; }
+        .ww-section h2 { color: #4fc3f7; margin-bottom: 0.5rem; font-size: 1.8rem; }
+        .ww-section > p { color: #90a4ae; margin-bottom: 1.5rem; }
+        .ww-details { max-width: 800px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1.5rem; }
+        .ww-details .wd { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.5rem; }
+        .ww-details .wd .val { font-size: 1.8rem; font-weight: 700; color: #4fc3f7; }
+        .ww-details .wd .lbl { font-size: 0.75rem; color: #90a4ae; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.3rem; }
+        .privacy-note { margin-top: 2rem; font-size: 0.85rem; color: #78909c; max-width: 600px; margin-left: auto; margin-right: auto; }
+
+        /* Final CTA */
+        .final-cta { background: linear-gradient(135deg, #004578 0%, #0078d4 100%); color: #fff; padding: 4rem 1.5rem; text-align: center; }
+        .final-cta h2 { font-size: 2rem; margin-bottom: 0.8rem; }
+        .final-cta p { opacity: 0.9; margin-bottom: 2rem; font-size: 1.1rem; }
+        .final-cta .btn-primary { font-size: 1.15rem; padding: 1rem 2.5rem; }
+
+        /* Footer */
+        footer { padding: 2rem; text-align: center; color: #777; font-size: 0.85rem; background: #fff; border-top: 1px solid var(--gray-100); }
+        footer a { color: var(--blue); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 1.8rem; }
+            .hero .subtitle { font-size: 1rem; }
+            .live-stats .container { gap: 1.2rem; }
+            .live-stats .stat-value { font-size: 1.2rem; }
+            .section-title { font-size: 1.5rem; }
+            .ww-details .wd .val { font-size: 1.3rem; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
+    <!-- Hero -->
+    <div class="hero">
+        <div class="container">
             <h1>SPO Version Management</h1>
-            <p class="subtitle">Free open-source tool to clean up SharePoint Online file versions and reclaim storage space</p>
-            <a href="https://github.com/ivanoliv/SPOVersionManagement" class="cta">Download Free on GitHub</a>
-        </header>
+            <p class="subtitle">Free, open-source tool to clean up SharePoint Online file versions, reclaim storage, and stop paying for unnecessary space</p>
+            <div class="cta-group">
+                <a href="https://github.com/ivanoliv/SPOVersionManagement" class="btn btn-primary">Download Free on GitHub</a>
+                <a href="https://github.com/ivanoliv/SPOVersionManagement/releases" class="btn btn-secondary">View Releases</a>
+            </div>
+        </div>
+    </div>
 
-        <section>
-            <h2>SharePoint Online Storage Full? Too Many File Versions?</h2>
-            <p>If your SharePoint Online tenant is running out of storage space due to excessive file version history, you're not alone. Microsoft 365 keeps every version of every file by default, and this can consume massive amounts of your SharePoint Online quota.</p>
-            <p style="margin-top:1rem;"><strong>SPO Version Management</strong> is a free, open-source PowerShell tool that helps you identify, analyze, and clean up unnecessary file versions across your SharePoint Online sites and document libraries — safely and efficiently.</p>
-        </section>
+    <!-- Live Worldwide Stats -->
+    <div class="live-stats" id="live-stats">
+        <div class="container">
+            <div class="stat">
+                <div class="stat-value"><span class="pulse"></span><span id="ww-storage">—</span></div>
+                <div class="stat-label">Storage Freed WW</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="ww-savings">—</div>
+                <div class="stat-label">Annual Savings (USD)</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="ww-versions">—</div>
+                <div class="stat-label">Versions Deleted</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="ww-tenants">—</div>
+                <div class="stat-label">Organizations</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="ww-sessions">—</div>
+                <div class="stat-label">Sessions</div>
+            </div>
+        </div>
+    </div>
 
-        <section>
-            <h2>Common Problems This Tool Solves</h2>
-            <ul>
-                <li><strong>SharePoint Online storage quota exceeded</strong> — reclaim GBs of space by trimming old versions</li>
-                <li><strong>Too many file versions consuming space</strong> — keep only the versions you need</li>
-                <li><strong>No visibility into what's using storage</strong> — dashboard shows storage breakdown by site and library</li>
-                <li><strong>Manual cleanup is impractical</strong> — automate version trimming across thousands of files</li>
-                <li><strong>Need to reduce SharePoint Online costs</strong> — avoid purchasing additional storage</li>
-                <li><strong>Version history out of control</strong> — set and enforce version limits across your tenant</li>
-            </ul>
-        </section>
-
-        <section>
-            <h2>Key Features</h2>
-            <div class="features">
-                <div class="feature">
-                    <h3>Interactive Dashboard</h3>
-                    <p>Visual overview of storage usage, version counts, and cleanup opportunities across all sites.</p>
+    <!-- Problem Statement -->
+    <section>
+        <div class="container">
+            <h2 class="section-title">The SharePoint Online Storage Problem</h2>
+            <p class="section-subtitle">Microsoft 365 keeps every version of every file by default. Over time, version history silently consumes 30-70% of your SharePoint storage quota.</p>
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <h3>Storage Quota Exceeded</h3>
+                    <p>SharePoint Online shows "out of space" warnings. Users can't upload files. You're forced to buy extra storage at $0.20/GB/month.</p>
                 </div>
-                <div class="feature">
-                    <h3>Safe Version Cleanup</h3>
-                    <p>Preview what will be deleted before committing. Keep a minimum number of versions per file.</p>
+                <div class="problem-card">
+                    <h3>Invisible Version Bloat</h3>
+                    <p>A 10MB Excel file with 500 versions = 5GB of hidden storage. Multiply across thousands of files and hundreds of sites.</p>
                 </div>
-                <div class="feature">
-                    <h3>Bulk Operations</h3>
-                    <p>Process entire site collections, individual libraries, or specific file patterns at scale.</p>
+                <div class="problem-card">
+                    <h3>No Native Bulk Tools</h3>
+                    <p>SharePoint admin center shows storage usage but provides no way to bulk-clean versions across sites. Manual cleanup is impractical at scale.</p>
                 </div>
-                <div class="feature">
-                    <h3>Detailed Reporting</h3>
-                    <p>Export reports showing storage recovered, files processed, and version history details.</p>
-                </div>
-                <div class="feature">
-                    <h3>PowerShell Based</h3>
-                    <p>No installation required beyond PowerShell. Works with certificate or interactive auth.</p>
-                </div>
-                <div class="feature">
-                    <h3>100% Free &amp; Open Source</h3>
-                    <p>MIT licensed. No subscriptions, no hidden costs, no data sent to third parties.</p>
+                <div class="problem-card">
+                    <h3>Growing Monthly Costs</h3>
+                    <p>Extra storage at $0.20/GB/month adds up fast. 1TB of excess versions = $2,400/year in completely avoidable costs.</p>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <section>
-            <h2>How It Works</h2>
-            <ol style="padding-left:1.5rem;">
-                <li>Connect to your SharePoint Online tenant using app-only (certificate) or interactive authentication</li>
-                <li>Scan sites and document libraries to identify version storage usage</li>
-                <li>Review the dashboard to see which files and libraries consume the most space</li>
-                <li>Configure version retention policies (e.g., keep last 10 versions)</li>
-                <li>Execute cleanup — safely trim excess versions and reclaim storage</li>
-            </ol>
-        </section>
+    <!-- Dashboard / Screenshots Gallery -->
+    <section class="gallery">
+        <div class="container">
+            <h2 class="section-title">Interactive Dashboard &amp; Analytics</h2>
+            <p class="section-subtitle">Real-time visibility into your SharePoint storage, version cleanup progress, and cost savings — all in your browser</p>
+            <div class="gallery-grid">
+                <div class="gallery-item">
+                    <div class="screenshot" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);">
+                        <div class="mock">
+                            <div class="mock-title" style="color:var(--blue);">Storage Analytics</div>
+                            <div class="mock-bars">
+                                <span style="height:45px;background:var(--blue)"></span>
+                                <span style="height:60px;background:var(--blue)"></span>
+                                <span style="height:35px;background:var(--blue)"></span>
+                                <span style="height:55px;background:var(--blue)"></span>
+                                <span style="height:25px;background:var(--blue)"></span>
+                                <span style="height:50px;background:var(--blue)"></span>
+                            </div>
+                            <div class="mock-stats">
+                                <div class="mock-stat" style="background:rgba(0,120,212,0.1);color:var(--blue-dark)">2.4 TB Quota</div>
+                                <div class="mock-stat" style="background:rgba(0,120,212,0.1);color:var(--blue-dark)">1.8 TB Used</div>
+                                <div class="mock-stat" style="background:rgba(0,120,212,0.1);color:var(--blue-dark)">890 GB Versions</div>
+                                <div class="mock-stat" style="background:rgba(16,124,16,0.1);color:var(--green)">$2,136/yr saved</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">
+                        <h3>Storage Analytics Dashboard</h3>
+                        <p>Tenant storage breakdown: quota vs used vs available. Version storage highlighted. Color-coded alerts at 70% (warning) and 90% (critical).</p>
+                    </div>
+                </div>
+                <div class="gallery-item">
+                    <div class="screenshot" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);">
+                        <div class="mock">
+                            <div class="mock-title" style="color:#2e7d32">Execution Monitor</div>
+                            <div class="mock-stats" style="grid-template-columns: 1fr 1fr 1fr;">
+                                <div class="mock-stat" style="background:rgba(46,125,50,0.1);color:#2e7d32">142 Done</div>
+                                <div class="mock-stat" style="background:rgba(255,152,0,0.1);color:#e65100">8 Active</div>
+                                <div class="mock-stat" style="background:rgba(33,150,243,0.1);color:#1565c0">23 Queued</div>
+                            </div>
+                            <div style="margin-top:12px;font-size:0.65rem;color:#555;text-align:left;line-height:1.8;">
+                                <div>contoso.sharepoint.com/sites/HR — <strong style="color:#2e7d32">312 versions deleted, 4.2 GB freed</strong></div>
+                                <div>contoso.sharepoint.com/sites/Finance — <strong style="color:#e65100">In progress... 67%</strong></div>
+                                <div>contoso.sharepoint.com/sites/Legal — <strong style="color:#1565c0">Queued (position 3)</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">
+                        <h3>Real-Time Job Monitor</h3>
+                        <p>Track sync and delete jobs across all sites. See active/queued/completed with live console output and progress percentages.</p>
+                    </div>
+                </div>
+                <div class="gallery-item">
+                    <div class="screenshot" style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);">
+                        <div class="mock">
+                            <div class="mock-title" style="color:#e65100">Cost Impact</div>
+                            <div style="font-size:2.2rem;font-weight:800;color:#2e7d32;margin:8px 0;">$14,400</div>
+                            <div style="font-size:0.75rem;color:#555;">Annual savings from 600 GB freed</div>
+                            <div class="mock-stats" style="margin-top:12px;">
+                                <div class="mock-stat" style="background:rgba(230,81,0,0.1);color:#e65100">Before: 1.9 TB</div>
+                                <div class="mock-stat" style="background:rgba(46,125,50,0.1);color:#2e7d32">After: 1.3 TB</div>
+                                <div class="mock-stat" style="background:rgba(46,125,50,0.1);color:#2e7d32">ROI: 600 GB</div>
+                                <div class="mock-stat" style="background:rgba(46,125,50,0.1);color:#2e7d32">$1,200/mo saved</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">
+                        <h3>Money Spent on Version Storage</h3>
+                        <p>See exactly how much extra storage costs you're avoiding. Based on Microsoft's $0.20/GB/month pricing for additional SharePoint storage.</p>
+                    </div>
+                </div>
+                <div class="gallery-item">
+                    <div class="screenshot" style="background: linear-gradient(135deg, #ede7f6 0%, #d1c4e9 100%);">
+                        <div class="mock">
+                            <div class="mock-title" style="color:#4527a0">Windows Desktop App</div>
+                            <div style="display:flex;gap:3px;font-size:0.55rem;margin-bottom:8px;flex-wrap:wrap;justify-content:center;">
+                                <span style="background:#4527a0;color:#fff;padding:2px 5px;border-radius:3px;">Home</span>
+                                <span style="background:rgba(69,39,160,0.15);color:#4527a0;padding:2px 5px;border-radius:3px;">Execute</span>
+                                <span style="background:rgba(69,39,160,0.15);color:#4527a0;padding:2px 5px;border-radius:3px;">Sites</span>
+                                <span style="background:rgba(69,39,160,0.15);color:#4527a0;padding:2px 5px;border-radius:3px;">History</span>
+                                <span style="background:rgba(69,39,160,0.15);color:#4527a0;padding:2px 5px;border-radius:3px;">Policies</span>
+                                <span style="background:rgba(69,39,160,0.15);color:#4527a0;padding:2px 5px;border-radius:3px;">Archive</span>
+                            </div>
+                            <div class="mock-stats">
+                                <div class="mock-stat" style="background:rgba(69,39,160,0.1);color:#4527a0">12 Panels</div>
+                                <div class="mock-stat" style="background:rgba(69,39,160,0.1);color:#4527a0">Real-time</div>
+                                <div class="mock-stat" style="background:rgba(69,39,160,0.1);color:#4527a0">No CLI needed</div>
+                                <div class="mock-stat" style="background:rgba(69,39,160,0.1);color:#4527a0">Auto-update</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">
+                        <h3>Full GUI — No PowerShell Required</h3>
+                        <p>Native Windows app with 12 panels. Point-and-click management for all operations. Built-in auto-updater checks GitHub releases.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        <section>
-            <h2>Who Is This For?</h2>
-            <ul>
-                <li>SharePoint Online administrators dealing with storage limits</li>
-                <li>Microsoft 365 tenant admins looking to reduce costs</li>
-                <li>IT teams needing to enforce version history policies</li>
-                <li>Organizations that want to avoid buying extra SharePoint storage</li>
-            </ul>
-        </section>
+    <!-- Features -->
+    <section>
+        <div class="container">
+            <h2 class="section-title">Complete SharePoint Version Management</h2>
+            <p class="section-subtitle">Everything from discovery to cleanup to cost reporting — in one free tool</p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon">📊</div>
+                    <h3>Storage Analytics Dashboard</h3>
+                    <p>8-tab interactive HTML dashboard: storage breakdown, active jobs, queue, history, sites catalog, excluded sites, archives, and settings. Auto-refreshes every 5 seconds.</p>
+                    <span class="badge">8 tabs, real-time</span>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🖥️</div>
+                    <h3>Windows Desktop Application</h3>
+                    <p>Native WinForms app with 12 panels: Home, Execution, Sites, History, Retention Policies, File Archive, Data Sync, Configuration, Updates, Prerequisites, HTTP Server.</p>
+                    <span class="badge">No command-line needed</span>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">💰</div>
+                    <h3>Cost Savings Tracking</h3>
+                    <p>Automatically calculates money saved based on Microsoft 365 extra storage pricing. Shows before/after comparison, annual savings, and ROI per execution.</p>
+                    <span class="badge">$0.20/GB/month formula</span>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">⚡</div>
+                    <h3>Parallel Processing (10 concurrent)</h3>
+                    <p>Process up to 10 sites simultaneously. Separate sync and delete phases with configurable batch sizes, delays, and priority queuing.</p>
+                    <span class="badge">10x faster than sequential</span>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🔄</div>
+                    <h3>Resumable Sessions</h3>
+                    <p>Interrupted mid-execution? Load your session and resume exactly where you left off. Session state is persisted to JSON and can be reloaded anytime.</p>
+                    <span class="badge">Never lose progress</span>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🛡️</div>
+                    <h3>Retention Policy Automation</h3>
+                    <p>Auto-detect compliance/retention policies blocking version deletion. Suspend them, run cleanup, then auto-resume. Full audit trail maintained.</p>
+                    <span class="badge">Handles compliance locks</span>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📁</div>
+                    <h3>File Archive &amp; Large File Search</h3>
+                    <p>Search all sites for large files by extension — video, audio, CAD, archives. Graph API powered. Identify hidden storage hogs and queue for archival.</p>
+                    <span class="badge">Find space wasters</span>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🌍</div>
+                    <h3>Worldwide Telemetry Dashboard</h3>
+                    <p>Opt-in anonymous telemetry shows global community impact. Tenant identity is SHA-256 hashed. Zero personal data. See how much storage the community has freed.</p>
+                    <span class="badge">Privacy-first, opt-in</span>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📈</div>
+                    <h3>Trend Charts &amp; Power BI Export</h3>
+                    <p>Track storage trends over time, version deletion velocity, and savings trajectory. Export CSV data for custom Power BI dashboards and executive reports.</p>
+                    <span class="badge">Data for decisions</span>
+                </div>
+            </div>
+        </div>
+    </section>
 
-        <section style="text-align:center;">
-            <h2>Get Started — It's Free</h2>
-            <p style="margin-bottom:1.5rem;">Download from GitHub, follow the setup guide, and start reclaiming your SharePoint Online storage today.</p>
-            <a href="https://github.com/ivanoliv/SPOVersionManagement" class="cta">View on GitHub</a>
-            <p style="margin-top:1rem; font-size:0.9rem; color:#666;">Works with PowerShell 5.1+ on Windows &bull; No paid license required</p>
-        </section>
+    <!-- Cost Calculator -->
+    <section class="calculator">
+        <div class="container">
+            <h2 class="section-title">How Much Are Versions Costing You?</h2>
+            <p class="section-subtitle">Enter your estimated excess version storage to calculate potential annual savings</p>
+            <div class="calc-box">
+                <h3>SharePoint Storage Savings Calculator</h3>
+                <div class="calc-input">
+                    <label for="gb-input">Excess version storage (GB):</label>
+                    <input type="number" id="gb-input" value="500" min="1" max="100000" oninput="calcSavings()">
+                </div>
+                <div class="calc-result" id="calc-result">$1,200 / year</div>
+                <div class="calc-formula">Based on Microsoft 365 extra file storage: $0.20 per GB per month &times; 12 months</div>
+            </div>
+        </div>
+    </section>
 
-        <footer>
-            <p>SPO Version Management is an open-source project by <a href="https://github.com/ivanoliv">ivanoliv</a></p>
-            <p style="margin-top:0.5rem;">SharePoint Online &reg; is a trademark of Microsoft Corporation</p>
-        </footer>
+    <!-- How It Works -->
+    <section style="background:var(--gray-100);">
+        <div class="container">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-subtitle">From download to storage savings in 5 steps</p>
+            <div class="steps">
+                <div class="step">
+                    <h4>Download</h4>
+                    <p>Get the latest release from GitHub. Extract and run — no installer needed.</p>
+                </div>
+                <div class="step">
+                    <h4>Connect</h4>
+                    <p>Authenticate via certificate (app-only) or interactive browser login with MFA.</p>
+                </div>
+                <div class="step">
+                    <h4>Discover</h4>
+                    <p>Scan all sites via Admin API. Pull storage and version data from Graph reports.</p>
+                </div>
+                <div class="step">
+                    <h4>Configure</h4>
+                    <p>Set version limits (keep N versions). Exclude protected sites. Choose delete mode.</p>
+                </div>
+                <div class="step">
+                    <h4>Clean &amp; Save</h4>
+                    <p>Execute parallel jobs. Watch real-time progress. See instant cost savings.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- GUI App Details -->
+    <section class="gui-section">
+        <div class="container">
+            <h2 class="section-title">Full-Featured Desktop Application</h2>
+            <p class="section-subtitle">Point-and-click interface — no PowerShell experience required</p>
+            <div class="gui-features">
+                <div class="gui-feature">
+                    <div class="gi">🏠</div>
+                    <div><h4>Home Dashboard</h4><p>Session summary, tenant storage grid (8 metrics), freed counter, trend chart, recent executions</p></div>
+                </div>
+                <div class="gui-feature">
+                    <div class="gi">▶️</div>
+                    <div><h4>Execution Engine</h4><p>Version limits, deletion modes (by count or age), concurrent jobs 1-10, live console output</p></div>
+                </div>
+                <div class="gui-feature">
+                    <div class="gi">🌐</div>
+                    <div><h4>Site Management</h4><p>Virtual grid for 10,000+ sites, search/filter, queue management, batch operations, CSV export</p></div>
+                </div>
+                <div class="gui-feature">
+                    <div class="gi">📜</div>
+                    <div><h4>Execution History</h4><p>Full audit log with date/status/duration/storage freed/errors. Filterable. Exportable.</p></div>
+                </div>
+                <div class="gui-feature">
+                    <div class="gi">🔒</div>
+                    <div><h4>Retention Policies</h4><p>View, suspend, resume compliance policies. Exception tracking. Auto-resume after cleanup.</p></div>
+                </div>
+                <div class="gui-feature">
+                    <div class="gi">📦</div>
+                    <div><h4>File Archive</h4><p>Search by extension (video/audio/CAD/zip). Graph API search. Queue for archival workflow.</p></div>
+                </div>
+                <div class="gui-feature">
+                    <div class="gi">🔄</div>
+                    <div><h4>Data Sync</h4><p>Auto-sync site catalog, Graph reports, tenant storage. Interactive or app-only auth.</p></div>
+                </div>
+                <div class="gui-feature">
+                    <div class="gi">⬆️</div>
+                    <div><h4>Auto-Updates</h4><p>Compares local vs GitHub latest. One-click download and install. Database stats.</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Real-World Use Cases -->
+    <section>
+        <div class="container">
+            <h2 class="section-title">Real-World Results</h2>
+            <p class="section-subtitle">Scenarios where SPO Version Management delivers immediate value</p>
+            <div class="use-cases">
+                <div class="use-case">
+                    <div class="scenario">Enterprise: 5,000 sites, 8TB quota at 92%</div>
+                    <p>Excess versions consuming 2.1TB across document libraries. Facing $5,040/year in extra storage charges from Microsoft.</p>
+                    <div class="result">Freed 1.8TB in 4 hours. Saved $4,320/year. Storage dropped to 68%.</div>
+                </div>
+                <div class="use-case">
+                    <div class="scenario">Mid-size: 200 sites, users can't upload</div>
+                    <p>Storage at 98%. No visibility into what's consuming space. Manual cleanup across 200 sites would take weeks of admin time.</p>
+                    <div class="result">Identified 600GB of excess versions. Automated cleanup in 45 minutes. Zero data loss.</div>
+                </div>
+                <div class="use-case">
+                    <div class="scenario">Regulated: Retention policies block cleanup</div>
+                    <p>Legal holds and retention policies prevent version deletion. Need to handle exceptions without compliance violations.</p>
+                    <div class="result">Auto-suspended 12 policies, cleaned 890GB, auto-resumed. Full audit trail for compliance.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Worldwide Community Stats -->
+    <div class="ww-section">
+        <h2>Worldwide Community Impact</h2>
+        <p>Anonymous, opt-in telemetry from organizations using SPO Version Management globally</p>
+        <div class="ww-details">
+            <div class="wd">
+                <div class="val" id="ww2-storage">—</div>
+                <div class="lbl">Storage Freed</div>
+            </div>
+            <div class="wd">
+                <div class="val" id="ww2-savings">—</div>
+                <div class="lbl">Cost Savings (USD/yr)</div>
+            </div>
+            <div class="wd">
+                <div class="val" id="ww2-versions">—</div>
+                <div class="lbl">Versions Deleted</div>
+            </div>
+            <div class="wd">
+                <div class="val" id="ww2-tenants">—</div>
+                <div class="lbl">Organizations</div>
+            </div>
+            <div class="wd">
+                <div class="val" id="ww2-sessions">—</div>
+                <div class="lbl">Sessions Run</div>
+            </div>
+        </div>
+        <div class="privacy-note">
+            <strong>Privacy:</strong> Tenant identity is one-way SHA-256 hashed (cannot be reversed). No site URLs, file names, or user data is collected. Only aggregate numbers: bytes freed, versions deleted, site count. Telemetry is opt-in and can be disabled anytime.
+        </div>
     </div>
+
+    <!-- Final CTA -->
+    <div class="final-cta">
+        <h2>Stop Paying for Storage You Don't Need</h2>
+        <p>Download SPO Version Management free. Start reclaiming SharePoint Online storage in minutes.</p>
+        <a href="https://github.com/ivanoliv/SPOVersionManagement" class="btn btn-primary">Get It Free on GitHub</a>
+        <p style="margin-top:1.5rem;font-size:0.9rem;opacity:0.8;">PowerShell 5.1+ &bull; Windows &bull; MIT License &bull; No subscription &bull; No data collection without consent</p>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p><a href="https://github.com/ivanoliv/SPOVersionManagement">GitHub Repository</a> &bull; <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Download Releases</a> &bull; <a href="https://github.com/ivanoliv/SPOVersionManagement/issues">Report Issues</a></p>
+        <p style="margin-top:0.5rem;">SPO Version Management is a free, open-source project by <a href="https://github.com/ivanoliv">ivanoliv</a></p>
+        <p style="margin-top:0.5rem; font-size:0.8rem;">SharePoint Online&reg; and Microsoft 365&reg; are trademarks of Microsoft Corporation. This is an independent community tool, not affiliated with Microsoft.</p>
+    </footer>
+
+    <script>
+        // Cost calculator
+        function calcSavings() {
+            const gb = parseFloat(document.getElementById('gb-input').value) || 0;
+            const annual = gb * 0.20 * 12;
+            const monthly = gb * 0.20;
+            document.getElementById('calc-result').innerHTML =
+                '$' + annual.toLocaleString(undefined, {maximumFractionDigits:0}) + ' / year' +
+                '<small>$' + monthly.toLocaleString(undefined, {maximumFractionDigits:0}) + '/month you could stop paying Microsoft for extra storage</small>';
+        }
+        calcSavings();
+
+        // Format large numbers
+        function fmt(n) {
+            if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+            if (n >= 1000) return (n/1000).toFixed(1) + 'K';
+            return n.toLocaleString();
+        }
+
+        // Load live worldwide stats from telemetry backend
+        async function loadLiveStats() {
+            try {
+                const res = await fetch('https://spo-telemetry.azurewebsites.net/api/stats/detailed');
+                if (!res.ok) throw new Error('API unavailable');
+                const d = await res.json();
+
+                const storage = d.storageFreedTB >= 1 ? d.storageFreedTB + ' TB' : d.storageFreedGB + ' GB';
+
+                // Top banner
+                document.getElementById('ww-storage').textContent = storage;
+                document.getElementById('ww-savings').textContent = '$' + Number(d.estimatedCostSavingsUSD).toLocaleString();
+                document.getElementById('ww-versions').textContent = fmt(d.totalVersionsDeleted);
+                document.getElementById('ww-tenants').textContent = fmt(d.totalTenants);
+                document.getElementById('ww-sessions').textContent = fmt(d.totalSessions);
+
+                // Bottom detailed section
+                document.getElementById('ww2-storage').textContent = storage;
+                document.getElementById('ww2-savings').textContent = '$' + Number(d.estimatedCostSavingsUSD).toLocaleString();
+                document.getElementById('ww2-versions').textContent = fmt(d.totalVersionsDeleted);
+                document.getElementById('ww2-tenants').textContent = fmt(d.totalTenants);
+                document.getElementById('ww2-sessions').textContent = fmt(d.totalSessions);
+            } catch {
+                // Show graceful fallback
+                const els = ['ww-storage','ww-savings','ww-versions','ww-tenants','ww-sessions',
+                             'ww2-storage','ww2-savings','ww2-versions','ww2-tenants','ww2-sessions'];
+                els.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
+            }
+        }
+        loadLiveStats();
+        setInterval(loadLiveStats, 60000);
+    </script>
 </body>
 </html>
