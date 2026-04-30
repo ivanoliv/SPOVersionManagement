@@ -419,11 +419,11 @@
             <div class="calc-box">
                 <h3>SharePoint Storage Savings Calculator</h3>
                 <div class="calc-input">
-                    <label for="gb-input">Excess version storage (GB):</label>
-                    <input type="number" id="gb-input" value="500" min="1" max="100000" oninput="calcSavings()">
+                    <label for="tb-input">Excess version storage (TB):</label>
+                    <input type="number" id="tb-input" value="1" min="0.1" max="100" step="0.1" oninput="calcSavings()">
                 </div>
-                <div class="calc-result" id="calc-result">$1,200 / year</div>
-                <div class="calc-formula">Based on Microsoft 365 extra file storage: $0.20 per GB per month &times; 12 months</div>
+                <div class="calc-result" id="calc-result">$2,400 / year</div>
+                <div class="calc-formula">Based on Microsoft 365 extra file storage: $0.20 per GB per month &times; 12 months (1 TB = 1,024 GB)</div>
             </div>
         </div>
     </section>
@@ -574,7 +574,8 @@
     <script>
         // Cost calculator
         function calcSavings() {
-            const gb = parseFloat(document.getElementById('gb-input').value) || 0;
+            const tb = parseFloat(document.getElementById('tb-input').value) || 0;
+            const gb = tb * 1024;
             const annual = gb * 0.20 * 12;
             const monthly = gb * 0.20;
             document.getElementById('calc-result').innerHTML =
