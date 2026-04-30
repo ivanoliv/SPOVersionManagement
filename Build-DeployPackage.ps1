@@ -17,16 +17,21 @@ param()
 $ErrorActionPreference = "Stop"
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# --- Read version from AppPaths.json ---
+# --- Read version (try AppPaths.json first, fall back to version.json) ---
 $appPathsFile = Join-Path $scriptPath "config\AppPaths.json"
-if (-not (Test-Path $appPathsFile)) {
-    Write-Error "AppPaths.json not found at: $appPathsFile"
+$versionFile = Join-Path $scriptPath "config\version.json"
+if (Test-Path $appPathsFile) {
+    $appPaths = Get-Content $appPathsFile -Raw | ConvertFrom-Json
+    $version = $appPaths.AppVersion
+} elseif (Test-Path $versionFile) {
+    $ver = Get-Content $versionFile -Raw | ConvertFrom-Json
+    $version = $ver.AppVersion
+} else {
+    Write-Error "Neither config\AppPaths.json nor config\version.json found."
     return
 }
-$appPaths = Get-Content $appPathsFile -Raw | ConvertFrom-Json
-$version = $appPaths.AppVersion
 if (-not $version) {
-    Write-Error "AppVersion not found in AppPaths.json. Add '\"AppVersion\": \"x.y.z.n\"' to the file."
+    Write-Error "AppVersion not found. Ensure 'AppVersion' exists in config\AppPaths.json or config\version.json."
     return
 }
 
@@ -64,6 +69,7 @@ $rootFiles = @(
 # config/ directory files (JSON configs + databases)
 $configFiles = @(
     "config\AppPaths.json",
+    "config\version.json",
     "config\DashboardConfig.json",
     "config\ExtensionGroups.json"
 )

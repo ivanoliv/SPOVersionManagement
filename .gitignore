@@ -14,6 +14,7 @@ Logs/
 config/*
 !config/DashboardConfig.json
 !config/ExtensionGroups.json
+!config/version.json
 
 # Sensitive files (secrets, certificates, API keys)
 *.pfx
