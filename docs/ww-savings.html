@@ -1,3 +1,8 @@
+---
+layout: null
+title: "SPO Version Management — Worldwide Savings"
+description: "Anonymous real-time aggregated metrics showing the collective impact of SharePoint Online storage optimization worldwide."
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,46 +39,43 @@
             max-width: 600px;
         }
         .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2.5rem;
+            flex-wrap: wrap;
             max-width: 1100px;
             width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 1.8rem 2rem;
             margin-bottom: 48px;
         }
         .stat-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 16px;
-            padding: 32px 28px;
             text-align: center;
-            backdrop-filter: blur(10px);
-            transition: transform 0.2s, border-color 0.2s;
-        }
-        .stat-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(79, 195, 247, 0.3);
+            min-width: 120px;
         }
         .stat-card .value {
-            font-size: 2.8rem;
+            font-size: 1.8rem;
             font-weight: 700;
             color: #4fc3f7;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             font-variant-numeric: tabular-nums;
         }
         .stat-card .value.green { color: #66bb6a; }
         .stat-card .value.orange { color: #ffa726; }
         .stat-card .value.purple { color: #ab47bc; }
         .stat-card .label {
-            font-size: 0.95rem;
+            font-size: 0.75rem;
             color: #90a4ae;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         .stat-card .sub {
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             color: #607d8b;
-            margin-top: 4px;
+            margin-top: 2px;
         }
         .info-section {
             max-width: 800px;
@@ -134,8 +136,8 @@
         }
         @media (max-width: 600px) {
             .header h1 { font-size: 1.8rem; }
-            .stat-card .value { font-size: 2rem; }
-            .stats-grid { grid-template-columns: 1fr; }
+            .stat-card .value { font-size: 1.4rem; }
+            .stats-grid { flex-direction: column; gap: 1.2rem; padding: 1.2rem; }
         }
     </style>
 </head>
@@ -216,7 +218,7 @@
     </div>
 
     <script>
-        const API_BASE = ''; // Set to telemetry API URL when deployed
+        const API_BASE = 'https://spo-telemetry-6406.azurewebsites.net'; // Telemetry API
 
         async function loadStats() {
             try {
