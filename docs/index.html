@@ -605,7 +605,7 @@
         // Load live worldwide stats from telemetry backend
         async function loadLiveStats() {
             try {
-                const res = await fetch('https://spo-telemetry.azurewebsites.net/api/stats/detailed');
+                const res = await fetch('https://spo-telemetry-6406.azurewebsites.net/api/stats/detailed');
                 if (!res.ok) throw new Error('API unavailable');
                 const d = await res.json();
 
