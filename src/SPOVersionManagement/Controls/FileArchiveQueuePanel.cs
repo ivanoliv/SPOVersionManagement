@@ -220,15 +220,26 @@ namespace SPOVersionManagement.Controls
             };
             root.Controls.Add(split, 0, 2);
 
-            split.SplitterDistance = split.Panel1MinSize;
+            // Defer SplitterDistance until the control is properly sized
             split.SplitterMoved += (s, e) => { };
+            bool splitterInitialized = false;
             split.Resize += (s, e) =>
             {
                 try
                 {
-                    int desired = Math.Max(split.Panel1MinSize, split.Height - 130);
-                    if (desired >= split.Panel1MinSize && desired <= split.Height - split.Panel2MinSize)
-                        split.SplitterDistance = desired;
+                    if (!splitterInitialized && split.Height > split.Panel1MinSize + split.Panel2MinSize)
+                    {
+                        splitterInitialized = true;
+                        int initial = Math.Max(split.Panel1MinSize, split.Height - 130);
+                        if (initial >= split.Panel1MinSize && initial <= split.Height - split.Panel2MinSize)
+                            split.SplitterDistance = initial;
+                    }
+                    else if (splitterInitialized)
+                    {
+                        int desired = Math.Max(split.Panel1MinSize, split.Height - 130);
+                        if (desired >= split.Panel1MinSize && desired <= split.Height - split.Panel2MinSize)
+                            split.SplitterDistance = desired;
+                    }
                 }
                 catch { }
             };

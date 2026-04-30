@@ -124,34 +124,27 @@ The tool handles the full lifecycle: discovery → policy enforcement → versio
 ## Screenshots
 
 ### HTML Dashboard — Execution Monitor
-<!-- Replace with actual screenshot -->
-![Dashboard Execution](docs/screenshots/dashboard-execution.png)
+![Dashboard Execution](docs/screenshots/dashboard-overview.png)
 
 ### HTML Dashboard — Storage Analytics
-<!-- Replace with actual screenshot -->
-![Dashboard Storage](docs/screenshots/dashboard-storage.png)
+![Dashboard Storage](docs/screenshots/dashboard-sharepoint-tenant-storage-metrics.png)
 
 ### HTML Dashboard — Settings
-<!-- Replace with actual screenshot -->
-![Dashboard Settings](docs/screenshots/dashboard-settings.png)
+![Dashboard Settings](docs/screenshots/dashboard-sharepoint-configurations.png)
 
 ### Windows GUI App — Home
-<!-- Replace with actual screenshot -->
 ![GUI App Home](docs/screenshots/gui-home.png)
 
 ### Windows GUI App — Configuration
-<!-- Replace with actual screenshot -->
 ![GUI App Configuration](docs/screenshots/gui-configuration.png)
 
 ### Windows GUI App — Execution
-<!-- Replace with actual screenshot -->
-![GUI App Execution](docs/screenshots/gui-execution.png)
+![GUI App Execution](docs/screenshots/gui-execution-execute-clean-versions.png)
 
-### PowerShell Console — Running
-<!-- Replace with actual screenshot -->
-![PowerShell Console](docs/screenshots/powershell-running.png)
+### Windows GUI App — Site Catalog
+![GUI App Site Catalog](docs/screenshots/gui-site-catalog.png)
 
-> 📸 To add screenshots, place PNG files in `docs/screenshots/` matching the filenames above.
+> 📸 Screenshots are in `docs/screenshots/`.
 
 ---
 
@@ -754,24 +747,23 @@ Telemetry can be disabled in `config\AppPaths.json` by setting `"TelemetryEnable
 
 > Full changelog with all versions: **[CHANGELOG.md](CHANGELOG.md)**
 
-### v2.2.0.0 (2026-04-29) - Current
-**Release: Windows GUI Orchestration, Telemetry & Documentation Overhaul**
+### v2.3.0.0 (2026-04-29) - Current
+**Release: GUI Persistence, Telemetry Backend Deployment & Bug Fixes**
 
-> 🤖 *AI Summary:* This release transforms the project from a PowerShell-only automation tool into a full-stack management platform. A native Windows Forms application provides visual orchestration of all version management operations — policy sync, batch deletion, retention handling, and real-time monitoring — without requiring any PowerShell knowledge. Anonymous opt-in telemetry enables worldwide savings tracking across all participating tenants.
+> 🤖 *AI Summary:* This release stabilizes the Windows GUI with persistent settings, native prompt dialogs, and multiple crash/UX fixes. The telemetry backend is now live on Azure App Service, and the GitHub Pages landing page displays real-time worldwide savings data.
 
 #### Highlights
-- **Windows Forms GUI** — Full visual orchestration with dark-themed modern UI (Home, Execution, Configuration, History, Archive panels)
-- **Worldwide Savings Telemetry** — Anonymous opt-in backend tracking collective storage impact across tenants
-- **Directory Reorganization** — `config/`, `web/`, `Logs/` separation for cleaner deployments
-- **GitHub Pages & Releases** — Automated release workflow, Jekyll site, release badge
-- **Documentation Overhaul** — Complete README rewrite, Windows app guide, updated Entra ID setup, disclaimer + author sections
+- **GUI Settings Persistence** — All execution panel fields survive app restarts
+- **Dynamic PowerShell Prompts** — Read-Host and PromptForChoice render as native WinForms dialogs
+- **Telemetry Backend Live** — Azure App Service deployment with CORS and detailed stats API
+- **Bug Fixes** — Duplicate output, SplitterDistance crash, aggressive refresh, PII removal
 
 See [CHANGELOG.md](CHANGELOG.md) for full details.
 
 ---
 
-### v2.0.0 (2026-02-05)
-**Major Release: Dashboard Accuracy & External Job Sync**
+### v2.2.0.0 (2026-04-29)
+**Release: Windows GUI Orchestration, Telemetry & Documentation Overhaul**
 
 #### New Features
 - **Phase Badges System**

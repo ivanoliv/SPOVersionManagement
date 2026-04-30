@@ -4,6 +4,33 @@ All notable changes to SPO Version Management are documented in this file.
 
 ---
 
+## v2.3.0.0 (2026-04-29)
+
+**Release: GUI Persistence, Telemetry Backend Deployment & Bug Fixes**
+
+### ✨ New Features
+
+- **GUI Settings Persistence** — All execution panel fields (concurrent jobs, batch sizes, policies, file paths) now persist across sessions via `config/GuiSettings.json`
+- **Dynamic PowerShell Prompts** — Custom PSHost routes `Read-Host`, `PromptForChoice`, and credential prompts to native WinForms dialogs (InputDialog, ChoiceDialog with buttons)
+- **URL Click-to-Copy** — Clicking a site URL in the Site Catalog copies it to clipboard with visual feedback
+- **Telemetry Backend on Azure** — Deployed to Azure App Service (`spo-telemetry-6406.azurewebsites.net`) with CORS, JSON persistence, and detailed stats API
+- **GitHub Pages Live Stats** — Landing page now fetches real-time worldwide savings data from the Azure backend
+
+### 🐛 Bug Fixes
+
+- **Duplicate Console Output** — Fixed PSHost UI Write methods duplicating stream output (made no-ops since streams already capture)
+- **SplitterDistance Crash** — Fixed `FileArchiveQueuePanel` crash when SplitterDistance was set before control had valid dimensions (deferred to first Resize)
+- **Aggressive Site Progress Refresh** — Replaced full panel rebuild every tick with hash-based comparison + scroll position preservation (1.5s interval)
+- **PII Hardcoded in Scripts** — Removed hardcoded PnP Client ID from `Start-FileArchiveSearch.ps1`
+
+### 🔧 Changes
+
+- Telemetry endpoint URL corrected from `spo-telemetry` to `spo-telemetry-6406` in AppPaths.json and GitHub Pages
+- README screenshot paths fixed to reference actual files
+- Timer interval for site progress reduced from 3s to 1.5s
+
+---
+
 ## v2.2.0.0 (2026-04-29)
 
 **Release: Windows GUI Orchestration, Telemetry & Documentation Overhaul**

@@ -51,7 +51,7 @@ param(
     [string]$TenantId,
     [string]$Region = "NAM",
 
-    [string]$PnpClientId = "c367058b-433a-4e71-8683-af3da301ca15"
+    [string]$PnpClientId = ""
 )
 
 $ErrorActionPreference = "Continue"

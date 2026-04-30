@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Management.Automation;
+using System.Management.Automation.Host;
 using System.Management.Automation.Runspaces;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ namespace SPOVersionManagement.Services
     {
         private readonly string _rootPath;
         private RunspacePool _pool;
+        private GuiPSHost _guiHost;
         private readonly SynchronizationContext _syncContext;
 
         public event Action<string> OnOutput;
@@ -138,9 +140,10 @@ namespace SPOVersionManagement.Services
             if (System.IO.File.Exists(retentionModule))
                 iss.ImportPSModule(new[] { retentionModule });
 
-            _pool = RunspaceFactory.CreateRunspacePool(iss);
-            _pool.SetMinRunspaces(1);
-            _pool.SetMaxRunspaces(3);
+            // Create custom host that routes prompts to MessageBox
+            _guiHost = new GuiPSHost(msg => PostToUI(() => OnOutput?.Invoke(msg)));
+
+            _pool = RunspaceFactory.CreateRunspacePool(1, 3, iss, _guiHost);
             _pool.Open();
         }
 

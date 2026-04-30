@@ -119,6 +119,7 @@ namespace SPOVersionManagement.Controls
             CellPainting += OnCellPainting;
             CellDoubleClick += OnCellDoubleClick;
             CellClick += OnCellClick;
+            CellMouseMove += OnCellMouseMove;
             ColumnHeaderMouseClick += OnColumnHeaderMouseClick;
             SelectionChanged += (s, e) => SelectionUpdated?.Invoke(this, EventArgs.Empty);
             ColumnWidthChanged += OnColumnWidthChanged;
@@ -737,7 +738,24 @@ namespace SPOVersionManagement.Controls
 
         private void OnCellClick(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.ColumnIndex == ColDetail && e.RowIndex >= 0 && e.RowIndex < _data.Count)
+            if (e.RowIndex < 0 || e.RowIndex >= _data.Count) return;
+
+            // Click on URL column → copy URL to clipboard
+            if (e.ColumnIndex == ColUrl)
+            {
+                var site = _data[e.RowIndex];
+                if (!string.IsNullOrWhiteSpace(site.Url))
+                {
+                    Clipboard.SetText(site.Url);
+                    // Brief visual feedback via tooltip
+                    var cellRect = GetCellDisplayRectangle(e.ColumnIndex, e.RowIndex, false);
+                    var tip = new ToolTip();
+                    tip.Show("URL copied!", this, cellRect.X + 10, cellRect.Y - 20, 1200);
+                }
+                return;
+            }
+
+            if (e.ColumnIndex == ColDetail)
             {
                 var site = _data[e.RowIndex];
 
@@ -758,6 +776,11 @@ namespace SPOVersionManagement.Controls
 
                 DetailRequested?.Invoke(this, site);
             }
+        }
+
+        private void OnCellMouseMove(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            Cursor = (e.RowIndex >= 0 && e.ColumnIndex == ColUrl) ? Cursors.Hand : Cursors.Default;
         }
 
 

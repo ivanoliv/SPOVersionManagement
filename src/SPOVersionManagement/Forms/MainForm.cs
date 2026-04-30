@@ -541,6 +541,7 @@ namespace SPOVersionManagement.Forms
                     "Unsaved Changes", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
                 if (result == DialogResult.Cancel) { e.Cancel = true; return; }
             }
+            _executionPanel?.SaveGuiSettings();
             _dashboardServer?.Dispose();
             _psHost?.Dispose();
             base.OnFormClosing(e);

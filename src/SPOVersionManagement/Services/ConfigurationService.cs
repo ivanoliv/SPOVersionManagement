@@ -215,6 +215,32 @@ namespace SPOVersionManagement.Services
             File.WriteAllText(path, existing.ToString(Formatting.Indented));
         }
 
+        public GuiSettings LoadGuiSettings()
+        {
+            string path = Path.Combine(_configPath, "GuiSettings.json");
+            if (!File.Exists(path))
+                return new GuiSettings();
+
+            try
+            {
+                string json = File.ReadAllText(path);
+                return JsonConvert.DeserializeObject<GuiSettings>(json) ?? new GuiSettings();
+            }
+            catch
+            {
+                return new GuiSettings();
+            }
+        }
+
+        public void SaveGuiSettings(GuiSettings settings)
+        {
+            if (!_hasWritePermission) return;
+
+            string path = Path.Combine(_configPath, "GuiSettings.json");
+            string json = JsonConvert.SerializeObject(settings, Formatting.Indented);
+            File.WriteAllText(path, json);
+        }
+
         /// <summary>
         /// Backs up all database and config files to a user-chosen directory.
         /// </summary>

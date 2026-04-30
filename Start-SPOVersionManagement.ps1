@@ -1,4 +1,4 @@
-# Start-SPOVersionManagement.ps1
+﻿# Start-SPOVersionManagement.ps1
 # Main script for SharePoint Online version management
 # 
 # Usage:

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Helper script to connect to SharePoint Online before running version management
 .EXAMPLE

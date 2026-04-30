@@ -423,9 +423,10 @@ namespace SPOVersionManagement.Controls
             _siteProgressPanel = new Panel { Location = new Point(2, 20), Size = new Size(spW - 4, bottomH - 24), BackColor = Color.Transparent, AutoScroll = true, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom };
             spCard.Controls.Add(_siteProgressPanel);
 
-            _refreshTimer = new System.Windows.Forms.Timer { Interval = 3000, Enabled = false };
+            _refreshTimer = new System.Windows.Forms.Timer { Interval = 1500, Enabled = false };
             _refreshTimer.Tick += (s, e) => RefreshSiteProgress();
 
+            LoadGuiSettings();
             SyncGraphOptions();
         }
 
@@ -458,6 +459,7 @@ namespace SPOVersionManagement.Controls
             if (MessageBox.Show($"Execute?\n\nURL: {adminUrl}\nMode: {desc}\nDelete: {deleteMode}\nConcurrent: {_nudConcurrent.Value}{files}", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                 return;
 
+            SaveGuiSettings();
             SetExecuting(true);
             _console.Clear();
             _siteProgressPanel.Controls.Clear();
@@ -542,40 +544,72 @@ namespace SPOVersionManagement.Controls
             if (r) { _lblStatus.Text = "Running..."; _lblStatus.ForeColor = AppTheme.AccentCyan; _refreshTimer.Enabled = true; }
         }
 
+        private Dictionary<string, Panel> _siteRows = new Dictionary<string, Panel>(StringComparer.OrdinalIgnoreCase);
+        private string _lastProgressHash = "";
+
         private void RefreshSiteProgress()
         {
             try
             {
                 var js = _history.LoadJobStatus();
-                _siteProgressPanel.SuspendLayout();
-                _siteProgressPanel.Controls.Clear();
-                int y = 0;
 
+                // Build a quick hash to skip if nothing changed
+                int hash = (js.ActiveJobs?.Count ?? 0) * 1000 + (js.QueuedSites?.Count ?? 0) * 100 + (js.CompletedJobs?.Count ?? 0);
+                string newHash = hash.ToString();
                 if (js.ActiveJobs != null)
                     foreach (var j in js.ActiveJobs)
-                        AddSiteRow(ref y, j.SiteUrl, j.JobType, "Running", AppTheme.AccentCyan, j.StartedAt);
-
-                if (js.QueuedSites != null)
-                {
-                    int n = 0;
-                    foreach (var s in js.QueuedSites)
-                    {
-                        if (n++ >= 4) { _siteProgressPanel.Controls.Add(new Label { Text = $"+{js.QueuedSites.Count - 4} queued...", Font = AppTheme.FontSmall, ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(4, y) }); y += 16; break; }
-                        AddSiteRow(ref y, s.SiteUrl, "", "Queued", AppTheme.AccentGold, null);
-                    }
-                }
-
+                        newHash += "|" + (j.SiteUrl ?? "") + j.JobType;
                 if (js.CompletedJobs != null)
+                    foreach (var j in js.CompletedJobs)
+                        newHash += "|" + (j.SiteUrl ?? "") + j.Status;
+
+                bool fullRebuild = (newHash != _lastProgressHash);
+                _lastProgressHash = newHash;
+
+                if (fullRebuild)
                 {
-                    int n = 0;
-                    for (int i = js.CompletedJobs.Count - 1; i >= 0 && n < 4; i--, n++)
+                    // Save scroll position
+                    int scrollY = _siteProgressPanel.VerticalScroll.Value;
+
+                    _siteProgressPanel.SuspendLayout();
+                    _siteProgressPanel.Controls.Clear();
+                    _siteRows.Clear();
+                    int y = 0;
+
+                    if (js.ActiveJobs != null)
+                        foreach (var j in js.ActiveJobs)
+                            AddSiteRow(ref y, j.SiteUrl, j.JobType, "Running", AppTheme.AccentCyan, j.StartedAt);
+
+                    if (js.QueuedSites != null)
                     {
-                        var j = js.CompletedJobs[i];
-                        AddSiteRow(ref y, j.SiteUrl, j.JobType, j.Status == "CompleteSuccess" ? "Done" : j.Status, j.Status == "CompleteSuccess" ? AppTheme.AccentGreen : AppTheme.AccentRed, j.CompletedAt);
+                        int n = 0;
+                        foreach (var s in js.QueuedSites)
+                        {
+                            if (n++ >= 4) { _siteProgressPanel.Controls.Add(new Label { Text = $"+{js.QueuedSites.Count - 4} queued...", Font = AppTheme.FontSmall, ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(4, y) }); y += 16; break; }
+                            AddSiteRow(ref y, s.SiteUrl, "", "Queued", AppTheme.AccentGold, null);
+                        }
+                    }
+
+                    if (js.CompletedJobs != null)
+                    {
+                        int n = 0;
+                        for (int i = js.CompletedJobs.Count - 1; i >= 0 && n < 4; i--, n++)
+                        {
+                            var j = js.CompletedJobs[i];
+                            AddSiteRow(ref y, j.SiteUrl, j.JobType, j.Status == "CompleteSuccess" ? "Done" : j.Status, j.Status == "CompleteSuccess" ? AppTheme.AccentGreen : AppTheme.AccentRed, j.CompletedAt);
+                        }
+                    }
+
+                    _siteProgressPanel.ResumeLayout(false);
+                    _siteProgressPanel.PerformLayout();
+
+                    // Restore scroll position
+                    if (scrollY > 0 && _siteProgressPanel.VerticalScroll.Maximum >= scrollY)
+                    {
+                        _siteProgressPanel.AutoScrollPosition = new Point(0, scrollY);
                     }
                 }
 
-                _siteProgressPanel.ResumeLayout(true);
                 int a = js.ActiveJobs?.Count ?? 0, q = js.QueuedSites?.Count ?? 0, c = js.CompletedJobs?.Count ?? 0;
                 _lblProgress.Text = $"{a} active | {q} queued | {c} completed";
             }
@@ -707,6 +741,65 @@ namespace SPOVersionManagement.Controls
         }
 
         private void UpdateProgress(int pct) { _progressBar.Value = Math.Max(0, Math.Min(100, pct)); _lblProgress.Text = $"{pct}%"; }
+
+        private void LoadGuiSettings()
+        {
+            var s = _config.LoadGuiSettings();
+            _nudConcurrent.Value = Math.Max(_nudConcurrent.Minimum, Math.Min(_nudConcurrent.Maximum, s.ConcurrentJobs));
+            _nudCheckBatchSize.Value = Math.Max(_nudCheckBatchSize.Minimum, Math.Min(_nudCheckBatchSize.Maximum, s.CheckBatchSize));
+            _nudCheckBatchDelay.Value = Math.Max(_nudCheckBatchDelay.Minimum, Math.Min(_nudCheckBatchDelay.Maximum, s.CheckBatchDelay));
+            _nudMajorVer.Value = Math.Max(_nudMajorVer.Minimum, Math.Min(_nudMajorVer.Maximum, s.MajorVersionLimit));
+            _nudMinorVer.Value = Math.Max(_nudMinorVer.Minimum, Math.Min(_nudMinorVer.Maximum, s.MinorVersionLimit));
+            _nudDeleteBeforeDays.Value = Math.Max(_nudDeleteBeforeDays.Minimum, Math.Min(_nudDeleteBeforeDays.Maximum, s.DeleteBeforeDays));
+
+            int zeroIdx = _cmbZeroVersion.Items.IndexOf(s.ZeroVersionAction);
+            if (zeroIdx >= 0) _cmbZeroVersion.SelectedIndex = zeroIdx;
+
+            _rbDeleteByAge.Checked = s.DeleteByAge;
+            _rbDeleteByCount.Checked = !s.DeleteByAge;
+
+            _chkSyncPolicy.Checked = s.SyncVersionPolicy;
+            _chkDeleteVersions.Checked = s.DeleteExcessVersions;
+            _chkRetention.Checked = s.ManageRetentionPolicies;
+            _chkSkipGraph.Checked = s.SkipGraph;
+
+            if (!string.IsNullOrEmpty(s.IncludeSitesCsv)) _txtSiteListCsv.Text = s.IncludeSitesCsv;
+            if (!string.IsNullOrEmpty(s.ExcludeSitesCsv)) _txtExclusionCsv.Text = s.ExcludeSitesCsv;
+            if (!string.IsNullOrEmpty(s.GraphReportCsv)) _txtGraphReportCsv.Text = s.GraphReportCsv;
+            if (!string.IsNullOrEmpty(s.SyncJobListCsv)) _txtSyncListCsv.Text = s.SyncJobListCsv;
+            if (!string.IsNullOrEmpty(s.SamReportCsv)) _txtSamReportCsv.Text = s.SamReportCsv;
+            if (!string.IsNullOrEmpty(s.CacheFilePath)) _txtCacheFile.Text = s.CacheFilePath;
+            _chkUseFileCache.Checked = s.UseFileCache;
+            _txtCacheFile.Enabled = s.UseFileCache;
+        }
+
+        public void SaveGuiSettings()
+        {
+            if (_config == null || _nudConcurrent == null) return;
+            var s = new Models.GuiSettings
+            {
+                ConcurrentJobs = (int)_nudConcurrent.Value,
+                CheckBatchSize = (int)_nudCheckBatchSize.Value,
+                CheckBatchDelay = (int)_nudCheckBatchDelay.Value,
+                ZeroVersionAction = _cmbZeroVersion.SelectedItem?.ToString() ?? "syncOnly",
+                DeleteByAge = _rbDeleteByAge.Checked,
+                MajorVersionLimit = (int)_nudMajorVer.Value,
+                MinorVersionLimit = (int)_nudMinorVer.Value,
+                DeleteBeforeDays = (int)_nudDeleteBeforeDays.Value,
+                SyncVersionPolicy = _chkSyncPolicy.Checked,
+                DeleteExcessVersions = _chkDeleteVersions.Checked,
+                ManageRetentionPolicies = _chkRetention.Checked,
+                SkipGraph = _chkSkipGraph.Checked,
+                IncludeSitesCsv = _txtSiteListCsv.Text,
+                ExcludeSitesCsv = _txtExclusionCsv.Text,
+                GraphReportCsv = _txtGraphReportCsv.Text,
+                SyncJobListCsv = _txtSyncListCsv.Text,
+                SamReportCsv = _txtSamReportCsv.Text,
+                UseFileCache = _chkUseFileCache.Checked,
+                CacheFilePath = _txtCacheFile.Text
+            };
+            _config.SaveGuiSettings(s);
+        }
 
         #region Helpers
         private void CL(Control p, string t, Color c, int x, int y)

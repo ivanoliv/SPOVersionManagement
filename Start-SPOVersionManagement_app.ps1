@@ -1,4 +1,4 @@
-# Start-SPOVersionManagement_app.ps1
+﻿# Start-SPOVersionManagement_app.ps1
 # App-based (Entra ID) authentication variant for unattended/automated execution
 #
 # Connects to SharePoint Online and Microsoft Graph using certificate-based
