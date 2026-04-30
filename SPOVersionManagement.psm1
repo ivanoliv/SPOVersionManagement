@@ -4917,11 +4917,30 @@ function Get-TelemetryTenantHash {
     .SYNOPSIS
         Generates a deterministic anonymous tenant hash from TenantId.
         Same tenant always produces same hash regardless of machine.
+        If EntraIdApp.TenantId is empty (interactive login), resolves from Get-MgContext and persists.
     #>
     [CmdletBinding()]
     param()
 
     $tenantId = $script:AppPaths.EntraIdApp.TenantId
+
+    # If TenantId not configured (interactive login), resolve from Graph context
+    if ([string]::IsNullOrWhiteSpace($tenantId)) {
+        try {
+            $ctx = Get-MgContext -ErrorAction SilentlyContinue
+            if ($ctx -and $ctx.TenantId) {
+                $tenantId = $ctx.TenantId
+                # Persist to AppPaths so we don't need to resolve again
+                $script:AppPaths.EntraIdApp.TenantId = $tenantId
+                $script:AppPaths | ConvertTo-Json -Depth 5 | Set-Content -Path $script:AppPathsFile -Encoding UTF8
+                Write-Verbose "[TELEMETRY] Resolved TenantId from Graph context and saved to config"
+            }
+        }
+        catch {
+            Write-Verbose "[TELEMETRY] Could not resolve TenantId from Graph context: $_"
+        }
+    }
+
     if ([string]::IsNullOrWhiteSpace($tenantId)) { return 'anonymous' }
 
     # Salt derived from tenantId itself — machine-independent
