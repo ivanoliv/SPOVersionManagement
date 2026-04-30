@@ -38,13 +38,13 @@
         a:hover { text-decoration: underline; }
 
         /* Header */
-        .site-header { background: var(--gray-800); color: #fff; padding: 1rem 1.5rem; position: sticky; top: 0; z-index: 100; }
-        .site-header .container { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+        .site-header { background: var(--gray-800); color: #fff; padding: 0.8rem 1.5rem; position: sticky; top: 0; z-index: 100; }
+        .site-header .container { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
         .site-header .logo { font-weight: 700; font-size: 1.1rem; color: #fff; }
         .site-header .logo:hover { text-decoration: none; }
-        .site-header nav { display: flex; gap: 1.5rem; flex-wrap: wrap; }
-        .site-header nav a { color: #ccc; font-size: 0.9rem; }
-        .site-header nav a:hover { color: #fff; text-decoration: none; }
+        .site-nav { background: #16213e; padding: 0.5rem 1.5rem; text-align: center; }
+        .site-nav a { color: #90caf9; font-size: 0.85rem; margin: 0 0.8rem; white-space: nowrap; }
+        .site-nav a:hover { color: #fff; text-decoration: none; }
 
         /* Main Content */
         .page-container { max-width: 860px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
@@ -82,7 +82,7 @@
         @media (max-width: 768px) {
             .page-container h1 { font-size: 1.6rem; }
             .page-container h2 { font-size: 1.3rem; }
-            .site-header .container { flex-direction: column; gap: 0.5rem; }
+            .site-nav a { margin: 0.2rem 0.5rem; display: inline-block; }
         }
     </style>
 </head>
@@ -90,18 +90,18 @@
     <header class="site-header">
         <div class="container">
             <a href="{{ '/' | relative_url }}" class="logo">SPO Version Management</a>
-            <nav>
-                <a href="{{ '/' | relative_url }}">Home</a>
-                <a href="{{ '/guides/sharepoint-version-management' | relative_url }}">Version Management Guide</a>
-                <a href="{{ '/guides/reduce-sharepoint-storage-costs' | relative_url }}">Reduce Costs</a>
-                <a href="{{ '/guides/powershell-sharepoint-version-cleanup' | relative_url }}">PowerShell Automation</a>
-                <a href="{{ '/guides/sharepoint-governance-best-practices' | relative_url }}">Governance</a>
-                <a href="{{ '/guides/sharepoint-site-file-archiving' | relative_url }}">Site Archiving</a>
-                <a href="{{ '/guides/sharepoint-advanced-management-sam' | relative_url }}">SAM Integration</a>
-                <a href="https://github.com/ivanoliv/SPOVersionManagement">GitHub</a>
-            </nav>
         </div>
     </header>
+    <nav class="site-nav">
+        <a href="{{ '/' | relative_url }}">Home</a>
+        <a href="{{ '/guides/sharepoint-version-management' | relative_url }}">Version Management Guide</a>
+        <a href="{{ '/guides/reduce-sharepoint-storage-costs' | relative_url }}">Reduce Costs</a>
+        <a href="{{ '/guides/powershell-sharepoint-version-cleanup' | relative_url }}">PowerShell Automation</a>
+        <a href="{{ '/guides/sharepoint-governance-best-practices' | relative_url }}">Governance</a>
+        <a href="{{ '/guides/sharepoint-site-file-archiving' | relative_url }}">Site Archiving</a>
+        <a href="{{ '/guides/sharepoint-advanced-management-sam' | relative_url }}">SAM Integration</a>
+        <a href="https://github.com/ivanoliv/SPOVersionManagement">GitHub</a>
+    </nav>
 
     <main class="page-container">
         {{ content }}
