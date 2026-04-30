@@ -1022,16 +1022,19 @@ namespace SPOVersionManagement.Controls
                 return string.Empty;
             }
 
-            string notes = $"Version: {release.VersionNumber}\n";
-            notes += $"Published: {release.PublishedAt:yyyy-MM-dd HH:mm}\n";
-            notes += $"Tag: {release.TagName}\n";
+            string notes = $"Version: {release.VersionNumber}\r\n";
+            notes += $"Published: {release.PublishedAt:yyyy-MM-dd HH:mm}\r\n";
+            notes += $"Tag: {release.TagName}\r\n";
             if (release.Prerelease)
             {
-                notes += "[PRE-RELEASE]\n";
+                notes += "[PRE-RELEASE]\r\n";
             }
 
-            notes += "\n" + new string('-', 60) + "\n\n";
-            notes += release.Body ?? "(No release notes)";
+            notes += "\r\n" + new string('-', 60) + "\r\n\r\n";
+            string body = release.Body ?? "(No release notes)";
+            // Normalize line endings for Windows TextBox (requires \r\n)
+            body = body.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", "\r\n");
+            notes += body;
             return notes;
         }
 
