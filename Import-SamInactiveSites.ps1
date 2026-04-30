@@ -22,9 +22,9 @@
 .PARAMETER AllSitesPath
     Path to AllSites.json (default: LogPath\AllSites.json)
 .EXAMPLE
-    .\Import-SamUnusedSites.ps1
+    .\Import-SamInactiveSites.ps1
 .EXAMPLE
-    .\Import-SamUnusedSites.ps1 -SAMReportPath ".\Logs\Report created by Content Management Assessment_20260402184309000.csv"
+    .\Import-SamInactiveSites.ps1 -SAMReportPath ".\Logs\Report created by Content Management Assessment_20260402184309000.csv"
 #>
 [CmdletBinding()]
 param(

@@ -108,8 +108,8 @@ ACTIVE → INACTIVE → REVIEW → ARCHIVE → DELETE
 SPO Version Management includes archive candidate detection:
 
 ```powershell
-# Export sites with storage and last activity data
-.\Export-ArchiveAnalysis.ps1 -AdminUrl "https://contoso-admin.sharepoint.com"
+# Import SAM inactive sites data for archive analysis
+.\Import-SamInactiveSites.ps1
 
 # Dashboard shows Archive Candidates tab with:
 # - Sites sorted by last activity date

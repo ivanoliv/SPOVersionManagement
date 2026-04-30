@@ -24,6 +24,12 @@ Complete cmdlet reference for `New-SPOSiteManageVersionPolicyJob` and `New-SPOSi
 ### [SharePoint Governance Best Practices]({{ '/guides/sharepoint-governance-best-practices' | relative_url }})
 Enterprise governance framework covering version policies, site lifecycle, retention alignment, monitoring, and Microsoft Copilot readiness.
 
+### [SharePoint Site & File Archiving]({{ '/guides/sharepoint-site-file-archiving' | relative_url }})
+Discover inactive sites and large files consuming storage. Orchestrate archival workflows using Microsoft Graph API and SharePoint's native archive features.
+
+### [SharePoint Advanced Management (SAM) Integration]({{ '/guides/sharepoint-advanced-management-sam' | relative_url }})
+Leverage SAM's inactive sites policy and site ownership policy for data-driven governance decisions. Requires SAM license (Microsoft 365 E5 or add-on).
+
 ---
 
 ## Quick Start

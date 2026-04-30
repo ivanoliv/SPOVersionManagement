@@ -274,7 +274,7 @@ SPOVersionManagement\
 ├── Start-Dashboard.ps1            # Opens Dashboard in browser
 ├── Start-FileArchiveSearch.ps1    # File archive search by extension
 ├── Start-ArchiveWebsites.ps1     # Archive websites execution
-├── Import-SamUnusedSites.ps1     # Import SAM unused sites report
+├── Import-SamInactiveSites.ps1    # Import SAM inactive sites report
 ├── Export-AllSPOSites.ps1         # Exports list of all sites
 ├── Reset-SPOVersionManagement.ps1 # Reset to deploy state
 ├── Rebuild-SiteExecutionHistory.ps1 # Rebuilds history from CSV

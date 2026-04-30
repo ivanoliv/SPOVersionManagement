@@ -58,7 +58,7 @@ $rootFiles = @(
     "Reset-SPOVersionManagement.ps1",
     "Install-SPOVersionManagement.ps1",
     "Build-DeployPackage.ps1",
-    "Export-ArchiveAnalysis.ps1",
+    "Import-SamInactiveSites.ps1",
     "Start-ArchiveWebsites.ps1",
     "IncludeSites.csv",
     "ExcludeSites.csv",

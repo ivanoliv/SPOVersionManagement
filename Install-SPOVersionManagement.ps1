@@ -86,7 +86,7 @@ $alwaysUpdate = @(
     "Reset-SPOVersionManagement.ps1",
     "Install-SPOVersionManagement.ps1",
     "Build-DeployPackage.ps1",
-    "Export-ArchiveAnalysis.ps1",
+    "Import-SamInactiveSites.ps1",
     "Start-ArchiveWebsites.ps1",
     "README.md",
     "ENTRA_ID_APP_SETUP.md",
