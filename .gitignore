@@ -31,7 +31,7 @@ docs/*
 !docs/index.html
 !docs/screenshots/
 Examples/
-.github/
+# .github/ — tracked for CI workflows
 _analysis_results.txt
 _analyze.ps1
 
