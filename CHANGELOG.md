@@ -18,6 +18,7 @@ All notable changes to SPO Version Management are documented in this file.
   - Full visual orchestration — start/stop/monitor version management jobs
   - Dark-themed modern UI with tabbed panels: Home, Execution, Configuration, History, Archive
   - Real-time execution progress with per-site status tracking
+  - Built-in Updates panel: check for new versions, download releases, and install/update scripts directly from the GUI
   - Built-in configuration editor for all settings (credentials, thresholds, filters)
   - One-click site inclusion/exclusion management
   - Tenant storage visualization with historical trends

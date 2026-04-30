@@ -100,8 +100,11 @@ The tool handles the full lifecycle: discovery → policy enforcement → versio
 ## Quick Start
 
 ```powershell
-# 1. Install
+# 1. Install (Option A: PowerShell script)
 .\Install-SPOVersionManagement.ps1
+
+# 1. Install (Option B: From the GUI app)
+#    Open SPOVersionManagement.exe → Updates panel → "Update Scripts Folder" → specify path → OK
 
 # 2. Configure credentials (GUI, Dashboard, or edit config\AppPaths.json)
 #    See ENTRA_ID_APP_SETUP.md for app registration guide

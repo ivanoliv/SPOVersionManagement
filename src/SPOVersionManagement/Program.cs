@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net;
 using System.Windows.Forms;
 using SPOVersionManagement.Forms;
 
@@ -14,6 +15,9 @@ namespace SPOVersionManagement
         /// </summary>
         public static void Main(string rootPath)
         {
+            // GitHub API requires TLS 1.2 — .NET 4.8 defaults to older protocols
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
+
             if (string.IsNullOrEmpty(rootPath) || !Directory.Exists(rootPath))
             {
                 MessageBox.Show(
@@ -33,6 +37,9 @@ namespace SPOVersionManagement
         [STAThread]
         public static void Main(string[] args)
         {
+            // GitHub API requires TLS 1.2 — .NET 4.8 defaults to older protocols
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
+
             string rootPath;
 
             if (args != null && args.Length > 0 && Directory.Exists(args[0]))
