@@ -293,7 +293,17 @@ namespace SPOVersionManagement.Controls
                     _lblStatus.Text = $"Step {step}/{total}: Exporting All Sites...";
                     _progressBar.Value = step * 100 / total;
                     AppendConsole($"\n=== Step {step}/{total}: Export All SPO Sites ===", AppTheme.AccentCyan);
-                    string script = $"& '{Path.Combine(rootPath, "Export-AllSPOSites.ps1")}' -AdminUrl '{adminUrl}'";
+
+                    // Ask user via MessageBox whether to also save to AllSites.json
+                    var saveJson = MessageBox.Show(
+                        "After exporting, do you want to also save the data to AllSites.json for the Dashboard?\n\n" +
+                        "This updates the local database so the Dashboard displays fresh data.",
+                        "Save to Dashboard Database",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+                    string autoConfirm = saveJson == DialogResult.Yes ? " -AutoConfirm" : "";
+
+                    string script = $"& '{Path.Combine(rootPath, "Export-AllSPOSites.ps1")}' -AdminUrl '{adminUrl}'{autoConfirm}";
                     await _psHost.RunScriptAsync(script, cancellationToken: _cts.Token);
                 }
 

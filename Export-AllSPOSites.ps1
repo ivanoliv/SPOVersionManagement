@@ -24,7 +24,10 @@ param(
     [string]$AdminUrl,
     
     [Parameter(Mandatory = $false)]
-    [string]$OutputPath = (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "Logs\AllSPOSites.csv")
+    [string]$OutputPath = (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "Logs\AllSPOSites.csv"),
+
+    [Parameter(Mandatory = $false)]
+    [switch]$AutoConfirm
 )
 
 $ErrorActionPreference = "Stop"
@@ -138,10 +141,15 @@ Write-Host "    Total Storage: $($totalStorageGB.ToString('N2')) GB" -Foreground
 Write-Host ""
 
 # Ask user if they want to save to AllSites.json for Dashboard
-Write-Host "Do you want to save this data to AllSites.json for the Dashboard?" -ForegroundColor Yellow
-Write-Host "  This will update the local database so the Dashboard can display fresh data" -ForegroundColor Gray
-Write-Host ""
-$saveToJson = Read-Host "Save to AllSites.json? (Y/N)"
+if ($AutoConfirm) {
+    $saveToJson = 'Y'
+    Write-Host "[AUTO] Saving to AllSites.json (AutoConfirm mode)" -ForegroundColor Green
+} else {
+    Write-Host "Do you want to save this data to AllSites.json for the Dashboard?" -ForegroundColor Yellow
+    Write-Host "  This will update the local database so the Dashboard can display fresh data" -ForegroundColor Gray
+    Write-Host ""
+    $saveToJson = Read-Host "Save to AllSites.json? (Y/N)"
+}
 
 if ($saveToJson -eq 'Y' -or $saveToJson -eq 'y') {
     $jsonOutputPath = Join-Path (Split-Path $OutputPath -Parent) "AllSites.json"
