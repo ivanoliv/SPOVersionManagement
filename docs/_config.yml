@@ -1,0 +1,22 @@
+title: "SPO Version Management — SharePoint Storage Optimization"
+description: "Free open-source PowerShell tool to manage SharePoint Online file versions, reduce storage costs, and enforce version governance at scale."
+url: "https://ivanoliv.github.io"
+baseurl: "/SPOVersionManagement"
+author: "Ivan Oliveira"
+
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "default"
+
+exclude:
+  - architecture
+  - components
+  - services
+  - WINDOWS_APP.md

@@ -1,12 +1,17 @@
+---
+layout: none
+title: "SPO Version Management — Free SharePoint Online Storage Optimization Tool"
+description: "Free open-source PowerShell tool to manage SharePoint Online file versions, reclaim storage, reduce costs, and enforce version governance at tenant scale. Dashboard, GUI app, parallel processing."
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPO Version Management - Free SharePoint Online Storage Cleanup Tool | Reduce Costs</title>
-    <meta name="description" content="Free open-source tool to manage SharePoint Online file versions, reclaim storage space, and save money. Dashboard with real-time analytics, cost savings calculator, and automated version cleanup.">
-    <meta name="keywords" content="SharePoint Online storage full, SharePoint version history cleanup, reduce SharePoint storage, too many file versions SharePoint, SharePoint Online no space left, clean up SharePoint versions, free SharePoint storage tool, SharePoint Online version management, reclaim SharePoint storage, SharePoint Online quota exceeded, SharePoint storage cost, Microsoft 365 extra storage pricing, SharePoint version limit, bulk delete SharePoint versions, SharePoint storage analytics, SharePoint Online administration tool, SharePoint Online storage management, free SharePoint admin tool, version history too large SharePoint">
-    <meta name="author" content="ivanoliv">
+    <title>SPO Version Management — Free SharePoint Version History Cleanup &amp; Storage Optimization</title>
+    <meta name="description" content="Free open-source PowerShell tool for SharePoint Online version management. Reduce SharePoint storage costs by cleaning excess file versions at scale. Dashboard, GUI app, parallel execution, retention policy automation.">
+    <meta name="keywords" content="sharepoint version management, sharepoint storage optimization, reduce sharepoint storage, sharepoint version history cleanup, sharepoint online storage full, clean up sharepoint versions, free sharepoint storage tool, sharepoint version limit, bulk delete sharepoint versions, sharepoint storage cost, microsoft 365 extra storage, sharepoint online administration, powershell sharepoint automation, sharepoint governance">
+    <meta name="author" content="Ivan Oliveira">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://ivanoliv.github.io/SPOVersionManagement/">
     <meta property="og:title" content="SPO Version Management - Free SharePoint Online Storage Cleanup">
@@ -16,6 +21,10 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="SPO Version Management - Free SharePoint Storage Tool">
     <meta name="twitter:description" content="Reclaim SharePoint Online storage by cleaning up excess file versions. Free, open-source, used by organizations worldwide.">
+
+    <!-- Navigation links for SEO crawling -->
+    <link rel="preconnect" href="https://spo-telemetry-6406.azurewebsites.net">
+
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -180,6 +189,14 @@
     </style>
 </head>
 <body>
+    <!-- Site Navigation -->
+    <nav style="background:#16213e;padding:0.6rem 1.5rem;text-align:center;font-size:0.85rem;">
+        <a href="guides/sharepoint-version-management" style="color:#90caf9;margin:0 1rem;">Version Management Guide</a>
+        <a href="guides/reduce-sharepoint-storage-costs" style="color:#90caf9;margin:0 1rem;">Reduce Storage Costs</a>
+        <a href="guides/powershell-sharepoint-version-cleanup" style="color:#90caf9;margin:0 1rem;">PowerShell Automation</a>
+        <a href="guides/sharepoint-governance-best-practices" style="color:#90caf9;margin:0 1rem;">Governance Guide</a>
+    </nav>
+
     <!-- Hero -->
     <div class="hero">
         <div class="container">
@@ -566,6 +583,37 @@
             <strong>Privacy:</strong> Tenant identity is one-way SHA-256 hashed (cannot be reversed). No site URLs, file names, or user data is collected. Only aggregate numbers: bytes freed, versions deleted, site count. Telemetry is opt-in and can be disabled anytime.
         </div>
     </div>
+
+    <!-- SEO Content Section -->
+    <section style="padding:3.5rem 0;background:#fff;">
+        <div class="container" style="max-width:860px;margin:0 auto;padding:0 1.5rem;">
+            <h2 class="section-title" style="text-align:left;margin-bottom:1rem;">What Is SharePoint Version Management?</h2>
+            <p style="color:#444;line-height:1.8;margin-bottom:1rem;">SharePoint Online automatically retains every version of every document saved in document libraries. While version history is valuable for collaboration and rollback, it creates a hidden storage problem: <strong>excess file versions</strong> accumulate silently and can consume 30–70% of your tenant's storage quota over time.</p>
+            <p style="color:#444;line-height:1.8;margin-bottom:1rem;"><strong>SharePoint version management</strong> is the practice of setting version limits, auditing version history consumption, and removing excess versions that serve no business or compliance purpose. Without proactive management, organizations face growing Microsoft 365 Extra File Storage costs ($0.20/GB/month) for data that delivers zero value.</p>
+            <p style="color:#444;line-height:1.8;margin-bottom:1.5rem;">SPO Version Management automates this entire lifecycle — from discovery and policy enforcement to bulk version deletion and cost reporting — using official Microsoft APIs. It handles retention policy conflicts, parallel execution across thousands of sites, and provides real-time dashboards for monitoring.</p>
+
+            <h3 style="font-size:1.15rem;font-weight:600;margin-bottom:0.8rem;color:#1a1a2e;">Why SharePoint Storage Grows Uncontrollably</h3>
+            <ul style="color:#444;line-height:1.8;margin-bottom:1.5rem;padding-left:1.5rem;">
+                <li><strong>No default version limits</strong> — SharePoint Online keeps up to 500 major versions by default with no automatic expiration</li>
+                <li><strong>Frequent collaborative editing</strong> — Documents edited by multiple users generate versions on every save (especially with AutoSave)</li>
+                <li><strong>No native bulk cleanup</strong> — The SharePoint admin center shows storage consumption but provides no bulk version deletion tools</li>
+                <li><strong>Retention policies blocking deletion</strong> — Compliance policies preserve versions even when they exceed reasonable limits</li>
+                <li><strong>Inactive sites with large footprints</strong> — Abandoned project sites still consume storage for version history nobody uses</li>
+            </ul>
+
+            <h3 style="font-size:1.15rem;font-weight:600;margin-bottom:0.8rem;color:#1a1a2e;">How Version History Impacts Cost</h3>
+            <p style="color:#444;line-height:1.8;margin-bottom:1rem;">Microsoft charges $0.20 per GB per month for storage beyond the base allocation. A single 10MB document with 500 versions consumes approximately 5GB — costing $12/year for one file. At enterprise scale with thousands of actively edited documents, version bloat easily accounts for terabytes of unnecessary storage and tens of thousands of dollars in annual costs.</p>
+            <p style="color:#444;line-height:1.8;margin-bottom:1.5rem;">Organizations typically recover 20–60% of their consumed storage after implementing version management policies. For a tenant using 10TB, that translates to 2–6TB freed and $4,800–$14,400 in annual savings.</p>
+
+            <h3 style="font-size:1.15rem;font-weight:600;margin-bottom:0.8rem;color:#1a1a2e;">Learn More</h3>
+            <ul style="color:#444;line-height:1.8;padding-left:1.5rem;">
+                <li><a href="guides/sharepoint-version-management">Complete Guide to SharePoint Version Management</a> — Deep dive into version policies, limits, and cleanup strategies</li>
+                <li><a href="guides/reduce-sharepoint-storage-costs">How to Reduce SharePoint Storage Costs</a> — Step-by-step optimization plan with ROI calculations</li>
+                <li><a href="guides/powershell-sharepoint-version-cleanup">PowerShell Automation for Version Cleanup</a> — Scripts, cmdlets, and automation patterns</li>
+                <li><a href="guides/sharepoint-governance-best-practices">SharePoint Governance Best Practices</a> — Policies, lifecycle management, and Copilot readiness</li>
+            </ul>
+        </div>
+    </section>
 
     <!-- Final CTA -->
     <div class="final-cta">

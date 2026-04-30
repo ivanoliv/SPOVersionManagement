@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% seo %}
+    <link rel="canonical" href="{{ page.url | absolute_url }}">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="SPO Version Management">
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PEQ56HRX67"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-PEQ56HRX67');
+    </script>
+
+    <style>
+        :root {
+            --blue: #0078d4;
+            --blue-dark: #005a9e;
+            --blue-light: #e8f4fd;
+            --green: #107c10;
+            --green-light: #dff6dd;
+            --gray-50: #f8f9fa;
+            --gray-100: #f0f2f5;
+            --gray-200: #e0e0e0;
+            --gray-600: #555;
+            --gray-800: #1a1a2e;
+            --radius: 8px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.7; color: #333; background: #fff; }
+        a { color: var(--blue); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* Header */
+        .site-header { background: var(--gray-800); color: #fff; padding: 1rem 1.5rem; position: sticky; top: 0; z-index: 100; }
+        .site-header .container { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+        .site-header .logo { font-weight: 700; font-size: 1.1rem; color: #fff; }
+        .site-header .logo:hover { text-decoration: none; }
+        .site-header nav { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+        .site-header nav a { color: #ccc; font-size: 0.9rem; }
+        .site-header nav a:hover { color: #fff; text-decoration: none; }
+
+        /* Main Content */
+        .page-container { max-width: 860px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+        .page-container h1 { font-size: 2.2rem; font-weight: 800; color: var(--gray-800); margin-bottom: 0.5rem; line-height: 1.2; }
+        .page-container h2 { font-size: 1.6rem; font-weight: 700; color: var(--gray-800); margin-top: 2.5rem; margin-bottom: 0.8rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--gray-100); }
+        .page-container h3 { font-size: 1.2rem; font-weight: 600; color: var(--gray-800); margin-top: 2rem; margin-bottom: 0.5rem; }
+        .page-container p { margin-bottom: 1rem; color: #444; }
+        .page-container ul, .page-container ol { margin: 0.5rem 0 1.5rem 1.5rem; color: #444; }
+        .page-container li { margin-bottom: 0.4rem; }
+        .page-container code { background: var(--gray-100); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
+        .page-container pre { background: var(--gray-800); color: #e0e0e0; padding: 1.2rem 1.5rem; border-radius: var(--radius); overflow-x: auto; margin: 1rem 0 1.5rem; font-size: 0.88rem; line-height: 1.5; }
+        .page-container pre code { background: transparent; padding: 0; color: inherit; }
+        .page-container blockquote { border-left: 4px solid var(--blue); padding: 0.8rem 1.2rem; background: var(--blue-light); margin: 1rem 0 1.5rem; border-radius: 0 var(--radius) var(--radius) 0; }
+        .page-container blockquote p { margin-bottom: 0; color: var(--blue-dark); }
+        .page-container table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; }
+        .page-container th, .page-container td { padding: 0.6rem 1rem; border: 1px solid var(--gray-200); text-align: left; }
+        .page-container th { background: var(--gray-100); font-weight: 600; }
+        .page-container img { max-width: 100%; border-radius: var(--radius); box-shadow: var(--shadow); margin: 1rem 0; }
+
+        /* CTA Box */
+        .cta-box { background: linear-gradient(135deg, #004578 0%, #0078d4 100%); color: #fff; padding: 2rem; border-radius: var(--radius); text-align: center; margin: 2.5rem 0; }
+        .cta-box h3 { color: #fff; margin-bottom: 0.5rem; border: none; padding: 0; }
+        .cta-box p { color: rgba(255,255,255,0.9); margin-bottom: 1rem; }
+        .cta-box a { display: inline-block; background: #fff; color: var(--blue); padding: 0.7rem 1.8rem; border-radius: 6px; font-weight: 600; }
+        .cta-box a:hover { text-decoration: none; background: var(--blue-light); }
+
+        /* Breadcrumb */
+        .breadcrumb { font-size: 0.85rem; color: var(--gray-600); margin-bottom: 1.5rem; }
+        .breadcrumb a { color: var(--blue); }
+
+        /* Footer */
+        .site-footer { padding: 2rem 1.5rem; text-align: center; color: #777; font-size: 0.85rem; background: var(--gray-50); border-top: 1px solid var(--gray-200); }
+        .site-footer a { color: var(--blue); }
+
+        @media (max-width: 768px) {
+            .page-container h1 { font-size: 1.6rem; }
+            .page-container h2 { font-size: 1.3rem; }
+            .site-header .container { flex-direction: column; gap: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <a href="{{ '/' | relative_url }}" class="logo">SPO Version Management</a>
+            <nav>
+                <a href="{{ '/' | relative_url }}">Home</a>
+                <a href="{{ '/guides/sharepoint-version-management' | relative_url }}">Version Management Guide</a>
+                <a href="{{ '/guides/reduce-sharepoint-storage-costs' | relative_url }}">Reduce Costs</a>
+                <a href="{{ '/guides/powershell-sharepoint-version-cleanup' | relative_url }}">PowerShell Automation</a>
+                <a href="{{ '/guides/sharepoint-governance-best-practices' | relative_url }}">Governance</a>
+                <a href="https://github.com/ivanoliv/SPOVersionManagement">GitHub</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="page-container">
+        {{ content }}
+    </main>
+
+    <footer class="site-footer">
+        <p><a href="https://github.com/ivanoliv/SPOVersionManagement">GitHub</a> &bull; <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Releases</a> &bull; <a href="https://github.com/ivanoliv/SPOVersionManagement/issues">Issues</a></p>
+        <p style="margin-top:0.5rem;">Created by <a href="https://github.com/ivanoliv">Ivan Oliveira</a> &mdash; Senior Cloud Solution Architect at Microsoft</p>
+        <p style="margin-top:0.5rem; font-size:0.8rem;">SharePoint Online&reg; and Microsoft 365&reg; are trademarks of Microsoft Corporation. This is an independent community project.</p>
+    </footer>
+</body>
+</html>

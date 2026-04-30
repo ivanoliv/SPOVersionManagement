@@ -30,7 +30,12 @@ SharePointSiteUsageStorage*.csv
 # Internal / not for distribution
 docs/*
 !docs/index.html
+!docs/_config.yml
+!docs/_layouts/
+!docs/_includes/
+!docs/guides/
 !docs/screenshots/
+!docs/ww-savings.html
 Examples/
 # .github/ — tracked for CI workflows
 _analysis_results.txt

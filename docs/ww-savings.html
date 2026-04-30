@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPO Version Management — Worldwide Savings</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f1923 0%, #1a2a3a 50%, #0d2137 100%);
+            color: #e8eaed;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        .header h1 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #4fc3f7, #81d4fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .header p {
+            color: #90a4ae;
+            font-size: 1.1rem;
+            max-width: 600px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+            max-width: 1100px;
+            width: 100%;
+            margin-bottom: 48px;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 32px 28px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(79, 195, 247, 0.3);
+        }
+        .stat-card .value {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: #4fc3f7;
+            margin-bottom: 8px;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-card .value.green { color: #66bb6a; }
+        .stat-card .value.orange { color: #ffa726; }
+        .stat-card .value.purple { color: #ab47bc; }
+        .stat-card .label {
+            font-size: 0.95rem;
+            color: #90a4ae;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-card .sub {
+            font-size: 0.8rem;
+            color: #607d8b;
+            margin-top: 4px;
+        }
+        .info-section {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+        }
+        .info-section h2 {
+            font-size: 1.3rem;
+            color: #81d4fa;
+            margin-bottom: 16px;
+        }
+        .info-section p {
+            color: #b0bec5;
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+        .info-section ul {
+            list-style: none;
+            padding: 0;
+        }
+        .info-section li {
+            color: #b0bec5;
+            padding: 6px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        .info-section li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #66bb6a;
+        }
+        .disclaimer {
+            max-width: 800px;
+            text-align: center;
+            color: #607d8b;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            margin-top: 24px;
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .disclaimer a { color: #4fc3f7; text-decoration: none; }
+        .disclaimer a:hover { text-decoration: underline; }
+        .loading {
+            color: #607d8b;
+            font-style: italic;
+        }
+        .last-updated {
+            text-align: center;
+            color: #607d8b;
+            font-size: 0.85rem;
+            margin-bottom: 32px;
+        }
+        @media (max-width: 600px) {
+            .header h1 { font-size: 1.8rem; }
+            .stat-card .value { font-size: 2rem; }
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌍 Worldwide Savings</h1>
+        <p>Anonymous, aggregated metrics from the SPO Version Management community — showing the collective impact of storage optimization across SharePoint Online tenants.</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="value" id="storageFreed"><span class="loading">—</span></div>
+            <div class="label">Storage Reclaimed</div>
+            <div class="sub" id="storageBytes"></div>
+        </div>
+        <div class="stat-card">
+            <div class="value green" id="costSavings"><span class="loading">—</span></div>
+            <div class="label">Estimated Annual Savings</div>
+            <div class="sub">Based on $0.20/GB/month M365 extra storage</div>
+        </div>
+        <div class="stat-card">
+            <div class="value orange" id="versionsDeleted"><span class="loading">—</span></div>
+            <div class="label">Versions Deleted</div>
+            <div class="sub">Excess historical file versions purged</div>
+        </div>
+        <div class="stat-card">
+            <div class="value purple" id="sitesProcessed"><span class="loading">—</span></div>
+            <div class="label">Sites Processed</div>
+            <div class="sub" id="tenantCount"></div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="sessions"><span class="loading">—</span></div>
+            <div class="label">Optimization Sessions</div>
+            <div class="sub">Total executions worldwide</div>
+        </div>
+        <div class="stat-card">
+            <div class="value green" id="tenants"><span class="loading">—</span></div>
+            <div class="label">Tenants Participating</div>
+            <div class="sub">Anonymous count (hashed IDs only)</div>
+        </div>
+    </div>
+
+    <div class="last-updated" id="lastUpdated"></div>
+
+    <div class="info-section">
+        <h2>What is this?</h2>
+        <p>This page shows <strong>real-time aggregated statistics</strong> from organizations using SPO Version Management to optimize their SharePoint Online storage consumption.</p>
+        <p>All data is <strong>completely anonymous</strong> — no tenant names, site URLs, user identities, or document content is ever collected or transmitted.</p>
+    </div>
+
+    <div class="info-section">
+        <h2>Privacy Guarantees</h2>
+        <ul>
+            <li>Tenant identity is one-way hashed (SHA-256) — cannot be reversed</li>
+            <li>No site URLs, file names, or user data is transmitted</li>
+            <li>Only aggregate numbers: bytes freed, versions deleted, sites count</li>
+            <li>Telemetry is opt-in and can be disabled at any time</li>
+            <li>Source code is open — verify exactly what is sent</li>
+        </ul>
+    </div>
+
+    <div class="info-section">
+        <h2>How to Participate</h2>
+        <p>To contribute your anonymous savings data to the worldwide counter:</p>
+        <ul>
+            <li>Enable telemetry in Settings (Dashboard or GUI App)</li>
+            <li>Set your telemetry endpoint in config\AppPaths.json</li>
+            <li>Run optimization sessions as normal — stats are sent automatically</li>
+        </ul>
+    </div>
+
+    <div class="disclaimer">
+        <strong>⚠️ Disclaimer:</strong> This project is not affiliated with, endorsed by, or supported by Microsoft Corporation.
+        Microsoft provides no guarantees, warranties, or support for this tool. Use at your own risk.<br><br>
+        <a href="https://github.com/ivanoliv/SPOVersionManagement">GitHub Repository</a> •
+        <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Downloads</a> •
+        Created by <a href="https://github.com/ivanoliv">Ivan Oliveira</a>
+    </div>
+
+    <script>
+        const API_BASE = ''; // Set to telemetry API URL when deployed
+
+        async function loadStats() {
+            try {
+                const endpoint = API_BASE || window.location.origin;
+                const res = await fetch(`${endpoint}/api/stats/detailed`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                renderStats(data);
+            } catch (e) {
+                // Show placeholder data if API unavailable
+                document.getElementById('storageFreed').textContent = '—';
+                document.getElementById('lastUpdated').textContent = 'Telemetry API not configured';
+            }
+        }
+
+        function renderStats(data) {
+            // Storage
+            if (data.storageFreedTB >= 1) {
+                document.getElementById('storageFreed').textContent = `${data.storageFreedTB.toFixed(1)} TB`;
+            } else {
+                document.getElementById('storageFreed').textContent = `${data.storageFreedGB.toFixed(1)} GB`;
+            }
+            document.getElementById('storageBytes').textContent =
+                `${(data.totalStorageFreedBytes / (1024*1024*1024)).toFixed(2)} GB total`;
+
+            // Cost
+            if (data.estimatedCostSavingsUSD >= 1000000) {
+                document.getElementById('costSavings').textContent =
+                    `$${(data.estimatedCostSavingsUSD / 1000000).toFixed(1)}M/yr`;
+            } else if (data.estimatedCostSavingsUSD >= 1000) {
+                document.getElementById('costSavings').textContent =
+                    `$${(data.estimatedCostSavingsUSD / 1000).toFixed(0)}K/yr`;
+            } else {
+                document.getElementById('costSavings').textContent =
+                    `$${data.estimatedCostSavingsUSD.toFixed(0)}/yr`;
+            }
+
+            // Versions
+            if (data.totalVersionsDeleted >= 1000000) {
+                document.getElementById('versionsDeleted').textContent =
+                    `${(data.totalVersionsDeleted / 1000000).toFixed(1)}M`;
+            } else if (data.totalVersionsDeleted >= 1000) {
+                document.getElementById('versionsDeleted').textContent =
+                    `${(data.totalVersionsDeleted / 1000).toFixed(0)}K`;
+            } else {
+                document.getElementById('versionsDeleted').textContent = data.totalVersionsDeleted.toLocaleString();
+            }
+
+            // Sites
+            if (data.totalSitesProcessed >= 1000) {
+                document.getElementById('sitesProcessed').textContent =
+                    `${(data.totalSitesProcessed / 1000).toFixed(1)}K`;
+            } else {
+                document.getElementById('sitesProcessed').textContent = data.totalSitesProcessed.toLocaleString();
+            }
+            document.getElementById('tenantCount').textContent =
+                `Across ${data.totalTenants} organizations`;
+
+            // Sessions & Tenants
+            document.getElementById('sessions').textContent = data.totalSessions.toLocaleString();
+            document.getElementById('tenants').textContent = data.totalTenants.toLocaleString();
+
+            // Last updated
+            if (data.lastUpdated) {
+                const d = new Date(data.lastUpdated);
+                document.getElementById('lastUpdated').textContent =
+                    `Last updated: ${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+            }
+        }
+
+        loadStats();
+        // Refresh every 60 seconds
+        setInterval(loadStats, 60000);
+    </script>
+</body>
+</html>
