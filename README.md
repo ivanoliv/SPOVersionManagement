@@ -7,6 +7,8 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub Release](https://img.shields.io/github/v/release/ivanoliv/SPOVersionManagement)](https://github.com/ivanoliv/SPOVersionManagement/releases)
 
+**Author:** Ivan Oliveira — Senior Cloud Solution Architect at Microsoft | Microsoft 365 & SharePoint specialist focused on storage optimization, governance, and tenant-scale automation.
+
 > **⚠️ Disclaimer:** This is an independent, community-driven project. It is **not** affiliated with, endorsed by, or supported by Microsoft Corporation. Microsoft provides no guarantees, warranties, or support of any kind for this tool. Use at your own risk. See [Disclaimer](#-disclaimer) for full details.
 
 ---
