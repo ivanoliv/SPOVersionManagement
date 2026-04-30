@@ -161,7 +161,7 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
         .ww-section { background: var(--gray-800); color: #fff; padding: 3.5rem 1.5rem; text-align: center; }
         .ww-section h2 { color: #4fc3f7; margin-bottom: 0.5rem; font-size: 1.8rem; }
         .ww-section > p { color: #90a4ae; margin-bottom: 1.5rem; }
-        .ww-details { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.5rem; }
+        .ww-details { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, 1fr); gap: 1.5rem; }
         .ww-details .wd { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.5rem; }
         .ww-details .wd .val { font-size: 1.8rem; font-weight: 700; color: #4fc3f7; }
         .ww-details .wd .lbl { font-size: 0.75rem; color: #90a4ae; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.3rem; }
@@ -228,6 +228,10 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
             <div class="stat">
                 <div class="stat-value" id="ww-versions">—</div>
                 <div class="stat-label">Versions Deleted</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="ww-sites">—</div>
+                <div class="stat-label">Sites Processed</div>
             </div>
             <div class="stat">
                 <div class="stat-value" id="ww-tenants">—</div>
@@ -666,6 +670,10 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
                 <div class="lbl">Versions Deleted</div>
             </div>
             <div class="wd">
+                <div class="val" id="ww2-sites">—</div>
+                <div class="lbl">Sites Processed</div>
+            </div>
+            <div class="wd">
                 <div class="val" id="ww2-tenants">—</div>
                 <div class="lbl">Organizations</div>
             </div>
@@ -766,6 +774,7 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
                 document.getElementById('ww-storage').textContent = storage;
                 document.getElementById('ww-savings').textContent = '$' + Number(d.estimatedCostSavingsUSD).toLocaleString();
                 document.getElementById('ww-versions').textContent = fmt(d.totalVersionsDeleted);
+                document.getElementById('ww-sites').textContent = fmt(d.totalSitesProcessed);
                 document.getElementById('ww-tenants').textContent = fmt(d.totalTenants);
                 document.getElementById('ww-sessions').textContent = fmt(d.totalSessions);
 
@@ -773,12 +782,13 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
                 document.getElementById('ww2-storage').textContent = storage;
                 document.getElementById('ww2-savings').textContent = '$' + Number(d.estimatedCostSavingsUSD).toLocaleString();
                 document.getElementById('ww2-versions').textContent = fmt(d.totalVersionsDeleted);
+                document.getElementById('ww2-sites').textContent = fmt(d.totalSitesProcessed);
                 document.getElementById('ww2-tenants').textContent = fmt(d.totalTenants);
                 document.getElementById('ww2-sessions').textContent = fmt(d.totalSessions);
             } catch {
                 // Show graceful fallback
-                const els = ['ww-storage','ww-savings','ww-versions','ww-tenants','ww-sessions',
-                             'ww2-storage','ww2-savings','ww2-versions','ww2-tenants','ww2-sessions'];
+                const els = ['ww-storage','ww-savings','ww-versions','ww-sites','ww-tenants','ww-sessions',
+                             'ww2-storage','ww2-savings','ww2-versions','ww2-sites','ww2-tenants','ww2-sessions'];
                 els.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '—'; });
             }
         }
