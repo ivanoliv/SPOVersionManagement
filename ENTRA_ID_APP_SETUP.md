@@ -360,17 +360,17 @@ Install-Module ExchangeOnlineManagement -Scope CurrentUser -Force
 ## Usage
 
 ```powershell
-# Full run with app auth (SPO app auto-loaded from AppPaths.json)
-.\Start-SPOVersionManagement_app.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -Unattended
+# Full run with app auth (credentials auto-loaded from config\AppPaths.json)
+.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -Unattended
 
 # With retention policy management (uses Purview app from AppPaths.json)
-.\Start-SPOVersionManagement_app.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -Unattended -ManageRetentionPolicy
+.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -Unattended -ManageRetentionPolicy
 
 # Delete-only mode (skip SyncListPolicy)
-.\Start-SPOVersionManagement_app.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -Unattended -DeleteOnly
+.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -Unattended -DeleteOnly
 
 # Sync data for dashboard only (no version changes)
-.\Start-SPOVersionManagement_app.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -SyncOnly
+.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -SyncOnly
 
 # Interactive mode (prompts for login if AppPaths not configured)
 .\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -ManageRetentionPolicy

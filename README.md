@@ -106,7 +106,7 @@ The tool handles the full lifecycle: discovery → policy enforcement → versio
 .\Install-SPOVersionManagement.ps1
 
 # 1. Install (Option B: From the GUI app)
-#    Open SPOVersionManagement.exe → Updates panel → "Update Scripts Folder" → specify path → OK
+#    Open app\SPOVersionManagement.exe → Updates panel → "Update Scripts Folder" → specify path → OK
 
 # 2. Configure credentials (GUI, Dashboard, or edit config\AppPaths.json)
 #    See ENTRA_ID_APP_SETUP.md for app registration guide
@@ -117,7 +117,10 @@ The tool handles the full lifecycle: discovery → policy enforcement → versio
 # 4. Run full optimization (set policies + delete excess versions)
 .\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -MajorVersionLimit 20
 
-# 5. Monitor progress
+# 5. Run unattended (Entra ID App auth, no prompts)
+.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -Unattended
+
+# 6. Monitor progress
 .\Start-Dashboard.ps1
 ```
 
@@ -269,10 +272,8 @@ SPOVersionManagement\
 ├── SPOVersionManagement.psm1      # Main module with all functions
 ├── SPOSiteFilters.psm1            # Inclusion/exclusion filter module
 ├── SPORetentionPolicyManager.psm1 # Retention policy management module
-├── Start-SPOVersionManagement.ps1 # Main execution script
-├── Start-SPOVersionManagement_app.ps1 # Launch WinForms GUI app
+├── Start-SPOVersionManagement.ps1 # Main script (interactive + unattended)
 ├── Start-Dashboard.ps1            # Opens Dashboard in browser
-├── Start-FileArchiveSearch.ps1    # File archive search by extension
 ├── Start-ArchiveWebsites.ps1     # Archive websites execution
 ├── Import-SamInactiveSites.ps1    # Import SAM inactive sites report
 ├── Export-AllSPOSites.ps1         # Exports list of all sites
@@ -285,7 +286,12 @@ SPOVersionManagement\
 ├── ExcludeSites.csv               # List of sites to exclude (optional)
 ├── SharePointSiteUsageStorage PM.csv # Graph storage report template
 ├── README.md                       # This documentation
-├── src\                            # WinForms GUI application (C#)
+├── app\
+│   ├── SPOVersionManagement.exe   # Windows GUI application
+│   ├── SPOVersionManagement.exe.config
+│   ├── Newtonsoft.Json.dll
+│   └── System.Management.Automation.dll
+├── src\                            # WinForms GUI source code (C#)
 │   └── SPOVersionManagement\      # .NET Framework 4.8 project
 ├── config\
 │   ├── AppPaths.json              # Centralized path configuration
@@ -318,8 +324,18 @@ Install-Module -Name Microsoft.Graph -Force
 ### 2. Main Execution
 
 ```powershell
-# Process all tenant sites with default limits (4 versions)
+# Interactive mode — process all tenant sites with default limits (4 versions)
 .\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com"
+
+# Unattended mode — uses Entra ID App from config\AppPaths.json
+.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -Unattended
+
+# With explicit app credentials
+.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" `
+    -TenantId "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" `
+    -ClientId "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" `
+    -CertificateThumbprint "AABBCCDD..." `
+    -Unattended
 
 # Process with 20 version limit
 .\Start-SPOVersionManagement.ps1 `
@@ -348,12 +364,22 @@ Install-Module -Name Microsoft.Graph -Force
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `-AdminUrl` | SPO Admin Center URL | (required) |
+| `-TenantId` | Entra ID tenant GUID (for app auth) | from AppPaths.json |
+| `-ClientId` | Entra ID app registration client ID | from AppPaths.json |
+| `-CertificateThumbprint` | Certificate thumbprint (CurrentUser\My) | (none) |
+| `-CertificatePath` | Path to PFX certificate file | (none) |
+| `-CertificatePassword` | SecureString password for PFX | (none) |
+| `-Unattended` | Auto-answer all prompts (requires app auth) | $false |
 | `-InputSiteListCSV` | CSV file with site URLs to process | (all sites) |
 | `-InputExclusionSiteListCSV` | CSV file with site URLs to EXCLUDE | (none) |
 | `-MajorVersionLimit` | Major version limit to keep | 4 |
 | `-MajorWithMinorVersionsLimit` | Minor version limit to keep | 4 |
 | `-MaxConcurrentJobs` | Maximum simultaneous jobs | 10 |
+| `-GraphReportCSV` | Manual Graph storage report CSV | (none) |
 | `-SkipGraphConnection` | Skip Microsoft Graph connection | $false |
+| `-DeleteOnly` | Skip SyncListPolicy, only run BatchDelete | $false |
+| `-SyncOnly` | Run SyncListPolicy only (assessment mode) | $false |
+| `-UseFileCache` | Use cached site data (skip enumeration) | $false |
 
 ### 4. CSV File Format
 
@@ -558,7 +584,7 @@ Configure via Dashboard Settings tab or edit JSON directly.
 
 ## ⚠️ Important Notes
 
-1. **Credentials**: The script uses interactive authentication. For automation, consider using certificates or managed identity.
+1. **Authentication**: The script supports both interactive login and Entra ID App (certificate) authentication. For automation, use `-Unattended` with TenantId/ClientId/Certificate configured in `config\AppPaths.json`.
 
 2. **Throttling**: SPO may apply throttling if too many requests are made. The 30s polling helps avoid this.
 
@@ -744,7 +770,24 @@ Telemetry can be disabled in `config\AppPaths.json` by setting `"TelemetryEnable
 
 > Full changelog with all versions: **[CHANGELOG.md](CHANGELOG.md)**
 
-### v2.3.0.0 (2026-04-29) - Current
+### v2.3.1.0 (2026-04-30) - Current
+**Release: Unified Script, Executable Packaging & Documentation**
+
+> 🤖 *AI Summary:* Merged the separate `_app.ps1` script into the main `Start-SPOVersionManagement.ps1`, creating a single entry point that supports both interactive and Entra ID App (certificate) authentication. The Windows executable is now included in the deploy package and installer.
+
+#### Highlights
+- **Unified Start Script** — `Start-SPOVersionManagement.ps1` now handles both interactive login and Entra ID App auth
+- **Auto-detect Auth Mode** — Automatically uses app auth when TenantId/ClientId/Certificate are provided
+- **`-Unattended` Switch** — All prompts auto-answered; requires app auth credentials
+- **Executable in Deploy Package** — `app/` directory with SPOVersionManagement.exe and DLLs included in ZIP and installer
+- **Removed `Start-SPOVersionManagement_app.ps1`** — No longer needed; all functionality in main script
+- **New `-SkipGraphConnection` Parameter** — Skip Graph API connection when not needed
+
+See [CHANGELOG.md](CHANGELOG.md) for full details.
+
+---
+
+### v2.3.0.0 (2026-04-29)
 **Release: GUI Persistence, Telemetry Backend Deployment & Bug Fixes**
 
 > 🤖 *AI Summary:* This release stabilizes the Windows GUI with persistent settings, native prompt dialogs, and multiple crash/UX fixes. The telemetry backend is now live on Azure App Service, and the GitHub Pages landing page displays real-time worldwide savings data.

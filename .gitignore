@@ -12,6 +12,7 @@ Logs/
 
 # Config directory - ignore contents (secrets in AppPaths.json) but track directory
 config/*
+!config/AppPaths.json
 !config/DashboardConfig.json
 !config/ExtensionGroups.json
 !config/version.json
@@ -36,6 +37,8 @@ docs/*
 !docs/guides/
 !docs/screenshots/
 !docs/ww-savings.html
+!docs/sitemap.xml
+!docs/WINDOWS_APP.md
 Examples/
 # .github/ — tracked for CI workflows
 _analysis_results.txt

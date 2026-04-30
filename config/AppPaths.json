@@ -1,0 +1,67 @@
+{
+  "Version": "1.3",
+  "AppVersion": "2.3.1.0",
+  "Description": "Configuração centralizada de diretórios e arquivos da aplicação SPO Version Management",
+  "LastModified": "2026-04-30T00:43:22.9911072Z",
+  "RootPath": "C:\\development",
+  "ApplicationFolder": "SPOVersionManagement",
+  "Directories": {
+    "Root": "",
+    "Config": "config",
+    "Web": "web",
+    "Logs": "Logs",
+    "Data": "Logs",
+    "Backup": "Logs\\Backup"
+  },
+  "Files": {
+    "JobStatus": "JobStatus.json",
+    "TenantStorage": "TenantStorage.json",
+    "ExcludedSites": "ExcludedSites.json",
+    "AllSites": "AllSites.json",
+    "SiteExecutionHistory": "SiteExecutionHistory.json",
+    "DashboardConfig": "DashboardConfig.json",
+    "Dashboard": "Dashboard.html",
+    "ExecutionHistory": "ExecutionHistory.csv",
+    "SiteStorage": "SiteStorage.csv",
+    "TenantStorageTimeline": "TenantStorageTimeline.json",
+    "AppPaths": "AppPaths.json"
+  },
+  "InputFiles": {
+    "IncludeSites": "IncludeSites.csv",
+    "ExcludeSites": "ExcludeSites.csv"
+  },
+  "Scripts": {
+    "MainModule": "SPOVersionManagement.psm1",
+    "FiltersModule": "SPOSiteFilters.psm1",
+    "StartScript": "Start-SPOVersionManagement.ps1",
+    "DashboardScript": "Start-Dashboard.ps1"
+  },
+  "EntraIdApp": {
+    "TenantId": "482a895b-461c-4d5f-853b-f26d75a4b5d3",
+    "ClientId": "5f33371a-7331-48cf-acb0-b7d2c410e921",
+    "CertificateThumbprint": "BB5153EFBFD3DED9F30949BE4D4B5295FFAE957B"
+  },
+  "PurviewApp": {
+    "ClientId": "29d3fd49-bd3a-4c09-b284-62b9f9a6cd86",
+    "CertificateThumbprint": "1F22C5AE7BFEE1818B2D6DCFE36E17442D6BA936",
+    "Organization": "M365x45011370.onmicrosoft.com"
+  },
+  "GitHubRepo": "ivanoliv/SPOVersionManagement",
+  "TelemetryEndpoint": "https://spo-telemetry-6406.azurewebsites.net",
+  "TelemetryEnabled": true,
+  "TelemetryConsentRequested": true,
+  "TelemetryConsentRequestedAt": "2026-04-30T00:43:22.8970461Z",
+  "TelemetrySalt": "d91f2c95da5317eaef453c3ad00b98b0",
+  "RelativePaths": {
+    "JobStatus": "./JobStatus.json",
+    "TenantStorage": "./TenantStorage.json",
+    "ExcludedSites": "./ExcludedSites.json",
+    "AllSites": "./AllSites.json",
+    "SiteExecutionHistory": "./SiteExecutionHistory.json",
+    "DashboardConfig": "./DashboardConfig.json",
+    "ExecutionHistory": "./ExecutionHistory.csv",
+    "SiteStorage": "./SiteStorage.csv",
+    "TenantStorageTimeline": "./TenantStorageTimeline.json"
+  },
+  "AdminUrl": "https://m365x45011370-admin.sharepoint.com/"
+}

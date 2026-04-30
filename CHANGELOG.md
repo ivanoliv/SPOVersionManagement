@@ -4,6 +4,37 @@ All notable changes to SPO Version Management are documented in this file.
 
 ---
 
+## v2.3.1.0 (2026-04-30)
+
+**Release: Unified Script, Executable Packaging & Documentation**
+
+### ✨ New Features
+
+- **Unified Start Script** — Merged `Start-SPOVersionManagement_app.ps1` into `Start-SPOVersionManagement.ps1`. Single entry point now supports both interactive and Entra ID App (certificate) authentication.
+- **Auto-detect Auth Mode** — When TenantId + ClientId + Certificate params are provided (via parameters or `config\AppPaths.json`), the script automatically uses app-based authentication. Otherwise falls back to interactive login.
+- **`-Unattended` Switch** — All interactive prompts are auto-answered with safe defaults. Requires app auth credentials to be configured.
+- **`-SkipGraphConnection` Parameter** — Explicitly skip Microsoft Graph API connection when Graph data is not needed.
+- **Executable in Deploy Package** — New `app/` directory contains SPOVersionManagement.exe and required DLLs, included in both the build ZIP and installer.
+
+### 🗑️ Removed
+
+- **`Start-SPOVersionManagement_app.ps1`** — Deleted. All functionality merged into main script.
+- **`StartScriptApp` config key** — Removed from `AppPaths.json` Scripts section.
+
+### 📦 Packaging
+
+- `Build-DeployPackage.ps1` now includes `app/` directory (exe, DLLs, config) in the deployment ZIP.
+- `Install-SPOVersionManagement.ps1` creates `app/` directory at destination and copies executable files.
+- Both scripts no longer reference the deleted `_app.ps1` file.
+
+### 📖 Documentation
+
+- README updated: file structure, parameters table (all auth params documented), Quick Start examples, execution modes
+- `ENTRA_ID_APP_SETUP.md` usage examples updated to reference unified script
+- `docs/WINDOWS_APP.md` updated with new `app/` path for running the executable
+
+---
+
 ## v2.3.0.0 (2026-04-29)
 
 **Release: GUI Persistence, Telemetry Backend Deployment & Bug Fixes**
