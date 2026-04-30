@@ -12,7 +12,9 @@ description: "Practical strategies to reduce SharePoint Online storage costs. Le
 
 Microsoft 365 tenants receive a base SharePoint storage allocation (1TB + 10GB per licensed user). When you exceed that allocation, Microsoft charges **$0.20 per GB per month** for Extra File Storage — adding up to **$2,400 per TB per year**.
 
-Most organizations don't realize that a significant portion of their consumed storage is **accumulated file versions** that serve no business purpose. This guide shows you how to identify waste, calculate savings, and implement a cost reduction strategy.
+Most organizations don't realize that a significant portion of their consumed storage is **accumulated file versions** that serve no business purpose. This guide shows you how to identify waste, calculate savings, and implement a cost reduction strategy using official, supported Microsoft APIs.
+
+> **How it works:** SPO Version Management orchestrates native SharePoint Online operations (`New-SPOSiteManageVersionPolicyJob`, `New-SPOSiteFileVersionBatchDeleteJob`) to apply version policies and remove excess versions at scale. It does not access or modify document content directly — it instructs SharePoint to enforce the policies you configure, the same way the admin center would.
 
 ---
 
@@ -205,6 +207,23 @@ Track month-over-month:
 
 ---
 
+## Why Use a Dedicated Tool vs. Custom Scripts?
+
+| Aspect | Custom PowerShell Script | SPO Version Management |
+|--------|--------------------------|------------------------|
+| Scope | One site at a time | Full tenant, all sites |
+| Parallelism | Manual threading | Built-in queue (10 concurrent) |
+| Monitoring | Console output | Real-time Dashboard + GUI |
+| Retention handling | None (fails silently) | Auto-detect, suspend, resume |
+| Resume after failure | Start over | Pick up where you left off |
+| Cost tracking | Manual calculation | Automatic per-session savings |
+| Risk | Depends on script quality | Non-destructive assessment mode, pilot-first |
+| Cost | Free (your time) | Free (your time, but 10x less of it) |
+
+The tool is free and open-source (MIT license). It uses the same official Microsoft APIs you would use in a custom script — but adds orchestration, monitoring, error handling, and governance that would take weeks to build from scratch.
+
+---
+
 ## ROI Calculation Template
 
 | Item | Value |
@@ -220,9 +239,9 @@ Track month-over-month:
 ---
 
 <div class="cta-box">
-    <h3>Calculate Your Savings</h3>
-    <p>Use the interactive calculator on our homepage or download the tool to run a non-destructive assessment.</p>
-    <a href="{{ '/' | relative_url }}">Try the Calculator</a>
+    <h3>See Your Potential Savings in 5 Minutes</h3>
+    <p>Run a non-destructive assessment (SyncOnly mode). The Dashboard shows exactly how much storage you can recover — before any versions are deleted. Deleted versions go to recycle bin (93-day recovery window).</p>
+    <a href="{{ '/' | relative_url }}">Use the Savings Calculator</a>
 </div>
 
 ## Related Guides

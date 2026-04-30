@@ -12,7 +12,9 @@ description: "Learn how SharePoint Online version history works, why it causes s
 
 SharePoint Online retains every version of every document by default. Without active management, version history silently consumes 30–70% of your tenant storage — costing thousands in unnecessary Microsoft 365 Extra File Storage charges.
 
-This guide covers everything you need to understand and implement **SharePoint version management** at enterprise scale.
+This guide covers everything you need to understand and implement **SharePoint version management** at enterprise scale — using official, fully supported Microsoft APIs that require no custom development or unsupported workarounds.
+
+> **Safety note:** SPO Version Management is a pure orchestration layer. It uses the same official SharePoint Online Management Shell cmdlets that Microsoft provides for tenant administrators. It does not access document content directly, does not bypass platform security, and operates through the same mechanisms as the SharePoint admin center.
 
 ---
 
@@ -167,6 +169,18 @@ Sites under compliance retention policies cannot have versions deleted until the
 
 ---
 
+## Risk Mitigation: Why This Is Safe
+
+| Concern | How It's Addressed |
+|---------|--------------------|
+| Data loss | Deleted versions go to the site recycle bin (93-day retention). Recovery is possible. |
+| Unsupported operations | Uses only official Microsoft cmdlets (`New-SPOSiteManageVersionPolicyJob`, `New-SPOSiteFileVersionBatchDeleteJob`) |
+| Compliance violations | Retention policies are detected and handled automatically (suspend/resume with audit trail) |
+| Unexpected scope | Non-destructive SyncOnly mode lets you assess before executing any deletion |
+| No rollback | Pilot-first approach: start with 10–20 sites, verify results, then scale |
+
+---
+
 ## Frequently Asked Questions
 
 **Can deleted versions be recovered?**
@@ -184,9 +198,9 @@ The tool uses official, documented Microsoft APIs (`New-SPOSiteManageVersionPoli
 ---
 
 <div class="cta-box">
-    <h3>Start Managing Versions Now</h3>
-    <p>Download SPO Version Management free from GitHub. Assessment mode is non-destructive.</p>
-    <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Download Latest Release</a>
+    <h3>See How Much Storage You Can Recover</h3>
+    <p>Run a non-destructive assessment in under 5 minutes. SyncOnly mode applies policies without deleting a single version — so you can review the Dashboard and decide with full visibility.</p>
+    <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Download Free — No Risk, No Changes</a>
 </div>
 
 ## Related Guides

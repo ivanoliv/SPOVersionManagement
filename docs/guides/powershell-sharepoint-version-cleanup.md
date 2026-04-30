@@ -12,6 +12,14 @@ description: "Complete reference for SharePoint Online version management PowerS
 
 SharePoint Online provides PowerShell cmdlets for managing file version policies and deleting excess versions at scale. This guide covers the official cmdlets, automation patterns, and how SPO Version Management orchestrates them for production use.
 
+> **Important distinction:** SPO Version Management is not a replacement for the SharePoint Online Management Shell — it is an **orchestration layer on top of it**. Every operation it performs uses the same official Microsoft cmdlets documented below. It adds parallel execution, monitoring, queue management, retention policy handling, and error recovery — but the underlying API calls are identical to what you would run manually.
+
+This means:
+- **Fully supported** — uses only documented, supported Microsoft APIs
+- **No direct data access** — never touches document content, only instructs SharePoint to enforce policies
+- **Future-proof** — if Microsoft updates the cmdlets, the tool follows the same upgrade path
+- **Auditable** — every operation is logged and traceable
+
 ---
 
 ## Prerequisites
@@ -335,9 +343,9 @@ Get-SPOSiteFileVersionBatchDeleteJobProgress -Identity "https://contoso.sharepoi
 ---
 
 <div class="cta-box">
-    <h3>Automate Your Cleanup Today</h3>
-    <p>SPO Version Management handles all orchestration, monitoring, and error handling. Free and open-source.</p>
-    <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Download Latest Release</a>
+    <h3>Skip the Scripting — Get Production-Ready Orchestration</h3>
+    <p>SPO Version Management wraps these exact cmdlets with parallel execution, real-time monitoring, retention handling, and automatic resume. Free, open-source, and uses only the official APIs documented above.</p>
+    <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Download Free — Assessment Mode Available</a>
 </div>
 
 ## Related Guides
