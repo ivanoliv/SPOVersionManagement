@@ -273,6 +273,19 @@ Notify stakeholders before implementing version management:
 
 ---
 
+## From Governance to Strategic Value
+
+Proactive version governance delivers measurable financial impact:
+
+- **Direct savings:** $0.20/GB/month × freed storage = immediate cost reduction
+- **Budget reallocation:** Recovered spend can fund Microsoft Copilot licenses, security tools, or user training
+- **AI readiness:** Clean, well-governed content improves Copilot output quality — fewer outdated versions means more relevant AI-generated results
+- **Capacity planning:** Reclaimed storage extends your allocation before purchasing additional capacity
+
+**Example:** A 5,000-site tenant recovering 2TB of excess versions saves ~$4,800/year — enough to fund 13 Copilot licenses and improve content quality for AI across the organization.
+
+---
+
 ## Why SPO Version Management Fits Enterprise Governance
 
 | Governance Requirement | How It's Met |
@@ -288,9 +301,9 @@ Notify stakeholders before implementing version management:
 ---
 
 <div class="cta-box">
-    <h3>Assess Your Tenant Governance Posture — Risk-Free</h3>
-    <p>Run a non-destructive assessment to see storage distribution, version accumulation, and potential savings across your entire tenant. No versions are deleted. No policies are changed. Full visibility in 5 minutes.</p>
-    <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Download Free — Start Assessment</a>
+    <h3>Quantify Your Governance Gap — in USD</h3>
+    <p>Run a non-destructive assessment to see storage waste, version accumulation, and reclaimable budget across your entire tenant. No versions are deleted. No policies are changed. Results include estimated annual savings you can redirect to Copilot, security, or innovation.</p>
+    <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Download Free — Identify Reclaimable Budget</a>
 </div>
 
 ## Related Guides

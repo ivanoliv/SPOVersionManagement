@@ -321,12 +321,11 @@ Install-Module -Name Microsoft.Graph -Force
 # Process all tenant sites with default limits (4 versions)
 .\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com"
 
-# Process with 20 version limit and open Dashboard
+# Process with 20 version limit
 .\Start-SPOVersionManagement.ps1 `
     -AdminUrl "https://contoso-admin.sharepoint.com" `
     -MajorVersionLimit 20 `
-    -MajorWithMinorVersionsLimit 20 `
-    -OpenDashboard
+    -MajorWithMinorVersionsLimit 20
 
 # Process only sites from a CSV list
 .\Start-SPOVersionManagement.ps1 `
@@ -355,7 +354,6 @@ Install-Module -Name Microsoft.Graph -Force
 | `-MajorWithMinorVersionsLimit` | Minor version limit to keep | 4 |
 | `-MaxConcurrentJobs` | Maximum simultaneous jobs | 10 |
 | `-SkipGraphConnection` | Skip Microsoft Graph connection | $false |
-| `-OpenDashboard` | Open Dashboard in browser on start | $false |
 
 ### 4. CSV File Format
 
@@ -399,9 +397,6 @@ The Dashboard provides a complete view of the processing:
 
 # Or open directly
 Start-Process ".\web\Dashboard.html"
-
-# Or use -OpenDashboard parameter in main script
-.\Start-SPOVersionManagement.ps1 -AdminUrl "..." -OpenDashboard
 ```
 
 ## 🔧 Centralized Configuration

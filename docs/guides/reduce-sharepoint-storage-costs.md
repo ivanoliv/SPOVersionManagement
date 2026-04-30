@@ -235,12 +235,30 @@ The tool is free and open-source (MIT license). It uses the same official Micros
 | Tool cost | $0 (open source) |
 | Implementation effort | 2–4 hours |
 | **Payback period** | **Immediate** |
+| **Reinvestment potential** | **$__ redirected to AI/Copilot/productivity** |
+
+---
+
+## From Cost Reduction to Strategic Investment
+
+Storage savings are not just operational cost reduction — they represent **reclaimable budget** that can be redirected to strategic initiatives:
+
+| Annual Savings | Reinvestment Equivalent |
+|---------------|-------------------------|
+| $2,400 | ~6 Microsoft 365 Copilot licenses |
+| $5,000 | ~13 Copilot licenses or a security tool subscription |
+| $12,000 | ~33 Copilot licenses or a full AI pilot program |
+| $25,000 | ~69 Copilot licenses or dedicated innovation budget |
+
+*Based on ~$30/user/month Copilot licensing. Actual pricing varies by enterprise agreement.*
+
+Additionally, reducing excess versions improves **content quality for AI tools** — fewer outdated document versions means Microsoft Copilot surfaces more relevant, current information across your organization.
 
 ---
 
 <div class="cta-box">
-    <h3>See Your Potential Savings in 5 Minutes</h3>
-    <p>Run a non-destructive assessment (SyncOnly mode). The Dashboard shows exactly how much storage you can recover — before any versions are deleted. Deleted versions go to recycle bin (93-day recovery window).</p>
+    <h3>See Your Potential Savings — and Reinvestment Opportunity</h3>
+    <p>Run a non-destructive assessment (SyncOnly mode). The Dashboard quantifies exactly how much budget you can recover and reallocate — before any versions are deleted. Deleted versions go to recycle bin (93-day recovery window).</p>
     <a href="{{ '/' | relative_url }}">Use the Savings Calculator</a>
 </div>
 

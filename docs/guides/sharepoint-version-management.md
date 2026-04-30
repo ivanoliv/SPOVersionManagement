@@ -197,10 +197,27 @@ The tool uses official, documented Microsoft APIs ([`New-SPOSiteManageVersionPol
 
 ---
 
+## Financial Impact
+
+Version management is not just a technical operation — it directly reduces Microsoft 365 costs:
+
+| Excess Versions Freed | Monthly Savings | Annual Savings | Copilot License Equivalent |
+|-----------------------|-----------------|----------------|----------------------------|
+| 500 GB | $100 | $1,200 | ~3 licenses |
+| 1 TB | $205 | $2,460 | ~6 licenses |
+| 3 TB | $614 | $7,372 | ~20 licenses |
+| 5 TB | $1,024 | $12,288 | ~34 licenses |
+
+*Based on $0.20/GB/month Microsoft 365 Extra File Storage pricing and ~$30/user/month Copilot licensing.*
+
+Recovered budget can be reinvested into AI initiatives (Microsoft Copilot), security tools, user training, or extended to defer additional storage purchases.
+
+---
+
 <div class="cta-box">
-    <h3>See How Much Storage You Can Recover</h3>
-    <p>Run a non-destructive assessment in under 5 minutes. SyncOnly mode applies policies without deleting a single version — so you can review the Dashboard and decide with full visibility.</p>
-    <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Download Free — No Risk, No Changes</a>
+    <h3>See How Much Budget You Can Recover</h3>
+    <p>Run a non-destructive assessment in under 5 minutes. SyncOnly mode applies policies without deleting a single version — quantify your savings in USD before making any changes.</p>
+    <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Download Free — Identify Reclaimable Budget</a>
 </div>
 
 ## Related Guides

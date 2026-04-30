@@ -106,7 +106,7 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
 
         /* Features Grid */
         .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
-        .feature-card { background: #fff; padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow); transition: transform 0.2s, box-shadow 0.2s; }
+        .feature-card { background: #fff; padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow); transition: transform 0.2s, box-shadow 0.2s; overflow-wrap: break-word; word-break: break-word; }
         .feature-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
         .feature-card .icon { font-size: 2rem; margin-bottom: 0.8rem; }
         .feature-card h3 { font-size: 1.15rem; margin-bottom: 0.5rem; color: var(--gray-800); }
@@ -445,7 +445,7 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
     <section class="calculator">
         <div class="container">
             <h2 class="section-title">How Much Are Versions Costing You?</h2>
-            <p class="section-subtitle">Enter your estimated excess version storage to calculate potential annual savings</p>
+            <p class="section-subtitle">Enter your estimated excess version storage to calculate potential annual savings — and what you could reinvest</p>
             <div class="calc-box">
                 <h3>SharePoint Storage Savings Calculator</h3>
                 <div class="calc-input">
@@ -454,6 +454,7 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
                 </div>
                 <div class="calc-result" id="calc-result">$2,400 / year</div>
                 <div class="calc-formula">Based on Microsoft 365 extra file storage: $0.20 per GB per month &times; 12 months (1 TB = 1,024 GB)</div>
+                <div id="calc-reinvest" style="margin-top:1rem;padding:1rem;background:var(--gray-100);border-radius:8px;font-size:0.9rem;color:#444;line-height:1.6;"></div>
             </div>
         </div>
     </section>
@@ -539,17 +540,17 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
                 <div class="use-case">
                     <div class="scenario">Enterprise: 5,000 sites, 8TB quota at 92%</div>
                     <p>Excess versions consuming 2.1TB across document libraries. Facing $5,040/year in extra storage charges from Microsoft.</p>
-                    <div class="result">Freed 1.8TB in 4 hours. Saved $4,320/year. Storage dropped to 68%.</div>
+                    <div class="result">✅ Freed 1.8TB in 4 hours. <strong>Saved $4,320/year</strong> — equivalent to 12 Copilot licenses reallocated to productivity.</div>
                 </div>
                 <div class="use-case">
                     <div class="scenario">Mid-size: 200 sites, users can't upload</div>
                     <p>Storage at 98%. No visibility into what's consuming space. Manual cleanup across 200 sites would take weeks of admin time.</p>
-                    <div class="result">Identified 600GB of excess versions. Automated cleanup in 45 minutes. Zero data loss.</div>
+                    <div class="result">✅ Identified 600GB of excess versions. Automated cleanup in 45 minutes. <strong>$1,440/year saved</strong>. Zero data loss.</div>
                 </div>
                 <div class="use-case">
                     <div class="scenario">Regulated: Retention policies block cleanup</div>
                     <p>Legal holds and retention policies prevent version deletion. Need to handle exceptions without compliance violations.</p>
-                    <div class="result">Auto-suspended 12 policies, cleaned 890GB, auto-resumed. Full audit trail for compliance.</div>
+                    <div class="result">✅ Auto-suspended 12 policies, cleaned 890GB, auto-resumed. <strong>$2,136/year recovered</strong>. Full audit trail.</div>
                 </div>
             </div>
         </div>
@@ -569,7 +570,7 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
                 <div class="feature-card" style="border-top:3px solid var(--green);">
                     <div class="icon">✅</div>
                     <h3>Official Microsoft APIs Only</h3>
-                    <p>Built entirely on <a href="https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositemanageversionpolicyjob" target="_blank" rel="noopener"><code>New-SPOSiteManageVersionPolicyJob</code></a> and <a href="https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositefileversionbatchdeletejob" target="_blank" rel="noopener"><code>New-SPOSiteFileVersionBatchDeleteJob</code></a> — the same APIs Microsoft supports for tenant-scale operations. No unsupported methods.</p>
+                    <p>Built entirely on the official SharePoint Online Management Shell cmdlets: <a href="https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositemanageversionpolicyjob" target="_blank" rel="noopener">VersionPolicyJob</a> and <a href="https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositefileversionbatchdeletejob" target="_blank" rel="noopener">BatchDeleteJob</a>. Same APIs Microsoft supports for tenant-scale operations. No unsupported methods.</p>
                 </div>
                 <div class="feature-card" style="border-top:3px solid var(--orange);">
                     <div class="icon">🏛️</div>
@@ -615,6 +616,31 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
                         <li>Complete audit trail for compliance</li>
                     </ul>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- From Cost Reduction to Strategic Investment -->
+    <section style="padding:3.5rem 0;background:#fff;">
+        <div class="container" style="max-width:860px;margin:0 auto;">
+            <h2 class="section-title">From Cost Reduction to Strategic Investment</h2>
+            <p class="section-subtitle">Storage savings aren't just about reducing your bill — they're budget you can reallocate</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:2rem;margin-top:2rem;">
+                <div style="padding:1.5rem;background:var(--gray-100);border-radius:12px;border-left:4px solid #e74c3c;">
+                    <h4 style="color:#c0392b;margin-bottom:0.5rem;">Before</h4>
+                    <p style="color:#555;font-size:0.95rem;line-height:1.6;">Paying Microsoft $0.20/GB/month for excess file versions that provide zero business value. Budget consumed by storage waste.</p>
+                </div>
+                <div style="padding:1.5rem;background:var(--gray-100);border-radius:12px;border-left:4px solid var(--green);">
+                    <h4 style="color:var(--green);margin-bottom:0.5rem;">After</h4>
+                    <p style="color:#555;font-size:0.95rem;line-height:1.6;">Recovered budget reinvested into strategic initiatives: Microsoft Copilot licenses, AI-powered productivity, security tools, or user training.</p>
+                </div>
+            </div>
+            <div style="margin-top:2rem;padding:1.5rem;background:linear-gradient(135deg,#f8f9fa,#e3f2fd);border-radius:12px;text-align:center;">
+                <p style="font-size:1.05rem;color:#1a1a2e;margin-bottom:0.5rem;"><strong>Example:</strong> A tenant paying $12,000/year in excess storage charges could instead fund <strong>33 Microsoft 365 Copilot licenses</strong></p>
+                <p style="font-size:0.85rem;color:#666;">Based on $0.20/GB/month storage cost vs. ~$30/user/month Copilot licensing. Actual pricing varies by agreement.</p>
+            </div>
+            <div style="margin-top:1.5rem;text-align:center;">
+                <p style="color:#444;font-size:0.95rem;line-height:1.6;">Clean, well-governed content also improves Copilot output quality — fewer outdated versions means more relevant AI-generated results across your organization.</p>
             </div>
         </div>
     </section>
@@ -683,9 +709,9 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
 
     <!-- Final CTA -->
     <div class="final-cta">
-        <h2>See How Much Storage You Can Recover — Before Making Any Changes</h2>
-        <p>Run a non-destructive assessment in under 5 minutes. SyncOnly mode applies policies without deleting a single version. Review the Dashboard, then decide.</p>
-        <a href="https://github.com/ivanoliv/SPOVersionManagement/releases" class="btn btn-primary">Download Free — Start Assessment Now</a>
+        <h2>See How Much Budget You Can Recover — Before Making Any Changes</h2>
+        <p>Run a non-destructive assessment in under 5 minutes. SyncOnly mode applies policies without deleting a single version. Review the Dashboard, quantify savings in USD, then decide.</p>
+        <a href="https://github.com/ivanoliv/SPOVersionManagement/releases" class="btn btn-primary">Download Free — Identify Reclaimable Budget Now</a>
         <p style="margin-top:1.5rem;font-size:0.9rem;opacity:0.8;">Official Microsoft APIs • No direct data manipulation • Recycle bin recovery (93 days) • MIT License • No vendor lock-in</p>
     </div>
 
@@ -703,9 +729,15 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
             const gb = tb * 1024;
             const annual = gb * 0.20 * 12;
             const monthly = gb * 0.20;
+            const copilotLicenses = Math.floor(annual / 360);
             document.getElementById('calc-result').innerHTML =
                 '$' + annual.toLocaleString(undefined, {maximumFractionDigits:0}) + ' / year' +
                 '<small>$' + monthly.toLocaleString(undefined, {maximumFractionDigits:0}) + '/month you could stop paying Microsoft for extra storage</small>';
+            document.getElementById('calc-reinvest').innerHTML = annual > 0 ?
+                '<strong>Reinvestment potential:</strong> $' + annual.toLocaleString(undefined, {maximumFractionDigits:0}) +
+                '/year recovered → equivalent to ~' + copilotLicenses + ' Microsoft 365 Copilot licenses' +
+                ' <span style="opacity:0.7;font-size:0.82rem;">(at ~$30/user/month)</span>' +
+                '<br><span style="color:#555;">Shift budget from storage waste to productivity and AI initiatives.</span>' : '';
         }
         calcSavings();
 
