@@ -57,10 +57,5 @@ layout: null
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
-  <url>
-    <loc>https://ivanoliv.github.io/SPOVersionManagement/WINDOWS_APP</loc>
-    <lastmod>2026-04-30</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
+</urlset>
 </urlset>
