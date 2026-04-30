@@ -3,6 +3,7 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
 url: "https://ivanoliv.github.io"
 baseurl: "/SPOVersionManagement"
 author: "Ivan Oliveira"
+permalink: pretty
 
 plugins:
   - jekyll-seo-tag
