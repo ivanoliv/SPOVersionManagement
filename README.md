@@ -749,7 +749,25 @@ Telemetry can be disabled in `config\AppPaths.json` by setting `"TelemetryEnable
 
 ## 📝 Changelog
 
-### v2.0.0 (2026-02-05) - Current
+> Full changelog with all versions: **[CHANGELOG.md](CHANGELOG.md)**
+
+### v2.2.0.0 (2026-04-29) - Current
+**Release: Windows GUI Orchestration, Telemetry & Documentation Overhaul**
+
+> 🤖 *AI Summary:* This release transforms the project from a PowerShell-only automation tool into a full-stack management platform. A native Windows Forms application provides visual orchestration of all version management operations — policy sync, batch deletion, retention handling, and real-time monitoring — without requiring any PowerShell knowledge. Anonymous opt-in telemetry enables worldwide savings tracking across all participating tenants.
+
+#### Highlights
+- **Windows Forms GUI** — Full visual orchestration with dark-themed modern UI (Home, Execution, Configuration, History, Archive panels)
+- **Worldwide Savings Telemetry** — Anonymous opt-in backend tracking collective storage impact across tenants
+- **Directory Reorganization** — `config/`, `web/`, `Logs/` separation for cleaner deployments
+- **GitHub Pages & Releases** — Automated release workflow, Jekyll site, release badge
+- **Documentation Overhaul** — Complete README rewrite, Windows app guide, updated Entra ID setup, disclaimer + author sections
+
+See [CHANGELOG.md](CHANGELOG.md) for full details.
+
+---
+
+### v2.0.0 (2026-02-05)
 **Major Release: Dashboard Accuracy & External Job Sync**
 
 #### New Features
