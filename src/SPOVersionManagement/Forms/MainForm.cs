@@ -137,9 +137,9 @@ namespace SPOVersionManagement.Forms
                 cfg.TelemetryConsentRequestedAt = DateTime.UtcNow.ToString("o");
                 cfg.TelemetryEnabled = choice == DialogResult.Yes;
 
-                if (cfg.TelemetryEnabled && string.IsNullOrWhiteSpace(cfg.TelemetrySalt))
+                if (cfg.TelemetryEnabled && string.IsNullOrWhiteSpace(cfg.TelemetrySalt) && cfg.EntraIdApp != null)
                 {
-                    cfg.TelemetrySalt = TelemetryService.GenerateMachineSalt();
+                    cfg.TelemetrySalt = TelemetryService.GenerateTenantSalt(cfg.EntraIdApp.TenantId);
                 }
 
                 _configService.SaveAppConfig();

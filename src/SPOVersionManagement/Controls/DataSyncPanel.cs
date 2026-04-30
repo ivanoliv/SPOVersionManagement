@@ -322,8 +322,8 @@ namespace SPOVersionManagement.Controls
                     step++;
                     _lblStatus.Text = $"Step {step}/{total}: Archive Analysis...";
                     _progressBar.Value = step * 100 / total;
-                    AppendConsole($"\n=== Step {step}/{total}: Export Archive Analysis ===", AppTheme.AccentCyan);
-                    string script = $"& '{Path.Combine(rootPath, "Export-ArchiveAnalysis.ps1")}'";
+                    AppendConsole($"\n=== Step {step}/{total}: Import SAM Inactive Sites ===", AppTheme.AccentCyan);
+                    string script = $"& '{Path.Combine(rootPath, "Import-SamInactiveSites.ps1")}'";
                     await _psHost.RunScriptAsync(script, cancellationToken: _cts.Token);
                 }
 

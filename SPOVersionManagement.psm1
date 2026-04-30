@@ -4911,22 +4911,77 @@ function ConvertTo-SiteDataObject {
 #endregion
 
 #region Telemetry Functions
+
+function Get-TelemetryTenantHash {
+    <#
+    .SYNOPSIS
+        Generates a deterministic anonymous tenant hash from TenantId.
+        Same tenant always produces same hash regardless of machine.
+    #>
+    [CmdletBinding()]
+    param()
+
+    $tenantId = $script:AppPaths.EntraIdApp.TenantId
+    if ([string]::IsNullOrWhiteSpace($tenantId)) { return 'anonymous' }
+
+    # Salt derived from tenantId itself — machine-independent
+    $input = "$($tenantId.ToLower().Trim())|spo-vm-telemetry"
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($input)
+    $hash = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
+    return [BitConverter]::ToString($hash).Replace('-','').Substring(0,32).ToLower()
+}
+
+function Get-HashedWorkItemId {
+    <#
+    .SYNOPSIS
+        Hashes a WorkItemId (GUID or synthetic key) so no raw identifiers are sent.
+        Same WorkItemId always produces same hash — used for deduplication.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$WorkItemId)
+
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($WorkItemId.ToLower().Trim())
+    $hash = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
+    return [BitConverter]::ToString($hash).Replace('-','').Substring(0,32).ToLower()
+}
+
+function Get-HashedSiteUrl {
+    <#
+    .SYNOPSIS
+        Hashes a site URL so no raw URLs are sent. Same URL always produces same hash.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$SiteUrl)
+
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($SiteUrl.ToLower().Trim())
+    $hash = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
+    return [BitConverter]::ToString($hash).Replace('-','').Substring(0,16).ToLower()
+}
+
 function Send-SPOTelemetry {
     <#
     .SYNOPSIS
-        Sends anonymous session telemetry to the WW savings backend
+        Sends anonymous telemetry for a single completed site job (BatchDelete only).
+        All identifiers (WorkItemId, SiteUrl) are hashed before sending.
+        Backend deduplicates on WorkItemId hash — safe to re-send.
+    .PARAMETER WorkItemId
+        The SPO WorkItemId (GUID) or synthetic key for the job
+    .PARAMETER SiteUrl
+        The SharePoint site URL that was processed
+    .PARAMETER JobType
+        SyncListPolicy or BatchDelete
     .PARAMETER StorageFreedBytes
-        Total storage freed in this session (bytes)
+        Storage freed by this job (bytes)
     .PARAMETER VersionsDeleted
-        Total versions deleted in this session
-    .PARAMETER SitesProcessed
-        Number of sites processed in this session
+        Versions deleted by this job
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)][long]$StorageFreedBytes,
-        [Parameter(Mandatory)][long]$VersionsDeleted,
-        [Parameter(Mandatory)][int]$SitesProcessed
+        [Parameter(Mandatory)][string]$WorkItemId,
+        [Parameter(Mandatory)][string]$SiteUrl,
+        [Parameter(Mandatory)][string]$JobType,
+        [Parameter()][long]$StorageFreedBytes = 0,
+        [Parameter()][long]$VersionsDeleted = 0
     )
 
     if (-not $script:AppPaths) { return }
@@ -4934,28 +4989,109 @@ function Send-SPOTelemetry {
     if ([string]::IsNullOrWhiteSpace($script:AppPaths.TelemetryEndpoint)) { return }
 
     try {
-        # Generate anonymous tenant hash
-        $tenantId = $script:AppPaths.EntraIdApp.TenantId
-        $salt = if ($script:AppPaths.TelemetrySalt) { $script:AppPaths.TelemetrySalt } else { 'spo-vm-default' }
-        $bytes = [System.Text.Encoding]::UTF8.GetBytes("$tenantId|$salt")
-        $hash = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
-        $tenantHash = [BitConverter]::ToString($hash).Replace('-','').Substring(0,16).ToLower()
-
         $payload = @{
-            tenantHash       = $tenantHash
+            tenantHash       = Get-TelemetryTenantHash
             appVersion       = $script:AppPaths.AppVersion
+            workItemId       = Get-HashedWorkItemId -WorkItemId $WorkItemId
+            siteUrl          = Get-HashedSiteUrl -SiteUrl $SiteUrl
+            jobType          = $JobType
             storageFreedBytes = $StorageFreedBytes
             versionsDeleted  = $VersionsDeleted
-            sitesProcessed   = $SitesProcessed
+            sitesProcessed   = 1
             timestamp        = (Get-Date).ToString('o')
         } | ConvertTo-Json -Compress
 
         $uri = "$($script:AppPaths.TelemetryEndpoint.TrimEnd('/'))/api/telemetry"
         $null = Invoke-RestMethod -Uri $uri -Method Post -Body $payload -ContentType 'application/json' -TimeoutSec 10 -ErrorAction SilentlyContinue
-        Write-Verbose "[TELEMETRY] Session stats sent successfully"
+        Write-Verbose "[TELEMETRY] Site completion sent: $JobType"
     }
     catch {
         Write-Verbose "[TELEMETRY] Failed to send (non-blocking): $_"
+    }
+}
+
+function Send-SPOTelemetryBatch {
+    <#
+    .SYNOPSIS
+        Sends a batch of historical BatchDelete completions in a single request.
+        Scans SiteExecutionHistory.json and sends all completed BatchDelete jobs.
+        Backend deduplicates on WorkItemId hash — safe to re-run on any machine.
+    .DESCRIPTION
+        On first run (or after reinstall), this function reads all historical executions from
+        SiteExecutionHistory.json and sends BatchDelete completions in batches of up to 500 items.
+        The backend rejects duplicates automatically, so no local tracking is needed.
+    #>
+    [CmdletBinding()]
+    param()
+
+    if (-not $script:AppPaths) { return }
+    if (-not $script:AppPaths.TelemetryEnabled) { return }
+    if ([string]::IsNullOrWhiteSpace($script:AppPaths.TelemetryEndpoint)) { return }
+
+    $historyFile = Join-Path $script:AppPaths.LogPath 'SiteExecutionHistory.json'
+    if (-not (Test-Path $historyFile)) {
+        Write-Verbose "[TELEMETRY] No SiteExecutionHistory.json found - nothing to sync"
+        return
+    }
+
+    try {
+        $history = Get-Content $historyFile -Raw | ConvertFrom-Json
+        if (-not $history.Sites) { return }
+
+        $tenantHash = Get-TelemetryTenantHash
+        $appVersion = $script:AppPaths.AppVersion
+        $items = @()
+
+        foreach ($siteProp in $history.Sites.PSObject.Properties) {
+            $siteUrl = $siteProp.Name
+            $siteHashedUrl = Get-HashedSiteUrl -SiteUrl $siteUrl
+
+            foreach ($exec in $siteProp.Value.Executions) {
+                if ($exec.Status -ne 'CompleteSuccess') { continue }
+                if ($exec.JobType -ne 'BatchDelete') { continue }
+                if ([string]::IsNullOrWhiteSpace($exec.WorkItemId)) { continue }
+
+                $items += @{
+                    tenantHash        = $tenantHash
+                    appVersion        = $appVersion
+                    workItemId        = Get-HashedWorkItemId -WorkItemId $exec.WorkItemId
+                    siteUrl           = $siteHashedUrl
+                    jobType           = $exec.JobType
+                    storageFreedBytes = [long]($exec.StorageReleasedBytes)
+                    versionsDeleted   = [long]($exec.VersionsDeleted)
+                    sitesProcessed    = 1
+                    timestamp         = $exec.ExecutedAt
+                }
+            }
+        }
+
+        if ($items.Count -eq 0) {
+            Write-Verbose "[TELEMETRY] No completed BatchDelete executions to sync"
+            return
+        }
+
+        Write-Host "  Syncing $($items.Count) historical executions to telemetry backend..." -ForegroundColor DarkGray
+
+        # Send in batches of 500
+        $batchSize = 500
+        $sent = 0
+        $duplicates = 0
+
+        for ($i = 0; $i -lt $items.Count; $i += $batchSize) {
+            $chunk = $items[$i..([Math]::Min($i + $batchSize - 1, $items.Count - 1))]
+            $body = @{ items = $chunk } | ConvertTo-Json -Depth 4 -Compress
+
+            $uri = "$($script:AppPaths.TelemetryEndpoint.TrimEnd('/'))/api/telemetry/batch"
+            $response = Invoke-RestMethod -Uri $uri -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 30 -ErrorAction Stop
+
+            if ($response.accepted) { $sent += $response.accepted }
+            if ($response.duplicates) { $duplicates += $response.duplicates }
+        }
+
+        Write-Host "  Telemetry sync complete: $sent new, $duplicates already recorded" -ForegroundColor DarkGray
+    }
+    catch {
+        Write-Verbose "[TELEMETRY] Batch sync failed (non-blocking): $_"
     }
 }
 
@@ -5012,5 +5148,6 @@ Export-ModuleMember -Function @(
     'Sync-ExternalJobResults',
     'Save-TenantStorageSnapshot',
     'Send-SPOTelemetry',
+    'Send-SPOTelemetryBatch',
     'Get-SPOGlobalStats'
 )

@@ -126,6 +126,9 @@ namespace SPOVersionManagement.Models
     {
         public string TenantHash { get; set; }
         public string AppVersion { get; set; }
+        public string WorkItemId { get; set; }
+        public string SiteUrl { get; set; }
+        public string JobType { get; set; }
         public long StorageFreedBytes { get; set; }
         public long VersionsDeleted { get; set; }
         public int SitesProcessed { get; set; }

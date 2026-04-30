@@ -1,8 +1,6 @@
 using System;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Net.NetworkInformation;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -39,50 +37,22 @@ namespace SPOVersionManagement.Services
         }
 
         /// <summary>
-        /// Generates a machine-derived salt from hardware identity (immutable per machine).
-        /// Uses machine name + first active NIC MAC address to create deterministic, non-guessable salt.
-        /// Cannot be changed without hardware modification.
+        /// Generates a deterministic salt derived from the TenantId itself.
+        /// This ensures the same tenant always produces the same hash regardless of which machine runs the tool.
+        /// Important: always run from a consistent environment so the tenant hash remains stable for deduplication.
         /// </summary>
-        public static string GenerateMachineSalt()
+        public static string GenerateTenantSalt(string tenantId)
         {
-            try
+            if (string.IsNullOrWhiteSpace(tenantId))
+                return "spo-vm-default-salt";
+
+            using (var sha = SHA256.Create())
             {
-                // Combine machine name + first active network interface MAC
-                var machineName = Environment.MachineName ?? "unknown";
-                var macAddress = "00-00-00-00-00-00";
-
-                var activeNic = NetworkInterface.GetAllNetworkInterfaces()
-                    .FirstOrDefault(n => n.OperationalStatus == OperationalStatus.Up && 
-                                         n.NetworkInterfaceType != NetworkInterfaceType.Loopback);
-                if (activeNic != null)
-                    macAddress = activeNic.GetPhysicalAddress().ToString();
-
-                string machineId = $"{machineName}|{macAddress}";
-
-                // Hash machine identity to get deterministic salt
-                using (var sha = SHA256.Create())
-                {
-                    byte[] bytes = Encoding.UTF8.GetBytes(machineId);
-                    byte[] hash = sha.ComputeHash(bytes);
-                    return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant().Substring(0, 32);
-                }
-            }
-            catch
-            {
-                // Fallback: use machine name if network access fails
-                try
-                {
-                    using (var sha = SHA256.Create())
-                    {
-                        byte[] bytes = Encoding.UTF8.GetBytes(Environment.MachineName ?? "default");
-                        byte[] hash = sha.ComputeHash(bytes);
-                        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant().Substring(0, 32);
-                    }
-                }
-                catch
-                {
-                    return "default_machine_salt";
-                }
+                // Deterministic: same tenantId always produces same salt
+                string input = tenantId.ToLowerInvariant().Trim() + "|spo-vm-telemetry";
+                byte[] bytes = Encoding.UTF8.GetBytes(input);
+                byte[] hash = sha.ComputeHash(bytes);
+                return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant().Substring(0, 32);
             }
         }
 
@@ -103,10 +73,43 @@ namespace SPOVersionManagement.Services
         }
 
         /// <summary>
-        /// Sends anonymous session telemetry after a management session completes.
-        /// Fire-and-forget — never blocks the UI, failures are silently ignored.
+        /// Hashes a WorkItemId (GUID or synthetic key) so no raw identifiers are sent.
+        /// Same WorkItemId always produces same hash — used for deduplication on the backend.
         /// </summary>
-        public async Task SendSessionStatsAsync(long storageFreedBytes, long versionsDeleted, int sitesProcessed)
+        public static string HashWorkItemId(string workItemId)
+        {
+            if (string.IsNullOrWhiteSpace(workItemId)) return "";
+
+            using (var sha = SHA256.Create())
+            {
+                byte[] bytes = Encoding.UTF8.GetBytes(workItemId.ToLowerInvariant().Trim());
+                byte[] hash = sha.ComputeHash(bytes);
+                return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant().Substring(0, 32);
+            }
+        }
+
+        /// <summary>
+        /// Hashes a site URL so no raw URLs are sent. Same URL always produces same hash.
+        /// </summary>
+        public static string HashSiteUrl(string siteUrl)
+        {
+            if (string.IsNullOrWhiteSpace(siteUrl)) return "";
+
+            using (var sha = SHA256.Create())
+            {
+                byte[] bytes = Encoding.UTF8.GetBytes(siteUrl.ToLowerInvariant().Trim());
+                byte[] hash = sha.ComputeHash(bytes);
+                return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant().Substring(0, 16);
+            }
+        }
+
+        /// <summary>
+        /// Sends telemetry for a single completed site job.
+        /// WorkItemId and SiteUrl are hashed before sending — no raw GUIDs or URLs leave the machine.
+        /// Fire-and-forget — never blocks the UI.
+        /// </summary>
+        public async Task SendSiteCompletionAsync(string workItemId, string siteUrl, string jobType, 
+            long storageFreedBytes, long versionsDeleted)
         {
             if (string.IsNullOrEmpty(_endpoint)) return;
 
@@ -116,9 +119,12 @@ namespace SPOVersionManagement.Services
                 {
                     TenantHash = _tenantHash,
                     AppVersion = _appVersion,
+                    WorkItemId = HashWorkItemId(workItemId),
+                    SiteUrl = HashSiteUrl(siteUrl),
+                    JobType = jobType ?? "",
                     StorageFreedBytes = storageFreedBytes,
                     VersionsDeleted = versionsDeleted,
-                    SitesProcessed = sitesProcessed,
+                    SitesProcessed = 1,
                     Timestamp = DateTime.UtcNow.ToString("o")
                 };
 
@@ -131,6 +137,50 @@ namespace SPOVersionManagement.Services
             {
                 // Telemetry is best-effort — never throw
             }
+        }
+
+        /// <summary>
+        /// Sends a batch of historical site completions in a single request.
+        /// Used on first run to sync existing execution history without sending duplicates.
+        /// All identifiers are hashed before sending.
+        /// </summary>
+        public async Task SendBatchAsync(TelemetryPayload[] items)
+        {
+            if (string.IsNullOrEmpty(_endpoint) || items == null || items.Length == 0) return;
+
+            try
+            {
+                var batch = new { items };
+                string json = JsonConvert.SerializeObject(batch);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                await _http.PostAsync(_endpoint + "/api/telemetry/batch", content).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Telemetry is best-effort — never throw
+            }
+        }
+
+        /// <summary>
+        /// Builds a TelemetryPayload for a completed job (all fields hashed).
+        /// Use with SendBatchAsync for bulk historical sync.
+        /// </summary>
+        public TelemetryPayload BuildPayload(string workItemId, string siteUrl, string jobType,
+            long storageFreedBytes, long versionsDeleted, string timestamp = null)
+        {
+            return new TelemetryPayload
+            {
+                TenantHash = _tenantHash,
+                AppVersion = _appVersion,
+                WorkItemId = HashWorkItemId(workItemId),
+                SiteUrl = HashSiteUrl(siteUrl),
+                JobType = jobType ?? "",
+                StorageFreedBytes = storageFreedBytes,
+                VersionsDeleted = versionsDeleted,
+                SitesProcessed = 1,
+                Timestamp = timestamp ?? DateTime.UtcNow.ToString("o")
+            };
         }
 
         /// <summary>
