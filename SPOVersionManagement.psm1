@@ -4910,6 +4910,80 @@ function ConvertTo-SiteDataObject {
 }
 #endregion
 
+#region Telemetry Functions
+function Send-SPOTelemetry {
+    <#
+    .SYNOPSIS
+        Sends anonymous session telemetry to the WW savings backend
+    .PARAMETER StorageFreedBytes
+        Total storage freed in this session (bytes)
+    .PARAMETER VersionsDeleted
+        Total versions deleted in this session
+    .PARAMETER SitesProcessed
+        Number of sites processed in this session
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][long]$StorageFreedBytes,
+        [Parameter(Mandatory)][long]$VersionsDeleted,
+        [Parameter(Mandatory)][int]$SitesProcessed
+    )
+
+    if (-not $script:AppPaths) { return }
+    if (-not $script:AppPaths.TelemetryEnabled) { return }
+    if ([string]::IsNullOrWhiteSpace($script:AppPaths.TelemetryEndpoint)) { return }
+
+    try {
+        # Generate anonymous tenant hash
+        $tenantId = $script:AppPaths.EntraIdApp.TenantId
+        $salt = if ($script:AppPaths.TelemetrySalt) { $script:AppPaths.TelemetrySalt } else { 'spo-vm-default' }
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes("$tenantId|$salt")
+        $hash = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
+        $tenantHash = [BitConverter]::ToString($hash).Replace('-','').Substring(0,16).ToLower()
+
+        $payload = @{
+            tenantHash       = $tenantHash
+            appVersion       = $script:AppPaths.AppVersion
+            storageFreedBytes = $StorageFreedBytes
+            versionsDeleted  = $VersionsDeleted
+            sitesProcessed   = $SitesProcessed
+            timestamp        = (Get-Date).ToString('o')
+        } | ConvertTo-Json -Compress
+
+        $uri = "$($script:AppPaths.TelemetryEndpoint.TrimEnd('/'))/api/telemetry"
+        $null = Invoke-RestMethod -Uri $uri -Method Post -Body $payload -ContentType 'application/json' -TimeoutSec 10 -ErrorAction SilentlyContinue
+        Write-Verbose "[TELEMETRY] Session stats sent successfully"
+    }
+    catch {
+        Write-Verbose "[TELEMETRY] Failed to send (non-blocking): $_"
+    }
+}
+
+function Get-SPOGlobalStats {
+    <#
+    .SYNOPSIS
+        Retrieves worldwide aggregate stats from the telemetry backend
+    .OUTPUTS
+        PSCustomObject with TotalStorageFreedBytes, TotalVersionsDeleted, TotalSessions
+    #>
+    [CmdletBinding()]
+    param()
+
+    if (-not $script:AppPaths) { return $null }
+    if ([string]::IsNullOrWhiteSpace($script:AppPaths.TelemetryEndpoint)) { return $null }
+
+    try {
+        $uri = "$($script:AppPaths.TelemetryEndpoint.TrimEnd('/'))/api/stats"
+        $result = Invoke-RestMethod -Uri $uri -Method Get -TimeoutSec 10 -ErrorAction Stop
+        return $result
+    }
+    catch {
+        Write-Verbose "[TELEMETRY] Failed to retrieve global stats: $_"
+        return $null
+    }
+}
+#endregion
+
 # Export module members
 Export-ModuleMember -Function @(
     'Connect-SPOVersionManagement',
@@ -4936,5 +5010,7 @@ Export-ModuleMember -Function @(
     'Test-ShouldProcessSite',
     'Sync-PendingJobStatus',
     'Sync-ExternalJobResults',
-    'Save-TenantStorageSnapshot'
+    'Save-TenantStorageSnapshot',
+    'Send-SPOTelemetry',
+    'Get-SPOGlobalStats'
 )

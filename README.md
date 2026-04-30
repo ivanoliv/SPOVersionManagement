@@ -5,6 +5,9 @@
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://docs.microsoft.com/powershell/)
 [![SharePoint Online](https://img.shields.io/badge/SharePoint-Online-green.svg)](https://www.microsoft.com/microsoft-365/sharepoint/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/ivanoliv/SPOVersionManagement)](https://github.com/ivanoliv/SPOVersionManagement/releases)
+
+> **⚠️ Disclaimer:** This is an independent, community-driven project. It is **not** affiliated with, endorsed by, or supported by Microsoft Corporation. Microsoft provides no guarantees, warranties, or support of any kind for this tool. Use at your own risk. See [Disclaimer](#-disclaimer) for full details.
 
 ---
 
@@ -112,6 +115,40 @@ The tool handles the full lifecycle: discovery → policy enforcement → versio
 # 5. Monitor progress
 .\Start-Dashboard.ps1
 ```
+
+---
+
+## Screenshots
+
+### HTML Dashboard — Execution Monitor
+<!-- Replace with actual screenshot -->
+![Dashboard Execution](docs/screenshots/dashboard-execution.png)
+
+### HTML Dashboard — Storage Analytics
+<!-- Replace with actual screenshot -->
+![Dashboard Storage](docs/screenshots/dashboard-storage.png)
+
+### HTML Dashboard — Settings
+<!-- Replace with actual screenshot -->
+![Dashboard Settings](docs/screenshots/dashboard-settings.png)
+
+### Windows GUI App — Home
+<!-- Replace with actual screenshot -->
+![GUI App Home](docs/screenshots/gui-home.png)
+
+### Windows GUI App — Configuration
+<!-- Replace with actual screenshot -->
+![GUI App Configuration](docs/screenshots/gui-configuration.png)
+
+### Windows GUI App — Execution
+<!-- Replace with actual screenshot -->
+![GUI App Execution](docs/screenshots/gui-execution.png)
+
+### PowerShell Console — Running
+<!-- Replace with actual screenshot -->
+![PowerShell Console](docs/screenshots/powershell-running.png)
+
+> 📸 To add screenshots, place PNG files in `docs/screenshots/` matching the filenames above.
 
 ---
 
@@ -823,3 +860,34 @@ Telemetry can be disabled in `config\AppPaths.json` by setting `"TelemetryEnable
 - SyncListPolicy and BatchDelete phases
 - Basic console output
 - Version limit configuration
+
+---
+
+## ⚠️ Disclaimer
+
+**THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.**
+
+- This project is **not affiliated with, endorsed by, or supported by Microsoft Corporation**.
+- Microsoft provides **no guarantees, warranties, or support** of any kind for this tool.
+- The author provides **no guarantee of continuous improvement**, regular updates, or SLA-based support.
+- Fixes and improvements are made on a **best-effort, availability-permitting** basis.
+- Use this tool **at your own risk**. Always test in a non-production environment first.
+- The author is **not responsible** for any data loss, service disruption, or unintended consequences resulting from the use of this tool.
+- This tool uses **official SharePoint Online Management Shell APIs** — however, API behavior may change without notice from Microsoft.
+- Before running version deletions, ensure you understand the implications: **deleted file versions cannot be recovered** after the recycle bin retention period expires.
+
+By using this software, you acknowledge and accept these terms.
+
+---
+
+## 👤 Author
+
+**Ivan Oliveira** — Microsoft 365 & SharePoint specialist focused on storage optimization, governance, and tenant-scale automation.
+
+- GitHub: [@ivanoliv](https://github.com/ivanoliv)
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
