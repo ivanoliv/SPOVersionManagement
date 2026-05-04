@@ -369,6 +369,6 @@ Get-SPOSiteFileVersionBatchDeleteJobProgress -Identity "https://contoso.sharepoi
 
 ## Related Guides
 
-- [Complete Guide to SharePoint Version Management]({{ '/guides/sharepoint-version-management' | relative_url }})
-- [How to Reduce SharePoint Storage Costs]({{ '/guides/reduce-sharepoint-storage-costs' | relative_url }})
-- [SharePoint Governance Best Practices]({{ '/guides/sharepoint-governance-best-practices' | relative_url }})
+- [Complete Guide to SharePoint Version Management]({{ '/guides/sharepoint-version-management/' | relative_url }})
+- [How to Reduce SharePoint Storage Costs]({{ '/guides/reduce-sharepoint-storage-costs/' | relative_url }})
+- [SharePoint Governance Best Practices]({{ '/guides/sharepoint-governance-best-practices/' | relative_url }})

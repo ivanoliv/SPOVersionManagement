@@ -72,6 +72,12 @@ namespace SPOVersionManagement.Models
         public string Data { get; set; }
         [JsonProperty("Backup")]
         public string Backup { get; set; }
+        [JsonProperty("Config")]
+        public string Config { get; set; }
+        [JsonProperty("Web")]
+        public string Web { get; set; }
+        [JsonProperty("App")]
+        public string App { get; set; }
     }
 
     public class FilePaths

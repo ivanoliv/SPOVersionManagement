@@ -279,6 +279,31 @@ namespace SPOVersionManagement.Controls
 
             // Z-order: console fills behind the grid and label
             _searchConsole.SendToBack();
+
+            LoadFileArchiveSettings();
+            WireFileArchiveAutoSave();
+        }
+
+        private void LoadFileArchiveSettings()
+        {
+            var s = _config.LoadGuiSettings();
+            _chkSummaryOnly.Checked = s.FileArchiveSummaryOnly;
+            int idx = _cmbRegion.Items.IndexOf(s.FileArchiveRegion);
+            if (idx >= 0) _cmbRegion.SelectedIndex = idx;
+        }
+
+        private void WireFileArchiveAutoSave()
+        {
+            _chkSummaryOnly.CheckedChanged += (s, e) => SaveFileArchiveSettings();
+            _cmbRegion.SelectedIndexChanged += (s, e) => SaveFileArchiveSettings();
+        }
+
+        private void SaveFileArchiveSettings()
+        {
+            var s = _config.LoadGuiSettings();
+            s.FileArchiveSummaryOnly = _chkSummaryOnly.Checked;
+            s.FileArchiveRegion = _cmbRegion.SelectedItem?.ToString() ?? "BRA";
+            _config.SaveGuiSettings(s);
         }
 
         private void RebuildGroups()

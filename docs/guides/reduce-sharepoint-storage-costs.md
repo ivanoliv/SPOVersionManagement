@@ -264,6 +264,6 @@ Additionally, reducing excess versions improves **content quality for AI tools**
 
 ## Related Guides
 
-- [Complete Guide to SharePoint Version Management]({{ '/guides/sharepoint-version-management' | relative_url }})
-- [PowerShell Automation for Version Cleanup]({{ '/guides/powershell-sharepoint-version-cleanup' | relative_url }})
-- [SharePoint Governance Best Practices]({{ '/guides/sharepoint-governance-best-practices' | relative_url }})
+- [Complete Guide to SharePoint Version Management]({{ '/guides/sharepoint-version-management/' | relative_url }})
+- [PowerShell Automation for Version Cleanup]({{ '/guides/powershell-sharepoint-version-cleanup/' | relative_url }})
+- [SharePoint Governance Best Practices]({{ '/guides/sharepoint-governance-best-practices/' | relative_url }})

@@ -24,17 +24,11 @@ namespace SPOVersionManagement.Controls
         private bool _initialized;
         private CancellationTokenSource _cts;
 
-        // Auth mode
-        private RadioButton _rbInteractive, _rbAppCredentials;
-        private TextBox _txtAdminUrl;
-        private TextBox _txtTenantId, _txtClientId, _txtCertThumb;
-        private Panel _appCredPanel;
-
         // Sync options
         private CheckBox _chkExportAllSites, _chkExportGraphReport, _chkExportArchiveAnalysis, _chkExportTenantStorage;
 
         // Execution
-        private FlatButton _btnConnect, _btnSync, _btnAbort;
+        private FlatButton _btnSync, _btnAbort;
         private TextBox _console;
         private ProgressBar _progressBar;
         private Label _lblStatus;
@@ -44,14 +38,19 @@ namespace SPOVersionManagement.Controls
         private Label _lblTelemetryStatus;
         private ProgressBar _telemetryProgress;
 
+        // External job sync
+        private NumericUpDown _nudLookBackDays;
+        private FlatButton _btnSyncExternalJobs;
+        private Label _lblExternalJobStatus;
+
         public event EventHandler<string> StatusMessage;
 
         public DataSyncPanel()
         {
             Dock = DockStyle.Fill;
             BackColor = Color.Transparent;
-            AutoScroll = true;
-            Padding = new Padding(0, 0, 0, 20);
+            AutoScroll = false;
+            Padding = new Padding(0, 0, 0, 0);
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint |
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             DoubleBuffered = true;
@@ -64,21 +63,9 @@ namespace SPOVersionManagement.Controls
             _config = config;
             _psHost = psHost;
             BuildLayout();
-            LoadEntraIdDefaults();
         }
 
         protected override void OnPaint(PaintEventArgs e) => AppTheme.PaintGradientBackground(e.Graphics, ClientRectangle);
-
-        private void LoadEntraIdDefaults()
-        {
-            var entra = _config.AppConfig.EntraIdApp;
-            if (entra != null)
-            {
-                _txtTenantId.Text = entra.TenantId ?? "";
-                _txtClientId.Text = entra.ClientId ?? "";
-                _txtCertThumb.Text = entra.CertificateThumbprint ?? "";
-            }
-        }
 
         private void BuildLayout()
         {
@@ -91,64 +78,11 @@ namespace SPOVersionManagement.Controls
             var topBar = new Panel { Location = new Point(0, y), Size = new Size(W, 48), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
             Controls.Add(topBar);
             topBar.Controls.Add(new Label { Text = "Data Synchronization", Font = AppTheme.FontTitle, ForeColor = AppTheme.TextPrimary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(0, 2) });
-            topBar.Controls.Add(new Label { Text = "Connect to SharePoint Online and sync site data, graph reports, and archive analysis.", Font = AppTheme.FontSmall, ForeColor = AppTheme.TextSecondary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(0, 28) });
+            topBar.Controls.Add(new Label { Text = "Sync site data, graph reports, and archive analysis.", Font = AppTheme.FontSmall, ForeColor = AppTheme.TextSecondary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(0, 28) });
             y += 56;
 
-            // ═══ CONNECTION ═══
-            var connCard = new GlassPanel { Location = new Point(0, y), Size = new Size(W, 50), AccentLeft = AppTheme.AccentCyan, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
-            Controls.Add(connCard);
-            CL(connCard, "CONNECTION", AppTheme.AccentCyan, 14, 4);
-            CL(connCard, "Admin URL:", AppTheme.TextSecondary, 14, 24);
-            connCard.Controls[connCard.Controls.Count - 1].Font = AppTheme.FontBody;
-            _txtAdminUrl = new TextBox { Location = new Point(100, 22), Size = new Size(400, 20), ReadOnly = true };
-            AppTheme.StyleTextBox(_txtAdminUrl);
-            _txtAdminUrl.Text = _config.AppConfig.AdminUrl ?? "";
-            connCard.Controls.Add(_txtAdminUrl);
-            connCard.Controls.Add(new Label { Text = "(from Config tab)", Font = new Font("Cascadia Code", 6.5f), ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(508, 26) });
-
-            _btnConnect = new FlatButton { Text = "\u25B6  Connect", Size = new Size(100, 26), Location = new Point(W - 112, 12), Anchor = AnchorStyles.Top | AnchorStyles.Right };
-            _btnConnect.SetAccentColor(AppTheme.AccentGreen);
-            _btnConnect.Click += BtnConnect_Click;
-            connCard.Controls.Add(_btnConnect);
-            y += 50 + cardGap;
-
-            // ═══ ROW: Auth Mode (left) + Sync Options (right) ═══
-            int halfW = (W - cardGap) / 2;
-
-            // Auth Mode
-            var authCard = new GlassPanel { Location = new Point(0, y), Size = new Size(halfW, 180), AccentLeft = AppTheme.AccentPurple, Anchor = AnchorStyles.Top | AnchorStyles.Left };
-            Controls.Add(authCard);
-            CL(authCard, "AUTHENTICATION", AppTheme.AccentPurple, 14, 2);
-
-            _rbInteractive = new RadioButton { Text = "  Interactive Login (browser)", Font = AppTheme.FontSmall, ForeColor = AppTheme.AccentCyan, BackColor = Color.Transparent, AutoSize = true, Location = new Point(14, 24), Checked = true };
-            _rbInteractive.CheckedChanged += (s, e) => ToggleAuthMode();
-            authCard.Controls.Add(_rbInteractive);
-            authCard.Controls.Add(new Label { Text = "Opens browser for MFA/SSO sign-in", Font = new Font("Cascadia Code", 6.5f), ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(34, 42) });
-
-            _rbAppCredentials = new RadioButton { Text = "  App Credentials (EntraID)", Font = AppTheme.FontSmall, ForeColor = AppTheme.AccentCyan, BackColor = Color.Transparent, AutoSize = true, Location = new Point(14, 58) };
-            _rbAppCredentials.CheckedChanged += (s, e) => ToggleAuthMode();
-            authCard.Controls.Add(_rbAppCredentials);
-
-            _appCredPanel = new Panel { Location = new Point(14, 80), Size = new Size(halfW - 28, 90), BackColor = Color.Transparent, Visible = false };
-            authCard.Controls.Add(_appCredPanel);
-
-            PL(_appCredPanel, "Tenant ID:", 0, 2, 90);
-            _txtTenantId = new TextBox { Location = new Point(94, 0), Size = new Size(Math.Max(180, halfW - 140), 20) };
-            AppTheme.StyleTextBox(_txtTenantId);
-            _appCredPanel.Controls.Add(_txtTenantId);
-
-            PL(_appCredPanel, "Client ID:", 0, 28, 90);
-            _txtClientId = new TextBox { Location = new Point(94, 26), Size = new Size(Math.Max(180, halfW - 140), 20) };
-            AppTheme.StyleTextBox(_txtClientId);
-            _appCredPanel.Controls.Add(_txtClientId);
-
-            PL(_appCredPanel, "Cert Thumb:", 0, 54, 90);
-            _txtCertThumb = new TextBox { Location = new Point(94, 52), Size = new Size(Math.Max(180, halfW - 140), 20) };
-            AppTheme.StyleTextBox(_txtCertThumb);
-            _appCredPanel.Controls.Add(_txtCertThumb);
-
-            // Sync Options
-            var syncCard = new GlassPanel { Location = new Point(halfW + cardGap, y), Size = new Size(halfW, 180), AccentLeft = AppTheme.AccentGold, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+            // ═══ SYNC OPTIONS ═══
+            var syncCard = new GlassPanel { Location = new Point(0, y), Size = new Size(W, 180), AccentLeft = AppTheme.AccentGold, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
             Controls.Add(syncCard);
             CL(syncCard, "SYNC OPTIONS", AppTheme.AccentGold, 14, 2);
 
@@ -210,80 +144,108 @@ namespace SPOVersionManagement.Controls
             telemetryCard.Controls.Add(_telemetryProgress);
             y += 80 + cardGap;
 
+            // ═══ EXTERNAL JOB SYNC ═══
+            var extJobCard = new GlassPanel { Location = new Point(0, y), Size = new Size(W, 96), AccentLeft = AppTheme.AccentPurple, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+            Controls.Add(extJobCard);
+            CL(extJobCard, "EXTERNAL JOB SYNC", AppTheme.AccentPurple, 14, 4);
+            extJobCard.Controls.Add(new Label
+            {
+                Text = "Check SharePoint for version management jobs completed outside this tool (other admins, scripts, or scheduled tasks).\nUpdates local execution history so Dashboard and re-execution rules reflect the real state.",
+                Font = AppTheme.FontSmall,
+                ForeColor = AppTheme.TextSecondary,
+                AutoSize = false,
+                Size = new Size(W - 28, 30),
+                BackColor = Color.Transparent,
+                Location = new Point(14, 22)
+            });
+
+            extJobCard.Controls.Add(new Label { Text = "Look Back:", Font = AppTheme.FontBody, ForeColor = AppTheme.TextSecondary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(14, 62) });
+            _nudLookBackDays = new NumericUpDown { Location = new Point(90, 60), Size = new Size(50, 22), Minimum = 1, Maximum = 90, Value = 7 };
+            AppTheme.StyleNumericUpDown(_nudLookBackDays);
+            extJobCard.Controls.Add(_nudLookBackDays);
+            extJobCard.Controls.Add(new Label { Text = "days", Font = AppTheme.FontSmall, ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(144, 64) });
+
+            _btnSyncExternalJobs = new FlatButton { Text = "\u21BB  Sync External Jobs", Size = new Size(170, 28), Location = new Point(190, 58) };
+            _btnSyncExternalJobs.SetAccentColor(AppTheme.AccentPurple);
+            _btnSyncExternalJobs.Click += BtnSyncExternalJobs_Click;
+            extJobCard.Controls.Add(_btnSyncExternalJobs);
+
+            _lblExternalJobStatus = new Label { Text = "", Font = AppTheme.FontSmall, ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(370, 64) };
+            extJobCard.Controls.Add(_lblExternalJobStatus);
+            y += 96 + cardGap;
+
             // ═══ CONSOLE ═══
+            int consoleTop = y;
             _console = new TextBox
             {
-                Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both,
-                Location = new Point(0, y), Size = new Size(W, 250),
+                Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical,
+                Location = new Point(0, consoleTop), Size = new Size(W, 300),
                 Font = AppTheme.FontMono, BackColor = AppTheme.BgInput, ForeColor = AppTheme.AccentGreen,
-                BorderStyle = BorderStyle.FixedSingle, WordWrap = false,
+                BorderStyle = BorderStyle.FixedSingle, WordWrap = true,
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom
             };
             Controls.Add(_console);
+
+            // Adjust console height after layout is ready
+            this.Resize += (s, e) =>
+            {
+                int h = ClientSize.Height - consoleTop - 4;
+                if (h > 100) _console.Height = h;
+            };
+
+            LoadGuiSettings();
+            WireAutoSave();
         }
 
-        private void ToggleAuthMode()
+        private void LoadGuiSettings()
         {
-            _appCredPanel.Visible = _rbAppCredentials.Checked;
+            var s = _config.LoadGuiSettings();
+            _chkExportAllSites.Checked = s.DataSyncExportAllSites;
+            _chkExportGraphReport.Checked = s.DataSyncExportGraphReport;
+            _chkExportArchiveAnalysis.Checked = s.DataSyncExportArchiveAnalysis;
+            _chkExportTenantStorage.Checked = s.DataSyncExportTenantStorage;
+
+            int lookBack = _config.DashboardConfig.LookBackDays;
+            if (lookBack >= (int)_nudLookBackDays.Minimum && lookBack <= (int)_nudLookBackDays.Maximum)
+                _nudLookBackDays.Value = lookBack;
         }
 
-        private async void BtnConnect_Click(object sender, EventArgs e)
+        private void WireAutoSave()
         {
-            string adminUrl = _txtAdminUrl.Text.Trim();
-            if (string.IsNullOrEmpty(adminUrl))
-            {
-                MessageBox.Show("Admin URL is required.\n\nExample: https://contoso-admin.sharepoint.com", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
+            _chkExportAllSites.CheckedChanged += (s, e) => SaveDataSyncSettings();
+            _chkExportGraphReport.CheckedChanged += (s, e) => SaveDataSyncSettings();
+            _chkExportArchiveAnalysis.CheckedChanged += (s, e) => SaveDataSyncSettings();
+            _chkExportTenantStorage.CheckedChanged += (s, e) => SaveDataSyncSettings();
+            _nudLookBackDays.ValueChanged += (s, e) => SaveLookBackDays();
+        }
 
-            _btnConnect.Enabled = false;
-            AppendConsole("Connecting to SharePoint Online...", AppTheme.AccentCyan);
+        private void SaveDataSyncSettings()
+        {
+            var s = _config.LoadGuiSettings();
+            s.DataSyncExportAllSites = _chkExportAllSites.Checked;
+            s.DataSyncExportGraphReport = _chkExportGraphReport.Checked;
+            s.DataSyncExportArchiveAnalysis = _chkExportArchiveAnalysis.Checked;
+            s.DataSyncExportTenantStorage = _chkExportTenantStorage.Checked;
+            _config.SaveGuiSettings(s);
+        }
 
-            try
-            {
-                string script;
-                if (_rbAppCredentials.Checked)
-                {
-                    string tenantId = _txtTenantId.Text.Trim();
-                    string clientId = _txtClientId.Text.Trim();
-                    string certThumb = _txtCertThumb.Text.Trim();
-                    if (string.IsNullOrEmpty(tenantId) || string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(certThumb))
-                    {
-                        MessageBox.Show("Provide Tenant ID, Client ID, and Certificate Thumbprint.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        _btnConnect.Enabled = true;
-                        return;
-                    }
-                    script = $"Connect-SPOService -Url '{adminUrl}' -ClientId '{clientId}' -CertificateThumbprint '{certThumb}' -Tenant '{tenantId}'";
-                }
-                else
-                {
-                    // Interactive login - browser-based MFA/SSO
-                    script = $"Connect-SPOService -Url '{adminUrl}'";
-                }
+        private void SaveLookBackDays()
+        {
+            int days = (int)_nudLookBackDays.Value;
+            _config.DashboardConfig.LookBackDays = days;
+            _config.SaveDashboardConfig();
 
-                await _psHost.RunScriptAsync(script);
-                AppendConsole("Connected successfully.", AppTheme.AccentGreen);
-                _lblStatus.Text = "Connected";
-                _lblStatus.ForeColor = AppTheme.AccentGreen;
-            }
-            catch (Exception ex)
-            {
-                AppendConsole($"Connection failed: {ex.Message}", AppTheme.AccentRed);
-                _lblStatus.Text = "Connection failed";
-                _lblStatus.ForeColor = AppTheme.AccentRed;
-            }
-            finally
-            {
-                _btnConnect.Enabled = true;
-            }
+            var gs = _config.LoadGuiSettings();
+            gs.LookBackDays = days;
+            _config.SaveGuiSettings(gs);
         }
 
         private async void BtnSync_Click(object sender, EventArgs e)
         {
-            string adminUrl = _txtAdminUrl.Text.Trim();
+            string adminUrl = _psHost.IsConnected ? _psHost.AdminUrl : _config.AppConfig.AdminUrl?.Trim();
             if (string.IsNullOrEmpty(adminUrl))
             {
-                MessageBox.Show("Admin URL is required.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Admin URL is not configured.\n\nSet it in the Config tab first.", "No Admin URL", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -292,6 +254,19 @@ namespace SPOVersionManagement.Controls
             {
                 MessageBox.Show("Select at least one sync option.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
+            }
+
+            // Ask user about AllSites.json before starting
+            string autoConfirm = "";
+            if (_chkExportAllSites.Checked)
+            {
+                var saveJson = MessageBox.Show(
+                    "After exporting, do you want to also save the data to AllSites.json for the Dashboard?\n\n" +
+                    "This updates the local database so the Dashboard displays fresh data.",
+                    "Save to Dashboard Database",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+                autoConfirm = saveJson == DialogResult.Yes ? " -AutoConfirm" : "";
             }
 
             SetExecuting(true);
@@ -308,60 +283,76 @@ namespace SPOVersionManagement.Controls
 
             try
             {
-                int step = 0;
+                string rootPath = _config.RootPath;
                 int total = (_chkExportAllSites.Checked ? 1 : 0) + (_chkExportGraphReport.Checked ? 1 : 0) +
                             (_chkExportArchiveAnalysis.Checked ? 1 : 0) + (_chkExportTenantStorage.Checked ? 1 : 0);
 
-                string rootPath = _config.RootPath;
+                // Build a single combined script so all steps run in ONE process (shared auth session)
+                var sb = new System.Text.StringBuilder();
+                int step = 0;
+
+                // Preamble: connect to all required services UPFRONT in one browser session
+                sb.AppendLine("# --- Authentication ---");
+                sb.AppendLine("$WarningPreference = 'SilentlyContinue'");
+                sb.AppendLine("Write-Host 'Authenticating to required services...' -ForegroundColor Yellow");
+                if (_chkExportAllSites.Checked || _chkExportTenantStorage.Checked)
+                {
+                    sb.AppendLine("Import-Module Microsoft.Online.SharePoint.PowerShell -DisableNameChecking -WarningAction SilentlyContinue -ErrorAction SilentlyContinue");
+                    sb.AppendLine($"try {{ Connect-SPOService -Url '{adminUrl}' -ErrorAction Stop; Write-Host '  [OK] SPO connected' -ForegroundColor Green }} catch {{ Write-Host \"  [ERROR] SPO: $($_.Exception.Message)\" -ForegroundColor Red; exit 1 }}");
+                }
+                sb.AppendLine("$WarningPreference = 'Continue'");
+                sb.AppendLine("Write-Host ''");
 
                 if (_chkExportAllSites.Checked)
                 {
                     step++;
-                    _lblStatus.Text = $"Step {step}/{total}: Exporting All Sites...";
-                    _progressBar.Value = step * 100 / total;
-                    AppendConsole($"\n=== Step {step}/{total}: Export All SPO Sites ===", AppTheme.AccentCyan);
-
-                    // Ask user via MessageBox whether to also save to AllSites.json
-                    var saveJson = MessageBox.Show(
-                        "After exporting, do you want to also save the data to AllSites.json for the Dashboard?\n\n" +
-                        "This updates the local database so the Dashboard displays fresh data.",
-                        "Save to Dashboard Database",
-                        MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Question);
-                    string autoConfirm = saveJson == DialogResult.Yes ? " -AutoConfirm" : "";
-
-                    string script = $"& '{Path.Combine(rootPath, "Export-AllSPOSites.ps1")}' -AdminUrl '{adminUrl}'{autoConfirm}";
-                    await _psHost.RunScriptAsync(script, cancellationToken: _cts.Token);
+                    sb.AppendLine($"Write-Host ''; Write-Host '=== Step {step}/{total}: Export All SPO Sites ===' -ForegroundColor Cyan");
+                    sb.AppendLine($"& '{Path.Combine(rootPath, "Export-AllSPOSites.ps1")}' -AdminUrl '{adminUrl}'{autoConfirm}");
+                    sb.AppendLine("if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { exit $LASTEXITCODE }");
                 }
 
                 if (_chkExportGraphReport.Checked)
                 {
                     step++;
-                    _lblStatus.Text = $"Step {step}/{total}: Graph API Report...";
-                    _progressBar.Value = step * 100 / total;
-                    AppendConsole($"\n=== Step {step}/{total}: Graph API Report ===", AppTheme.AccentCyan);
-                    string script = $"& '{Path.Combine(rootPath, "Test-GraphReport.ps1")}'";
-                    await _psHost.RunScriptAsync(script, cancellationToken: _cts.Token);
+                    sb.AppendLine($"Write-Host ''; Write-Host '=== Step {step}/{total}: Graph API Report ===' -ForegroundColor Cyan");
+                    // Run Graph script in a CLEAN PS 5.1 process (no SPO module loaded) — avoids assembly conflicts
+                    // NOTE: No -NoProfile here — profile sets PSModulePath needed for Microsoft.Graph.Reports
+                    sb.AppendLine($"powershell.exe -ExecutionPolicy Bypass -File '{Path.Combine(rootPath, "Test-GraphReport.ps1")}'");
+                    sb.AppendLine("if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { exit $LASTEXITCODE }");
                 }
 
                 if (_chkExportArchiveAnalysis.Checked)
                 {
                     step++;
-                    _lblStatus.Text = $"Step {step}/{total}: Archive Analysis...";
-                    _progressBar.Value = step * 100 / total;
-                    AppendConsole($"\n=== Step {step}/{total}: Import SAM Inactive Sites ===", AppTheme.AccentCyan);
-                    string script = $"& '{Path.Combine(rootPath, "Import-SamInactiveSites.ps1")}'";
-                    await _psHost.RunScriptAsync(script, cancellationToken: _cts.Token);
+                    sb.AppendLine($"Write-Host ''; Write-Host '=== Step {step}/{total}: Import SAM Inactive Sites ===' -ForegroundColor Cyan");
+                    sb.AppendLine($"& '{Path.Combine(rootPath, "Import-SamInactiveSites.ps1")}'");
+                    sb.AppendLine("if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { exit $LASTEXITCODE }");
                 }
 
                 if (_chkExportTenantStorage.Checked)
                 {
                     step++;
-                    _lblStatus.Text = $"Step {step}/{total}: Tenant Storage...";
-                    _progressBar.Value = step * 100 / total;
-                    AppendConsole($"\n=== Step {step}/{total}: Update Tenant Storage Timeline ===", AppTheme.AccentCyan);
-                    string script = $"& '{Path.Combine(rootPath, "Get-SpoSitesVersion.ps1")}' -AdminUrl '{adminUrl}'";
-                    await _psHost.RunScriptAsync(script, cancellationToken: _cts.Token);
+                    sb.AppendLine($"Write-Host ''; Write-Host '=== Step {step}/{total}: Update Tenant Storage Timeline ===' -ForegroundColor Cyan");
+                    sb.AppendLine($"& '{Path.Combine(rootPath, "Get-SpoSitesVersion.ps1")}' -AdminUrl '{adminUrl}'");
+                    sb.AppendLine("if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { exit $LASTEXITCODE }");
+                }
+
+                _lblStatus.Text = $"Running {total} sync steps...";
+                _progressBar.Value = 50;
+
+                // Run all steps in a single process — connection is shared across scripts
+                string combinedScript = sb.ToString().Replace("\"", "\\\"");
+                string scriptFile = Path.Combine(Path.GetTempPath(), "SPOSync_" + Guid.NewGuid().ToString("N") + ".ps1");
+                File.WriteAllText(scriptFile, sb.ToString(), System.Text.Encoding.UTF8);
+
+                try
+                {
+                    string execScript = $"& '{scriptFile}'";
+                    await _psHost.RunScriptAsync(execScript, cancellationToken: _cts.Token);
+                }
+                finally
+                {
+                    try { File.Delete(scriptFile); } catch { }
                 }
 
                 _progressBar.Value = 100;
@@ -403,9 +394,6 @@ namespace SPOVersionManagement.Controls
         {
             _btnSync.Enabled = !running;
             _btnAbort.Enabled = running;
-            _btnConnect.Enabled = !running;
-            _rbInteractive.Enabled = !running;
-            _rbAppCredentials.Enabled = !running;
             _chkExportAllSites.Enabled = !running;
             _chkExportGraphReport.Enabled = !running;
             _chkExportArchiveAnalysis.Enabled = !running;
@@ -422,6 +410,70 @@ namespace SPOVersionManagement.Controls
             if (string.IsNullOrEmpty(text)) return;
             Action a = () => { _console.AppendText(text + Environment.NewLine); _console.SelectionStart = _console.TextLength; _console.ScrollToCaret(); };
             if (InvokeRequired) Invoke(a); else a();
+        }
+
+        private void BtnSyncExternalJobs_Click(object sender, EventArgs e)
+        {
+            string adminUrl = (_config.AppConfig.AdminUrl ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(adminUrl))
+            {
+                MessageBox.Show("Admin URL is not configured. Set it in Config first.", "Missing Config", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            int days = (int)_nudLookBackDays.Value;
+            string rootPath = _config.RootPath;
+            string modulePath = Path.Combine(rootPath, "SPOVersionManagement.psm1");
+            string allSitesPath = Path.Combine(_config.ConfigPath, "AllSites.json");
+
+            if (!File.Exists(modulePath))
+            {
+                MessageBox.Show($"Module not found:\n{modulePath}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (!File.Exists(allSitesPath))
+            {
+                MessageBox.Show($"AllSites.json not found:\n{allSitesPath}\n\nRun Data Sync first to export site inventory.", "Missing Data", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Build inline PS script that runs in a new visible window
+            string script = string.Join("; ",
+                $"$ErrorActionPreference = 'Stop'",
+                $"Write-Host '=== External Job Sync ===' -ForegroundColor Cyan",
+                $"Write-Host 'Looking back: {days} days' -ForegroundColor Gray",
+                $"Write-Host ''",
+                $"Import-Module '{modulePath.Replace("'", "''")}' -Force",
+                $"Connect-SPOService -Url '{adminUrl.Replace("'", "''")}'",
+                $"$sites = (Get-Content '{allSitesPath.Replace("'", "''")}' -Raw | ConvertFrom-Json).Sites",
+                $"Write-Host \"Loaded $($sites.Count) sites\" -ForegroundColor Gray",
+                $"Sync-ExternalJobResults -Sites $sites -DaysToCheck {days}",
+                $"Write-Host ''",
+                $"Write-Host 'Done. Press any key to close...' -ForegroundColor Green",
+                $"$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')"
+            );
+
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script}\"",
+                UseShellExecute = true,
+                WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal
+            };
+
+            try
+            {
+                System.Diagnostics.Process.Start(psi);
+                _lblExternalJobStatus.Text = $"Launched ({DateTime.Now:HH:mm})";
+                _lblExternalJobStatus.ForeColor = AppTheme.AccentGreen;
+                AppendConsole($"External Job Sync launched (look back: {days} days)", AppTheme.AccentPurple);
+                StatusMessage?.Invoke(this, "External Job Sync launched in new window.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to launch:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private async void BtnTelemetrySync_Click(object sender, EventArgs e)

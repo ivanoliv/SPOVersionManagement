@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -21,15 +22,20 @@ namespace SPOVersionManagement.Controls
         private CancellationTokenSource _cts;
 
         // Connection
-        private TextBox _txtAdminUrl;
         private ComboBox _cmbSessions;
-        private FlatButton _btnLoadSession, _btnStartOver, _btnDeleteSessions;
+        private FlatButton _btnLoadSession, _btnStartOver, _btnDeleteSessions, _btnRenameSession;
+        private Label _lblSessionBadge;
         private List<SessionRecord> _sessions = new List<SessionRecord>();
+        private bool _sessionLoaded;
+        private SessionRecord _loadedSession;
+        // Transient draft session shown after Start Over until Execute persists a real one
+        private SessionRecord _draftSession;
 
         // Version policy
         private NumericUpDown _nudMajorVer, _nudMinorVer, _nudConcurrent;
         private NumericUpDown _nudCheckBatchSize, _nudCheckBatchDelay;
         private NumericUpDown _nudDeleteBeforeDays;
+        private NumericUpDown _nudReexecutionDays;
         private ComboBox _cmbZeroVersion;
         private RadioButton _rbDeleteByCount, _rbDeleteByAge;
         private Panel _deleteByCountGroup, _deleteByAgeGroup;
@@ -51,7 +57,9 @@ namespace SPOVersionManagement.Controls
         // Site progress
         private Panel _siteProgressPanel;
         private System.Windows.Forms.Timer _refreshTimer;
+        private System.Windows.Forms.Timer _saveTimer;
         private bool _layoutRebuilding;
+        private bool _loadingSettings;
 
         public event EventHandler<string> StatusMessage;
 
@@ -72,14 +80,6 @@ namespace SPOVersionManagement.Controls
             _config = config;
             _history = new ExecutionHistoryService(config);
             _psHost = psHost;
-            _psHost.OnOutput += msg => AppendConsole(msg, AppTheme.TextSecondary);
-            _psHost.OnWarning += msg => AppendConsole("[WARN] " + msg, AppTheme.AccentGold);
-            _psHost.OnError += msg => AppendConsole("[ERROR] " + msg, AppTheme.AccentRed);
-            _psHost.OnProgress += pct =>
-            {
-                if (InvokeRequired) Invoke((Action)(() => UpdateProgress(pct)));
-                else UpdateProgress(pct);
-            };
             BuildLayout();
         }
 
@@ -90,7 +90,7 @@ namespace SPOVersionManagement.Controls
 
             RefreshSessionControls();
             if (_console != null)
-                _console.Clear();
+                _console.Clear(); _preservedConsoleText = string.Empty;
             if (_siteProgressPanel != null)
                 _siteProgressPanel.Controls.Clear();
             if (_lblProgress != null)
@@ -100,6 +100,23 @@ namespace SPOVersionManagement.Controls
                 _lblStatus.Text = "Ready";
                 _lblStatus.ForeColor = AppTheme.TextMuted;
             }
+        }
+
+        /// <summary>
+        /// Loads a session's configuration into the form and triggers execution.
+        /// Called from SessionManagerPanel's Resume button.
+        /// The PS script will auto-detect the interrupted session and resume from the queue.
+        /// </summary>
+        public void LoadSessionAndResume(SessionRecord session)
+        {
+            if (session?.Configuration == null) return;
+
+            ApplySession(session);
+            AppendConsole($"Resuming session {session.SessionId}...", AppTheme.AccentCyan);
+            StatusMessage?.Invoke(this, $"Resuming session {session.SessionId}");
+
+            // Trigger execution (same as clicking Execute — the PS script auto-detects pending session)
+            BtnExecute_Click(this, EventArgs.Empty);
         }
 
         protected override void OnPaint(PaintEventArgs e) => AppTheme.PaintGradientBackground(e.Graphics, ClientRectangle);
@@ -129,7 +146,7 @@ namespace SPOVersionManagement.Controls
             y += 56;
 
             // ═══ SESSION CONTROL ═══
-            var sessionCard = new GlassPanel { Location = new Point(0, y), Size = new Size(W, 58), AccentLeft = AppTheme.AccentGreen, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+            var sessionCard = new GlassPanel { Location = new Point(0, y), Size = new Size(W, 66), AccentLeft = AppTheme.AccentGreen, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
             Controls.Add(sessionCard);
             CL(sessionCard, "SESSION CONTROL", AppTheme.AccentGreen, 14, 4);
             sessionCard.Controls.Add(new Label
@@ -146,12 +163,17 @@ namespace SPOVersionManagement.Controls
             _cmbSessions = new ComboBox
             {
                 Location = new Point(260, 18),
-                Size = new Size(Math.Max(220, W - 610), 24),
+                Size = new Size(Math.Max(180, W - 700), 24),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
             AppTheme.StyleComboBox(_cmbSessions);
             sessionCard.Controls.Add(_cmbSessions);
+
+            _btnRenameSession = new FlatButton { Text = "Rename", Size = new Size(80, 28), Location = new Point(W - 414, 15), Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            _btnRenameSession.SetGhostStyle();
+            _btnRenameSession.Click += BtnRenameSession_Click;
+            sessionCard.Controls.Add(_btnRenameSession);
 
             _btnLoadSession = new FlatButton { Text = "Load Session", Size = new Size(104, 28), Location = new Point(W - 324, 15), Anchor = AnchorStyles.Top | AnchorStyles.Right };
             _btnLoadSession.SetAccentColor(AppTheme.AccentCyan);
@@ -168,33 +190,30 @@ namespace SPOVersionManagement.Controls
             _btnDeleteSessions.Click += BtnDeleteSessions_Click;
             sessionCard.Controls.Add(_btnDeleteSessions);
 
-            RefreshSessionControls();
-            y += 58 + cardGap;
+            _lblSessionBadge = new Label
+            {
+                Font = new Font("Cascadia Code", 7f, FontStyle.Bold),
+                AutoSize = true,
+                BackColor = Color.Transparent,
+                Location = new Point(14, 42)
+            };
+            sessionCard.Controls.Add(_lblSessionBadge);
+            UpdateSessionBadge();
 
-            // ═══ CONNECTION ═══
-            var connCard = new GlassPanel { Location = new Point(0, y), Size = new Size(W, 50), AccentLeft = AppTheme.AccentCyan, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
-            Controls.Add(connCard);
-            CL(connCard, "CONNECTION", AppTheme.AccentCyan, 14, 4);
-            CL(connCard, "Admin URL:", AppTheme.TextSecondary, 14, 24); connCard.Controls[connCard.Controls.Count - 1].Font = AppTheme.FontBody;
-            _txtAdminUrl = new TextBox { Location = new Point(100, 22), Size = new Size(Math.Max(200, W / 2), 20), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right, ReadOnly = true };
-            AppTheme.StyleTextBox(_txtAdminUrl);
-            _txtAdminUrl.Text = _config.AppConfig.AdminUrl ?? "";
-            connCard.Controls.Add(_txtAdminUrl);
-            connCard.Controls.Add(new Label { Text = "(from Config tab)", Font = new Font("Cascadia Code", 6.5f), ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(Math.Max(200, W / 2) + 108, 26) });
-            _chkSkipGraph = MkChk(connCard, "Skip Graph", W - 180, 24); _chkSkipGraph.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-            y += 50 + cardGap;
+            RefreshSessionControls();
+            y += 66 + cardGap;
 
             // ═══ ROW: Version Policy (left 60%) + Operation Mode (right 40%) ═══
             int policyW = (int)((W - cardGap) * 0.60);
             int modeW = W - policyW - cardGap;
 
             // Version Policy
-            var policyCard = new GlassPanel { Location = new Point(0, y), Size = new Size(policyW, 180), AccentLeft = AppTheme.AccentPurple, Anchor = AnchorStyles.Top | AnchorStyles.Left };
+            var policyCard = new GlassPanel { Location = new Point(0, y), Size = new Size(policyW, 206), AccentLeft = AppTheme.AccentPurple, Anchor = AnchorStyles.Top | AnchorStyles.Left };
             Controls.Add(policyCard);
             CL(policyCard, "VERSION POLICY", AppTheme.AccentPurple, 14, 2);
             int px = 12, pw = 145;
             PL(policyCard, "Concurrent Jobs:", px, 26, pw);
-            _nudConcurrent = PN(policyCard, px + pw, 24, 65, 1, 50, 10);
+            _nudConcurrent = PN(policyCard, px + pw, 24, 65, 1, 9999, 10);
             PL(policyCard, "Zero Version Action:", px, 52, pw);
             _cmbZeroVersion = new ComboBox { Location = new Point(px + pw, 50), Size = new Size(120, 20), DropDownStyle = ComboBoxStyle.DropDownList };
             _cmbZeroVersion.Items.AddRange(new[] { "syncOnly", "deleteOnly", "skip" });
@@ -207,8 +226,11 @@ namespace SPOVersionManagement.Controls
             PL(policyCard, "Batch Delay (s):", px + 270, 52, 115);
             _nudCheckBatchDelay = PN(policyCard, px + 390, 50, 50, 1, 30, 2);
 
+            PL(policyCard, "Re-execution Days:", px, 78, pw);
+            _nudReexecutionDays = PN(policyCard, px + pw, 76, 65, 0, 365, 60);
+
             // Delete mode groups
-            var deleteModeSep = new Panel { Location = new Point(14, 78), Size = new Size(policyW - 28, 1), BackColor = Color.FromArgb(30, AppTheme.Border) };
+            var deleteModeSep = new Panel { Location = new Point(14, 104), Size = new Size(policyW - 28, 1), BackColor = Color.FromArgb(30, AppTheme.Border) };
             policyCard.Controls.Add(deleteModeSep);
 
             policyCard.Controls.Add(new Label
@@ -218,10 +240,10 @@ namespace SPOVersionManagement.Controls
                 ForeColor = AppTheme.TextMuted,
                 AutoSize = true,
                 BackColor = Color.Transparent,
-                Location = new Point(14, 82)
+                Location = new Point(14, 108)
             });
 
-            int groupTop = 94;
+            int groupTop = 120;
             int groupGap = 10;
             int groupW = (policyW - 24 - groupGap) / 2;
             int groupH = 82;
@@ -325,7 +347,7 @@ namespace SPOVersionManagement.Controls
             });
 
             // Operation Mode
-            var modeCard = new GlassPanel { Location = new Point(policyW + cardGap, y), Size = new Size(modeW, 180), AccentLeft = AppTheme.AccentGold, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+            var modeCard = new GlassPanel { Location = new Point(policyW + cardGap, y), Size = new Size(modeW, 206), AccentLeft = AppTheme.AccentGold, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
             Controls.Add(modeCard);
             CL(modeCard, "OPERATION MODE", AppTheme.AccentGold, 14, 2);
 
@@ -343,10 +365,10 @@ namespace SPOVersionManagement.Controls
             // Separator
             var modeSep = new Panel { Location = new Point(14, 138), Size = new Size(modeW - 28, 1), BackColor = Color.FromArgb(30, AppTheme.Border) };
             modeCard.Controls.Add(modeSep);
-            modeCard.Controls.Add(new Label { Text = "Mutual exclusive: use Sync+Delete or DeleteOnly", Font = new Font("Cascadia Code", 6.5f), ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(14, 146) });
-            modeCard.Controls.Add(new Label { Text = "DeleteBeforeDays is exclusive with version limits", Font = new Font("Cascadia Code", 6.5f), ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(14, 162) });
+            _chkSkipGraph = MkChk(modeCard, "Skip Graph Connection", 14, 146);
+            modeCard.Controls.Add(new Label { Text = "Skip if Graph report CSV provided", Font = new Font("Cascadia Code", 6.5f), ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(34, 164) });
 
-            y += 180 + cardGap;
+            y += 206 + cardGap;
 
             // ═══ INPUT FILES ═══
             int fIn = Math.Max(220, W - 640);
@@ -402,8 +424,8 @@ namespace SPOVersionManagement.Controls
             y += 12;
 
             // ═══ CONSOLE (left 50%) + SITE PROGRESS (right 50%) ═══
-            int bottomClearance = 52;
-            int bottomH = Math.Max(210, ClientSize.Height - y - Padding.Vertical - bottomClearance);
+            int bottomClearance = 16;
+            int bottomH = Math.Max(220, ClientSize.Height - y - Padding.Vertical - bottomClearance);
             int consoleW = (W - cardGap) / 2;
             int spW = W - consoleW - cardGap;
 
@@ -428,15 +450,77 @@ namespace SPOVersionManagement.Controls
 
             LoadGuiSettings();
             SyncGraphOptions();
+            WireAutoSave();
+        }
+
+        private void WireAutoSave()
+        {
+            _saveTimer = new System.Windows.Forms.Timer { Interval = 800, Enabled = false };
+            _saveTimer.Tick += (s, e) => { _saveTimer.Stop(); SaveGuiSettings(); };
+
+            // Wire value-changed events to trigger debounced save
+            _nudConcurrent.ValueChanged += SettingChanged;
+            _nudCheckBatchSize.ValueChanged += SettingChanged;
+            _nudCheckBatchDelay.ValueChanged += SettingChanged;
+            _nudMajorVer.ValueChanged += SettingChanged;
+            _nudMinorVer.ValueChanged += SettingChanged;
+            _nudDeleteBeforeDays.ValueChanged += SettingChanged;
+            _nudReexecutionDays.ValueChanged += SettingChanged;
+            _cmbZeroVersion.SelectedIndexChanged += SettingChanged;
+            _rbDeleteByAge.CheckedChanged += SettingChanged;
+            _rbDeleteByCount.CheckedChanged += SettingChanged;
+            _chkSyncPolicy.CheckedChanged += SettingChanged;
+            _chkDeleteVersions.CheckedChanged += SettingChanged;
+            _chkRetention.CheckedChanged += SettingChanged;
+            _chkSkipGraph.CheckedChanged += SettingChanged;
+            _chkUseFileCache.CheckedChanged += SettingChanged;
+            _txtSiteListCsv.TextChanged += SettingChanged;
+            _txtExclusionCsv.TextChanged += SettingChanged;
+            _txtGraphReportCsv.TextChanged += SettingChanged;
+            _txtSyncListCsv.TextChanged += SettingChanged;
+            _txtSamReportCsv.TextChanged += SettingChanged;
+            _txtCacheFile.TextChanged += SettingChanged;
+        }
+
+        private void SettingChanged(object sender, EventArgs e)
+        {
+            if (_loadingSettings || _layoutRebuilding) return;
+            SaveGuiSettings();
         }
 
         private async void BtnExecute_Click(object sender, EventArgs e)
         {
-            string adminUrl = _txtAdminUrl.Text.Trim();
-            if (string.IsNullOrEmpty(adminUrl))
+            // Each PowerShell script handles its own SPO/Graph auth (interactive or app-only).
+            // We no longer require a global connection — just need the admin URL from config.
+            string adminUrl = _psHost.IsConnected ? _psHost.AdminUrl : (_config.AppConfig.AdminUrl ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(adminUrl))
             {
-                MessageBox.Show("Admin URL is required.\n\nExample: https://contoso-admin.sharepoint.com", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Admin URL is not configured. Open Config and set the SharePoint Admin URL.", "Missing Admin URL", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
+            }
+
+            // Tenant mismatch pre-check: SessionHistory.json may contain a session from a different tenant.
+            // If so, ask the user to clear local DB before running (otherwise PS would prompt and stale data syncs).
+            if (!CheckTenantMismatchAndMaybeReset(adminUrl))
+                return; // user cancelled
+
+            // Option B: auto-create a friendly default label so every session is named, even
+            // when the user did not click "Start Over". Only applied if no draft/pending label exists.
+            if (string.IsNullOrWhiteSpace(_pendingLabelToApply) && _draftSession == null)
+            {
+                DateTime now = DateTime.Now;
+                string autoLabel = "Session " + now.ToString("yyyy-MM-dd HH:mm");
+                _pendingLabelToApply = autoLabel;
+                _draftSession = new SessionRecord
+                {
+                    SessionId = "NEW_" + now.ToString("yyyyMMdd_HHmmss"),
+                    Status = "Pending",
+                    StartedAt = now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    AdminUrl = adminUrl,
+                    Label = autoLabel
+                };
+                RefreshSessionControls();
+                UpdateSessionBadge();
             }
 
             bool doSync = _chkSyncPolicy.Checked;
@@ -461,10 +545,39 @@ namespace SPOVersionManagement.Controls
 
             SaveGuiSettings();
             SetExecuting(true);
-            _console.Clear();
+            _console.Clear(); _preservedConsoleText = string.Empty;
             _siteProgressPanel.Controls.Clear();
             AppendConsole("Starting execution...", AppTheme.AccentCyan);
             _cts = new CancellationTokenSource();
+
+            // Scoped event handlers — only this execution feeds this console
+            Action<string> outHandler = msg => AppendConsole(msg, AppTheme.TextSecondary);
+            Action<string> warnHandler = msg => AppendConsole("[WARN] " + msg, AppTheme.AccentGold);
+            Action<string> errHandler = msg => AppendConsole("[ERROR] " + msg, AppTheme.AccentRed);
+            Action<int> progHandler = pct =>
+            {
+                if (InvokeRequired) Invoke((Action)(() => UpdateProgress(pct)));
+                else UpdateProgress(pct);
+            };
+
+            _psHost.OnOutput += outHandler;
+            _psHost.OnWarning += warnHandler;
+            _psHost.OnError += errHandler;
+            _psHost.OnProgress += progHandler;
+
+            // Bridge PS Read-Host prompts to a UI dialog so users can answer with buttons.
+            Func<SPOVersionManagement.Services.PromptRequest, Task<string>> promptHandler = req =>
+            {
+                var tcs = new TaskCompletionSource<string>();
+                Action show = () =>
+                {
+                    string answer = ShowPromptDialog(req);
+                    tcs.TrySetResult(answer ?? string.Empty);
+                };
+                if (InvokeRequired) BeginInvoke(show); else show();
+                return tcs.Task;
+            };
+            _psHost.OnPromptRequest = promptHandler;
 
             try
             {
@@ -492,12 +605,242 @@ namespace SPOVersionManagement.Controls
             }
             catch (OperationCanceledException) { AppendConsole("\nCancelled.", AppTheme.AccentGold); _lblStatus.Text = "Cancelled"; _lblStatus.ForeColor = AppTheme.AccentGold; }
             catch (Exception ex) { AppendConsole($"\nFailed: {ex.Message}", AppTheme.AccentRed); _lblStatus.Text = "Failed"; _lblStatus.ForeColor = AppTheme.AccentRed; }
-            finally { SetExecuting(false); _refreshTimer.Enabled = false; _cts?.Dispose(); _cts = null; }
+            finally
+            {
+                _psHost.OnOutput -= outHandler;
+                _psHost.OnWarning -= warnHandler;
+                _psHost.OnError -= errHandler;
+                _psHost.OnProgress -= progHandler;
+                _psHost.OnPromptRequest = null;
+                SetExecuting(false); _refreshTimer.Enabled = false; _cts?.Dispose(); _cts = null;
+                // Reload sessions from disk so the newly-persisted session (with all options saved by the PS script) appears
+                try
+                {
+                    // Apply pending label (from Start Over) to the most recent session on disk
+                    if (!string.IsNullOrWhiteSpace(_pendingLabelToApply))
+                    {
+                        var diskSessions = _history.LoadSessionHistory();
+                        if (diskSessions != null && diskSessions.Count > 0)
+                        {
+                            // Pick the latest by StartedAt (fallback to last)
+                            SessionRecord latest = diskSessions[diskSessions.Count - 1];
+                            DateTime latestDt = DateTime.MinValue;
+                            foreach (var s in diskSessions)
+                            {
+                                if (DateTime.TryParse(s.StartedAt, out var dt) && dt > latestDt)
+                                {
+                                    latestDt = dt;
+                                    latest = s;
+                                }
+                            }
+                            if (latest != null && !string.IsNullOrEmpty(latest.SessionId))
+                                _history.RenameSession(latest.SessionId, _pendingLabelToApply);
+                        }
+                        _pendingLabelToApply = null;
+                    }
+                    RefreshSessionControls();
+                }
+                catch { }
+            }
         }
 
         private void BtnAbort_Click(object sender, EventArgs e)
         {
             if (_cts != null && MessageBox.Show("Cancel?", "Abort", MessageBoxButtons.YesNo) == DialogResult.Yes) _cts.Cancel();
+        }
+
+        /// <summary>
+        /// Returns true if execution should proceed; false if user cancelled.
+        /// Compares current admin URL with the tenant of the most recent session in SessionHistory.json.
+        /// On mismatch, asks the user to reset the local execution database (sites scope).
+        /// </summary>
+        private bool CheckTenantMismatchAndMaybeReset(string currentAdminUrl)
+        {
+            try
+            {
+                var sessions = _history.LoadSessionHistory();
+                if (sessions == null || sessions.Count == 0) return true;
+
+                // Find the most-recent session that has a non-empty AdminUrl
+                SessionRecord lastWithUrl = null;
+                DateTime latestDt = DateTime.MinValue;
+                foreach (var s in sessions)
+                {
+                    if (s == null || string.IsNullOrWhiteSpace(s.AdminUrl)) continue;
+                    if (DateTime.TryParse(s.StartedAt, out var dt))
+                    {
+                        if (dt >= latestDt) { latestDt = dt; lastWithUrl = s; }
+                    }
+                    else if (lastWithUrl == null) lastWithUrl = s;
+                }
+                if (lastWithUrl == null) return true;
+
+                string dbHost = ExtractHost(lastWithUrl.AdminUrl);
+                string curHost = ExtractHost(currentAdminUrl);
+                if (string.IsNullOrEmpty(dbHost) || string.IsNullOrEmpty(curHost)) return true;
+                if (string.Equals(dbHost, curHost, StringComparison.OrdinalIgnoreCase)) return true;
+
+                string msg =
+                    "Tenant mismatch detected.\n\n" +
+                    $"Current Admin URL:   {currentAdminUrl}\n" +
+                    $"Database Admin URL:  {lastWithUrl.AdminUrl}\n\n" +
+                    "The local execution database (config\\SessionHistory.json, AllSites.json, JobStatus.json, etc.) " +
+                    "still contains data from a different tenant. Running without reset will sync stale data.\n\n" +
+                    "Open the Reset Local Database dialog now and continue with the selected options?\n\n" +
+                    "Yes  = Open reset dialog (you choose what to clear), then proceed\n" +
+                    "No   = Cancel execution";
+
+                var answer = MessageBox.Show(msg, "Tenant Mismatch", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                if (answer != DialogResult.Yes) return false;
+
+                string resetType = ConfigurationPanel.ShowResetLocalDbDialog(ParentForm);
+                if (string.IsNullOrEmpty(resetType))
+                {
+                    AppendConsole("Reset cancelled — execution aborted.", AppTheme.AccentGold);
+                    return false;
+                }
+
+                int cleared = _config.ResetLocalExecutionDatabases(resetType);
+                AppendConsole($"Local database reset ({resetType}) for tenant switch — {cleared} files cleared.", AppTheme.AccentGold);
+                StatusMessage?.Invoke(this, $"Database reset ({resetType}) for tenant switch.");
+                RefreshSessionControls();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Could not check tenant mismatch:\n{ex.Message}", "Tenant Check", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return true; // don't block the user on a check failure
+            }
+        }
+
+        private static string ExtractHost(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return string.Empty;
+            try
+            {
+                if (!url.Contains("://")) url = "https://" + url;
+                return new Uri(url).Host;
+            }
+            catch { return url.Trim().TrimEnd('/'); }
+        }
+
+        /// <summary>
+        /// Shows a styled prompt dialog for a PowerShell Read-Host request.
+        /// If options are parsed (e.g. Y/N, F/S/D), shows them as buttons; otherwise shows a text box.
+        /// Returns the chosen answer (or empty string).
+        /// </summary>
+        private string ShowPromptDialog(Services.PromptRequest req)
+        {
+            return ShowPromptDialog(req.QuestionText, req.PromptText, req.Options, req.ContextLines, req.DescriptiveOptions);
+        }
+
+        private string ShowPromptDialog(string questionText, string promptText, string[] options, string[] contextLines, Dictionary<string, string> descriptiveOptions)
+        {
+            string result = string.Empty;
+            using (var dlg = new Form())
+            {
+                dlg.Text = "Script Question";
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.BackColor = AppTheme.BgDark;
+                dlg.ForeColor = AppTheme.TextPrimary;
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.MaximizeBox = false;
+                dlg.MinimizeBox = false;
+
+                bool hasOptions = options != null && options.Length > 0;
+                bool hasDescriptive = descriptiveOptions != null && descriptiveOptions.Count > 0;
+                int width = 560;
+                int padding = 22;
+                int yPos = 16;
+
+                // Show the question text (extracted from context) as the main prompt
+                string displayQuestion = questionText ?? promptText;
+                if (string.IsNullOrWhiteSpace(displayQuestion))
+                    displayQuestion = "(no prompt text)";
+
+                var lblQuestion = new Label
+                {
+                    Text = displayQuestion.Trim(),
+                    Font = AppTheme.FontHeading,
+                    ForeColor = AppTheme.TextPrimary,
+                    AutoSize = false,
+                    Size = new Size(width - 2 * padding, 40),
+                    Location = new Point(padding, yPos),
+                    BackColor = Color.Transparent
+                };
+                dlg.Controls.Add(lblQuestion);
+                yPos += 48;
+
+                TextBox txt = null;
+
+                if (hasOptions)
+                {
+                    // Use descriptive labels if available, otherwise just the key letter
+                    var labels = new List<(string key, string label)>();
+                    foreach (var opt in options)
+                    {
+                        string label = (hasDescriptive && descriptiveOptions.TryGetValue(opt, out string desc)) ? desc : opt;
+                        labels.Add((opt, label));
+                    }
+
+                    // Measure each button's text to compute proper widths
+                    using (var g = dlg.CreateGraphics())
+                    {
+                        var btnSizes = labels.Select(l => (int)g.MeasureString(l.label, AppTheme.FontHeading).Width + 32).ToList();
+                        int totalBtns = btnSizes.Sum() + (labels.Count - 1) * 10 + 2 * padding;
+                        if (totalBtns > width) width = totalBtns;
+
+                        int x = padding;
+                        for (int i = 0; i < labels.Count; i++)
+                        {
+                            string capturedKey = labels[i].key;
+                            int bw = btnSizes[i];
+                            var btn = new FlatButton
+                            {
+                                Text = labels[i].label,
+                                Size = new Size(bw, 40),
+                                Location = new Point(x, yPos),
+                                Font = AppTheme.FontHeading
+                            };
+                            if (i == 0) btn.SetSuccessStyle(); else btn.SetGhostStyle();
+                            btn.Click += (s, e) => { result = capturedKey; dlg.DialogResult = DialogResult.OK; };
+                            dlg.Controls.Add(btn);
+                            x += bw + 10;
+                        }
+                    }
+                    yPos += 50;
+
+                    // Update question label width to match expanded dialog
+                    lblQuestion.Size = new Size(width - 2 * padding, 40);
+                }
+                else
+                {
+                    txt = new TextBox
+                    {
+                        Location = new Point(padding, yPos),
+                        Size = new Size(width - 2 * padding, 24),
+                        Font = AppTheme.FontMono
+                    };
+                    AppTheme.StyleTextBox(txt);
+                    dlg.Controls.Add(txt);
+
+                    var btnOk = new FlatButton
+                    {
+                        Text = "Send",
+                        Size = new Size(110, 32),
+                        Location = new Point(width - padding - 110, yPos + 34)
+                    };
+                    btnOk.SetSuccessStyle();
+                    btnOk.Click += (s, e) => { result = txt.Text ?? string.Empty; dlg.DialogResult = DialogResult.OK; };
+                    dlg.Controls.Add(btnOk);
+                    yPos += 80;
+                }
+
+                dlg.ClientSize = new Size(width, yPos + 16);
+                dlg.AcceptButton = null;
+                dlg.ShowDialog(ParentForm);
+            }
+            return result ?? string.Empty;
         }
 
         private void ToggleDeleteMode()
@@ -532,13 +875,13 @@ namespace SPOVersionManagement.Controls
         private void SetExecuting(bool r)
         {
             _btnExecute.Enabled = !r; _btnAbort.Enabled = r;
-            _txtAdminUrl.ReadOnly = r;
-            foreach (var c in new Control[] { _nudMajorVer, _nudMinorVer, _nudConcurrent, _nudCheckBatchSize, _nudCheckBatchDelay, _cmbZeroVersion })
+            foreach (var c in new Control[] { _nudMajorVer, _nudMinorVer, _nudConcurrent, _nudCheckBatchSize, _nudCheckBatchDelay, _nudReexecutionDays, _cmbZeroVersion })
                 c.Enabled = !r;
             foreach (var c in new Control[] { _chkSyncPolicy, _chkDeleteVersions, _chkRetention, _chkSkipGraph, _chkUseFileCache })
                 c.Enabled = !r;
             if (_cmbSessions != null) _cmbSessions.Enabled = !r;
             if (_btnLoadSession != null) _btnLoadSession.Enabled = !r;
+            if (_btnRenameSession != null) _btnRenameSession.Enabled = !r;
             if (_btnStartOver != null) _btnStartOver.Enabled = !r;
             if (_btnDeleteSessions != null) _btnDeleteSessions.Enabled = !r;
             if (r) { _lblStatus.Text = "Running..."; _lblStatus.ForeColor = AppTheme.AccentCyan; _refreshTimer.Enabled = true; }
@@ -664,32 +1007,17 @@ namespace SPOVersionManagement.Controls
             p.Controls.Add(new Panel { Location = new Point(x, cy), Size = new Size(w, 2), BackColor = active ? AppTheme.AccentCyan : Color.FromArgb(40, AppTheme.TextMuted) });
         }
 
+        private string _preservedConsoleText = string.Empty;
+
         private void ExecutionPanel_Resize(object sender, EventArgs e)
         {
             if (_layoutRebuilding || !Visible || IsDisposed || _config == null)
                 return;
 
-            string include = _txtSiteListCsv?.Text ?? string.Empty;
-            string exclude = _txtExclusionCsv?.Text ?? string.Empty;
-            string graph = _txtGraphReportCsv?.Text ?? string.Empty;
-            string sync = _txtSyncListCsv?.Text ?? string.Empty;
-            string sam = _txtSamReportCsv?.Text ?? string.Empty;
-            string cache = _txtCacheFile?.Text ?? string.Empty;
-            bool skipGraph = _chkSkipGraph?.Checked ?? false;
+            // Preserve console text so it survives BuildLayout (which recreates the TextBox)
+            if (_console != null) _preservedConsoleText = _console.Text;
+
             string selectedSession = GetSelectedSessionId();
-
-            bool syncPolicy = _chkSyncPolicy?.Checked ?? true;
-            bool deleteVersions = _chkDeleteVersions?.Checked ?? true;
-            bool retention = _chkRetention?.Checked ?? false;
-            bool deleteByAge = _rbDeleteByAge?.Checked ?? false;
-            bool useCache = _chkUseFileCache?.Checked ?? false;
-
-            decimal major = _nudMajorVer?.Value ?? 100;
-            decimal minor = _nudMinorVer?.Value ?? 0;
-            decimal concurrent = _nudConcurrent?.Value ?? 10;
-            decimal checkBatch = _nudCheckBatchSize?.Value ?? 10;
-            decimal checkDelay = _nudCheckBatchDelay?.Value ?? 2;
-            decimal deleteBefore = _nudDeleteBeforeDays?.Value ?? 180;
 
             BeginInvoke((Action)(() =>
             {
@@ -701,30 +1029,17 @@ namespace SPOVersionManagement.Controls
                 {
                     BuildLayout();
 
-                    _txtSiteListCsv.Text = include;
-                    _txtExclusionCsv.Text = exclude;
-                    _txtGraphReportCsv.Text = graph;
-                    _txtSyncListCsv.Text = sync;
-                    _txtSamReportCsv.Text = sam;
-                    _txtCacheFile.Text = cache;
-                    _chkSkipGraph.Checked = skipGraph;
+                    // Restore preserved console text (BuildLayout creates a fresh TextBox)
+                    if (_console != null && !string.IsNullOrEmpty(_preservedConsoleText))
+                    {
+                        _console.Text = _preservedConsoleText;
+                        _console.SelectionStart = _console.TextLength;
+                        _console.ScrollToCaret();
+                    }
+
+                    // Restore non-persisted state (session selection, transient text fields not in GuiSettings)
                     RestoreSelectedSession(selectedSession);
-
-                    _chkSyncPolicy.Checked = syncPolicy;
-                    _chkDeleteVersions.Checked = deleteVersions;
-                    _chkRetention.Checked = retention;
-                    _chkUseFileCache.Checked = useCache;
-                    SyncGraphOptions();
-
-                    _rbDeleteByAge.Checked = deleteByAge;
-                    _rbDeleteByCount.Checked = !deleteByAge;
-
-                    _nudMajorVer.Value = Math.Max(_nudMajorVer.Minimum, Math.Min(_nudMajorVer.Maximum, major));
-                    _nudMinorVer.Value = Math.Max(_nudMinorVer.Minimum, Math.Min(_nudMinorVer.Maximum, minor));
-                    _nudConcurrent.Value = Math.Max(_nudConcurrent.Minimum, Math.Min(_nudConcurrent.Maximum, concurrent));
-                    _nudCheckBatchSize.Value = Math.Max(_nudCheckBatchSize.Minimum, Math.Min(_nudCheckBatchSize.Maximum, checkBatch));
-                    _nudCheckBatchDelay.Value = Math.Max(_nudCheckBatchDelay.Minimum, Math.Min(_nudCheckBatchDelay.Maximum, checkDelay));
-                    _nudDeleteBeforeDays.Value = Math.Max(_nudDeleteBeforeDays.Minimum, Math.Min(_nudDeleteBeforeDays.Maximum, deleteBefore));
+                    UpdateSessionBadge();
                 }
                 finally
                 {
@@ -736,7 +1051,7 @@ namespace SPOVersionManagement.Controls
         private void AppendConsole(string text, Color color)
         {
             if (string.IsNullOrEmpty(text)) return;
-            Action a = () => { _console.AppendText(text + Environment.NewLine); _console.SelectionStart = _console.TextLength; _console.ScrollToCaret(); };
+            Action a = () => { _console.AppendText(text + Environment.NewLine); _console.SelectionStart = _console.TextLength; _console.ScrollToCaret(); _preservedConsoleText = _console.Text; };
             if (InvokeRequired) Invoke(a); else a();
         }
 
@@ -744,6 +1059,9 @@ namespace SPOVersionManagement.Controls
 
         private void LoadGuiSettings()
         {
+            _loadingSettings = true;
+            try
+            {
             var s = _config.LoadGuiSettings();
             _nudConcurrent.Value = Math.Max(_nudConcurrent.Minimum, Math.Min(_nudConcurrent.Maximum, s.ConcurrentJobs));
             _nudCheckBatchSize.Value = Math.Max(_nudCheckBatchSize.Minimum, Math.Min(_nudCheckBatchSize.Maximum, s.CheckBatchSize));
@@ -751,6 +1069,7 @@ namespace SPOVersionManagement.Controls
             _nudMajorVer.Value = Math.Max(_nudMajorVer.Minimum, Math.Min(_nudMajorVer.Maximum, s.MajorVersionLimit));
             _nudMinorVer.Value = Math.Max(_nudMinorVer.Minimum, Math.Min(_nudMinorVer.Maximum, s.MinorVersionLimit));
             _nudDeleteBeforeDays.Value = Math.Max(_nudDeleteBeforeDays.Minimum, Math.Min(_nudDeleteBeforeDays.Maximum, s.DeleteBeforeDays));
+            _nudReexecutionDays.Value = Math.Max(_nudReexecutionDays.Minimum, Math.Min(_nudReexecutionDays.Maximum, s.ReexecutionDays));
 
             int zeroIdx = _cmbZeroVersion.Items.IndexOf(s.ZeroVersionAction);
             if (zeroIdx >= 0) _cmbZeroVersion.SelectedIndex = zeroIdx;
@@ -771,6 +1090,8 @@ namespace SPOVersionManagement.Controls
             if (!string.IsNullOrEmpty(s.CacheFilePath)) _txtCacheFile.Text = s.CacheFilePath;
             _chkUseFileCache.Checked = s.UseFileCache;
             _txtCacheFile.Enabled = s.UseFileCache;
+            }
+            finally { _loadingSettings = false; }
         }
 
         public void SaveGuiSettings()
@@ -786,6 +1107,7 @@ namespace SPOVersionManagement.Controls
                 MajorVersionLimit = (int)_nudMajorVer.Value,
                 MinorVersionLimit = (int)_nudMinorVer.Value,
                 DeleteBeforeDays = (int)_nudDeleteBeforeDays.Value,
+                ReexecutionDays = (int)_nudReexecutionDays.Value,
                 SyncVersionPolicy = _chkSyncPolicy.Checked,
                 DeleteExcessVersions = _chkDeleteVersions.Checked,
                 ManageRetentionPolicies = _chkRetention.Checked,
@@ -799,6 +1121,10 @@ namespace SPOVersionManagement.Controls
                 CacheFilePath = _txtCacheFile.Text
             };
             _config.SaveGuiSettings(s);
+
+            // Sync re-execution rules to DashboardConfig (read by PS script at runtime)
+            _config.DashboardConfig.ReexecutionDays = (int)_nudReexecutionDays.Value;
+            _config.SaveDashboardConfig();
         }
 
         #region Helpers
@@ -855,6 +1181,29 @@ namespace SPOVersionManagement.Controls
 
             string previousSelection = GetSelectedSessionId();
             _sessions = _history.LoadSessionHistory();
+
+            // Prepend transient draft session (created by Start Over) so user sees the new pending run.
+            // Drop the draft once a real session with a later StartedAt has been persisted.
+            if (_draftSession != null && _sessions != null)
+            {
+                bool supersededByReal = false;
+                if (DateTime.TryParse(_draftSession.StartedAt, out var draftStart))
+                {
+                    foreach (var s in _sessions)
+                    {
+                        if (DateTime.TryParse(s.StartedAt, out var realStart) && realStart >= draftStart)
+                        {
+                            supersededByReal = true;
+                            break;
+                        }
+                    }
+                }
+                if (supersededByReal)
+                    _draftSession = null;
+                else
+                    _sessions = new List<SessionRecord>(_sessions) { _draftSession };
+            }
+
             _cmbSessions.Items.Clear();
 
             if (_sessions == null || _sessions.Count == 0)
@@ -880,13 +1229,43 @@ namespace SPOVersionManagement.Controls
                 if (DateTime.TryParse(session.StartedAt, out DateTime dt))
                     started = dt.ToString("yyyy-MM-dd HH:mm");
 
-                _cmbSessions.Items.Add($"{sessionId} | {session.Status ?? "Unknown"} | {started}");
+                string label = string.IsNullOrWhiteSpace(session.Label) ? sessionId : $"{sessionId} \u2014 {session.Label}";
+                _cmbSessions.Items.Add($"{label} | {session.Status ?? "Unknown"} | {started}");
                 if (!string.IsNullOrEmpty(previousSelection) && string.Equals(previousSelection, session.SessionId, StringComparison.OrdinalIgnoreCase))
                     selectedIndex = i;
             }
 
+            // If a draft is present, default-select it (last item)
+            if (_draftSession != null)
+                selectedIndex = _sessions.Count - 1;
+
             if (_cmbSessions.Items.Count > 0)
                 _cmbSessions.SelectedIndex = Math.Max(0, Math.Min(selectedIndex, _cmbSessions.Items.Count - 1));
+        }
+
+        private void UpdateSessionBadge(SessionRecord loaded = null)
+        {
+            if (_lblSessionBadge == null) return;
+
+            if (loaded != null) _loadedSession = loaded;
+
+            if (_sessionLoaded && _loadedSession != null)
+            {
+                string lbl = string.IsNullOrWhiteSpace(_loadedSession.Label) ? _loadedSession.SessionId : _loadedSession.Label;
+                _lblSessionBadge.Text = $"\u25CF Session loaded: {lbl}";
+                _lblSessionBadge.ForeColor = AppTheme.AccentCyan;
+            }
+            else if (_draftSession != null)
+            {
+                string lbl = string.IsNullOrWhiteSpace(_draftSession.Label) ? "new" : _draftSession.Label;
+                _lblSessionBadge.Text = $"\u25B6 New session: {lbl}";
+                _lblSessionBadge.ForeColor = AppTheme.AccentGreen;
+            }
+            else
+            {
+                _lblSessionBadge.Text = "\u25CB New session will be created on Execute";
+                _lblSessionBadge.ForeColor = AppTheme.TextMuted;
+            }
         }
 
         private string GetSelectedSessionId()
@@ -922,6 +1301,9 @@ namespace SPOVersionManagement.Controls
                 return;
 
             ApplySession(session);
+            _sessionLoaded = true;
+            _loadedSession = session;
+            UpdateSessionBadge(session);
             StatusMessage?.Invoke(this, $"Loaded session {session.SessionId}.");
             AppendConsole($"Loaded session {session.SessionId}", AppTheme.AccentCyan);
         }
@@ -932,7 +1314,9 @@ namespace SPOVersionManagement.Controls
             if (config == null)
                 return;
 
-            _txtAdminUrl.Text = session.AdminUrl ?? _config.AppConfig.AdminUrl ?? string.Empty;
+            _loadingSettings = true;
+            try
+            {
             _nudMajorVer.Value = Math.Max(_nudMajorVer.Minimum, Math.Min(_nudMajorVer.Maximum, config.MajorVersionLimit > 0 ? config.MajorVersionLimit : (int)_nudMajorVer.Value));
             _nudMinorVer.Value = Math.Max(_nudMinorVer.Minimum, Math.Min(_nudMinorVer.Maximum, config.MajorWithMinorVersionsLimit >= 0 ? config.MajorWithMinorVersionsLimit : (int)_nudMinorVer.Value));
             _nudConcurrent.Value = Math.Max(_nudConcurrent.Minimum, Math.Min(_nudConcurrent.Maximum, config.MaxConcurrentJobs > 0 ? config.MaxConcurrentJobs : (int)_nudConcurrent.Value));
@@ -959,8 +1343,20 @@ namespace SPOVersionManagement.Controls
                 _rbDeleteByCount.Checked = true;
             }
 
+            _chkUseFileCache.Checked = config.UseFileCache;
+            _txtCacheFile.Enabled = config.UseFileCache;
+            if (!string.IsNullOrWhiteSpace(config.CacheFilePath)) _txtCacheFile.Text = config.CacheFilePath;
+            if (!string.IsNullOrWhiteSpace(config.InputSiteSyncListCsv)) _txtSyncListCsv.Text = config.InputSiteSyncListCsv;
+            if (!string.IsNullOrWhiteSpace(config.SamReportCsv)) _txtSamReportCsv.Text = config.SamReportCsv;
+            _chkRetention.Checked = config.ManageRetention;
+
             ToggleDeleteMode();
             SyncGraphOptions();
+            }
+            finally
+            {
+                _loadingSettings = false;
+            }
         }
 
         private void BtnStartOver_Click(object sender, EventArgs e)
@@ -968,28 +1364,149 @@ namespace SPOVersionManagement.Controls
             if (MessageBox.Show("Start over with a clean execution form? This does not delete saved sessions.", "Start Over", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                 return;
 
-            _txtAdminUrl.Text = _config.AppConfig.AdminUrl ?? string.Empty;
-            _cmbZeroVersion.SelectedIndex = 0;
-            _nudMajorVer.Value = 100;
-            _nudMinorVer.Value = 0;
-            _nudConcurrent.Value = 10;
-            _nudCheckBatchSize.Value = 10;
-            _nudCheckBatchDelay.Value = 2;
-            _nudDeleteBeforeDays.Value = 180;
-            _rbDeleteByCount.Checked = true;
-            _chkSyncPolicy.Checked = true;
-            _chkDeleteVersions.Checked = true;
-            _chkRetention.Checked = false;
-            _chkUseFileCache.Checked = false;
-            _txtSiteListCsv.Text = _config.AppConfig.InputFiles?.IncludeSites ?? string.Empty;
-            _txtExclusionCsv.Text = _config.AppConfig.InputFiles?.ExcludeSites ?? string.Empty;
-            _txtGraphReportCsv.Clear();
-            _txtSyncListCsv.Clear();
-            _txtSamReportCsv.Clear();
-            _console.Clear();
+            // Clear session-specific state but keep all settings from GuiSettings.json
+            _console.Clear(); _preservedConsoleText = string.Empty;
+            LoadGuiSettings();
             ToggleDeleteMode();
             SyncGraphOptions();
-            StatusMessage?.Invoke(this, "Execution form reset to defaults.");
+
+            // Ask user for a friendly name (with default suggestion). User can keep or edit.
+            DateTime now = DateTime.Now;
+            string suggested = "Session " + now.ToString("yyyy-MM-dd HH:mm");
+            string entered = PromptForText(
+                "New Session",
+                "Give this session a friendly name (optional).\nDefault: \"" + suggested + "\". You can also describe scope, e.g. \"Top 100 sites\".",
+                suggested);
+            if (entered == null) return; // cancelled
+
+            string label = SanitizeSessionLabel(entered);
+            if (string.IsNullOrWhiteSpace(label)) label = suggested;
+
+            // Create a draft session entry so the dropdown shows the new pending run.
+            // SessionId is kept as the immutable timestamp key (used to track session files on disk).
+            // The user-entered Label is stored separately and shown in the dropdown.
+            _draftSession = new SessionRecord
+            {
+                SessionId = "NEW_" + now.ToString("yyyyMMdd_HHmmss"),
+                Status = "Pending",
+                StartedAt = now.ToString("yyyy-MM-dd HH:mm:ss"),
+                AdminUrl = _psHost?.AdminUrl,
+                Label = label
+            };
+            _pendingLabelToApply = label;
+            _sessionLoaded = false;
+            _loadedSession = null;
+            UpdateSessionBadge();
+            RefreshSessionControls();
+            StatusMessage?.Invoke(this, "New session pending: " + label);
+        }
+
+        // Holds the label entered during Start Over so we can apply it to the
+        // real session record once the PowerShell script persists it after Execute.
+        private string _pendingLabelToApply;
+
+        /// <summary>
+        /// Strips characters unsafe for filenames and trims to a reasonable length.
+        /// We only sanitize for safety; the SessionId (timestamp) remains the on-disk tracking key.
+        /// </summary>
+        private static string SanitizeSessionLabel(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+            var invalid = new HashSet<char>(System.IO.Path.GetInvalidFileNameChars());
+            // Also remove characters that are technically valid but problematic in filenames/UI
+            foreach (char c in new[] { '\\', '/', ':', '*', '?', '"', '<', '>', '|', '\r', '\n', '\t' })
+                invalid.Add(c);
+            var sb = new System.Text.StringBuilder(input.Length);
+            foreach (char c in input)
+            {
+                if (invalid.Contains(c)) sb.Append(' ');
+                else sb.Append(c);
+            }
+            // Collapse whitespace and trim
+            string cleaned = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), @"\s+", " ").Trim();
+            // Cap length to keep dropdown readable and filenames manageable
+            const int maxLen = 80;
+            if (cleaned.Length > maxLen) cleaned = cleaned.Substring(0, maxLen).TrimEnd();
+            return cleaned;
+        }
+
+
+        private void BtnRenameSession_Click(object sender, EventArgs e)
+        {
+            string id = GetSelectedSessionId();
+            if (string.IsNullOrEmpty(id) || _sessions == null)
+            {
+                MessageBox.Show("Select a saved session to rename.", "Rename Session", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // Renaming the transient draft (pending session) — update label in memory only
+            if (id.StartsWith("NEW_", StringComparison.OrdinalIgnoreCase) && _draftSession != null)
+            {
+                string draftLabel = PromptForText("Rename Pending Session", "Update the friendly name for this pending session:", _draftSession.Label ?? string.Empty);
+                if (draftLabel == null) return;
+                string sanitized = SanitizeSessionLabel(draftLabel);
+                _draftSession.Label = sanitized;
+                _pendingLabelToApply = sanitized;
+                RefreshSessionControls();
+                StatusMessage?.Invoke(this, "Pending session label updated.");
+                return;
+            }
+
+            var existing = _sessions.FirstOrDefault(s => string.Equals(s?.SessionId, id, StringComparison.OrdinalIgnoreCase));
+            string current = existing?.Label ?? string.Empty;
+
+            string newLabel = PromptForText("Rename Session", $"Add a friendly name for session:\n{id}\n\n(e.g. \"Top 100 sites\", \"Q2 cleanup\")", current);
+            if (newLabel == null) return; // cancelled
+
+            string clean = SanitizeSessionLabel(newLabel);
+            try
+            {
+                if (_history.RenameSession(id, clean))
+                {
+                    RefreshSessionControls();
+                    StatusMessage?.Invoke(this, "Session renamed.");
+                }
+                else
+                {
+                    MessageBox.Show("Could not rename session (file not found or session id missing).", "Rename Session", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Rename failed:\n{ex.Message}", "Rename Session", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private static string PromptForText(string title, string message, string initial)
+        {
+            using (var dlg = new Form())
+            {
+                dlg.Text = title;
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.MinimizeBox = false;
+                dlg.MaximizeBox = false;
+                dlg.ShowInTaskbar = false;
+                dlg.ClientSize = new Size(440, 160);
+                dlg.BackColor = AppTheme.BgDark;
+                dlg.ForeColor = AppTheme.TextPrimary;
+                dlg.Font = AppTheme.FontBody;
+
+                var lbl = new Label { Text = message, AutoSize = false, Size = new Size(420, 56), Location = new Point(10, 10), ForeColor = AppTheme.TextSecondary, BackColor = Color.Transparent };
+                var txt = new TextBox { Text = initial ?? string.Empty, Location = new Point(10, 76), Size = new Size(420, 24) };
+                AppTheme.StyleTextBox(txt);
+                var ok = new FlatButton { Text = "Save", Size = new Size(80, 28), Location = new Point(260, 116) };
+                ok.SetAccentColor(AppTheme.AccentCyan);
+                ok.Click += (s, e) => { dlg.DialogResult = DialogResult.OK; dlg.Close(); };
+                var cancel = new FlatButton { Text = "Cancel", Size = new Size(80, 28), Location = new Point(348, 116) };
+                cancel.SetGhostStyle();
+                cancel.Click += (s, e) => { dlg.DialogResult = DialogResult.Cancel; dlg.Close(); };
+                dlg.AcceptButton = ok;
+                dlg.CancelButton = cancel;
+                dlg.Controls.AddRange(new Control[] { lbl, txt, ok, cancel });
+                return dlg.ShowDialog() == DialogResult.OK ? txt.Text : null;
+            }
         }
 
         private void BtnDeleteSessions_Click(object sender, EventArgs e)
@@ -1037,3 +1554,4 @@ namespace SPOVersionManagement.Controls
         #endregion
     }
 }
+

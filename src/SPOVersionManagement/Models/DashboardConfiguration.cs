@@ -37,6 +37,9 @@ namespace SPOVersionManagement.Models
         [JsonProperty("ReexecutionDays")]
         public object ReexecutionDays { get; set; }
 
+        [JsonProperty("LookBackDays")]
+        public int LookBackDays { get; set; } = 7;
+
         [JsonProperty("ZeroVersionAction")]
         public string ZeroVersionAction { get; set; }
 

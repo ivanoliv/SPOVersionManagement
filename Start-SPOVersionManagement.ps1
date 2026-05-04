@@ -105,6 +105,9 @@ param(
     [int]$CheckBatchDelaySeconds = 2,
 
     [Parameter(Mandatory = $false)]
+    [switch]$SkipExternalSync,
+
+    [Parameter(Mandatory = $false)]
     [switch]$ResetDatabase
 )
 
@@ -478,7 +481,12 @@ catch {
 
 #region Tenant mismatch detection
 $logPath = Join-Path $scriptPath "Logs"
-$sessionHistoryPath = Join-Path $logPath "SessionHistory.json"
+$configPath = Join-Path $scriptPath "config"
+$sessionHistoryPath = Join-Path $configPath "SessionHistory.json"
+if (-not (Test-Path $sessionHistoryPath)) {
+    # Legacy fallback
+    $sessionHistoryPath = Join-Path $logPath "SessionHistory.json"
+}
 if (-not $ResetDatabase -and (Test-Path $sessionHistoryPath)) {
     try {
         $historyData = Get-Content $sessionHistoryPath -Raw | ConvertFrom-Json
@@ -704,9 +712,9 @@ elseif (Test-Path $allSitesFile) {
             }
             else {
                 Write-Host "  Cached sites: $cachedSiteCount (from $($cachedData.ExportedAt))" -ForegroundColor Cyan
-                Write-Host "  [C] Use Cache | [U] Update" -ForegroundColor White
+                Write-Host "  [C] Use Cache | [U] Update (get fresh data from tenant)" -ForegroundColor White
                 do {
-                    $cacheOption = Read-Host "  Choose (C/U)"
+                    $cacheOption = Read-Host "  Read sites from cache or update from tenant? (C/U)"
                 } while ($cacheOption -notmatch '^[CcUu]$')
 
                 if ($cacheOption -match '^[Cc]$') {
@@ -960,10 +968,13 @@ try {
         -MaxConcurrentJobs $MaxConcurrentJobs `
         -InputSiteListCSV $InputSiteListCSV `
         -InputExclusionSiteListCSV $InputExclusionSiteListCSV `
+        -InputSiteSyncListCSV $InputSiteSyncListCSV `
         -GraphReportCSV $GraphReportCSV `
         -ZeroVersionAction $zeroVersionAction `
         -DeleteOnly:$DeleteOnly `
         -SyncOnly:$SyncOnly `
+        -UseFileCache:$UseFileCache `
+        -ManageRetention:$ManageRetentionPolicy `
         -CheckBatchSize $CheckBatchSize `
         -CheckBatchDelaySeconds $CheckBatchDelaySeconds `
         -Status "InProgress" | Out-Null
@@ -979,11 +990,13 @@ try {
         MajorWithMinorVersionsLimit = $MajorWithMinorVersionsLimit
         CheckBatchSize              = $CheckBatchSize
         CheckBatchDelaySeconds      = $CheckBatchDelaySeconds
+        SessionId                   = $sessionId
     }
     if ($resumeExecution -or $useSessionConfig) { $orchestrationParams.Resume = $true }
     if ($UseFileCache) { $orchestrationParams.UseFileCache = $true }
     if ($DeleteOnly) { $orchestrationParams.DeleteOnly = $true }
     if ($SyncOnly) { $orchestrationParams.SyncOnly = $true }
+    if ($SkipExternalSync) { $orchestrationParams.SkipExternalSync = $true }
     
     if ($ManageRetentionPolicy) {
         # Connect to IPPS using the separate Purview app registration

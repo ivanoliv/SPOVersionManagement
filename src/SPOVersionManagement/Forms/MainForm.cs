@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Security.Principal;
 using System.Windows.Forms;
 using SPOVersionManagement.Controls;
 using SPOVersionManagement.Services;
@@ -12,6 +13,7 @@ namespace SPOVersionManagement.Forms
     public class MainForm : Form
     {
         private readonly string _rootPath;
+        private readonly string _initialNavigate;
 
         // Services
         private ConfigurationService _configService;
@@ -22,6 +24,7 @@ namespace SPOVersionManagement.Forms
         // Layout
         private SidebarControl _sidebar;
         private NotificationBar _notificationBar;
+        private ConnectionBar _connectionBar;
         private StatusBarControl _statusBar;
         private Panel _contentArea;
 
@@ -38,24 +41,42 @@ namespace SPOVersionManagement.Forms
         private FileArchiveQueuePanel _fileArchiveQueuePanel;
         private HttpServerPanel _httpServerPanel;
         private RetentionPolicyPanel _retentionPolicyPanel;
+        private SessionManagerPanel _sessionManagerPanel;
+        private TaskSchedulerPanel _taskSchedulerPanel;
         private DashboardHttpServerService _dashboardServer;
 
         private Control _activePanel;
         private string _activeKey = "home";
 
-        public MainForm(string rootPath)
+        public MainForm(string rootPath, string navigateTo = null)
         {
             _rootPath = rootPath;
+            _initialNavigate = navigateTo;
             InitializeForm();
             InitializeServices();
             BuildLayout();
-            ShowPanel("home");
+
+            string startPanel = !string.IsNullOrEmpty(_initialNavigate) ? _initialNavigate : "home";
+            if (_sidebar != null && !string.IsNullOrEmpty(_initialNavigate))
+                _sidebar.SelectedKey = _initialNavigate;
+            ShowPanel(startPanel);
             LoadDataAsync();
+        }
+
+        private static bool IsRunningAsAdmin()
+        {
+            using (var identity = WindowsIdentity.GetCurrent())
+            {
+                var principal = new WindowsPrincipal(identity);
+                return principal.IsInRole(WindowsBuiltInRole.Administrator);
+            }
         }
 
         private void InitializeForm()
         {
-            Text = "SPO Version Management";
+            Text = IsRunningAsAdmin()
+                ? "Administrator: SPO Version Management"
+                : "SPO Version Management";
             int desiredWidth = Math.Max(AppTheme.FormWidth, 1700);
             int desiredHeight = Math.Max(AppTheme.FormHeight, 900);
             var workingArea = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, desiredWidth, desiredHeight);
@@ -69,7 +90,18 @@ namespace SPOVersionManagement.Forms
             BackColor = AppTheme.BgDark;
             ForeColor = AppTheme.TextPrimary;
             DoubleBuffered = true;
-            SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+            SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
+        }
+
+        // Enable OS-level composited rendering to eliminate flicker on panel switches
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                var cp = base.CreateParams;
+                cp.ExStyle |= 0x02000000; // WS_EX_COMPOSITED
+                return cp;
+            }
         }
 
         private void InitializeServices()
@@ -82,6 +114,23 @@ namespace SPOVersionManagement.Forms
 
             EnsureTelemetryConsentOnce();
 
+            // Auto-resolve TenantId if empty but AdminUrl is configured
+            if (_configService.AppConfig.EntraIdApp != null &&
+                string.IsNullOrWhiteSpace(_configService.AppConfig.EntraIdApp.TenantId) &&
+                !string.IsNullOrWhiteSpace(_configService.AppConfig.AdminUrl))
+            {
+                try
+                {
+                    string resolved = ResolveTenantIdFromAdminUrl(_configService.AppConfig.AdminUrl);
+                    if (!string.IsNullOrEmpty(resolved))
+                    {
+                        _configService.AppConfig.EntraIdApp.TenantId = resolved;
+                        _configService.SaveAppConfig();
+                    }
+                }
+                catch { /* best-effort, telemetry will just skip if still empty */ }
+            }
+
             if (_configService.AppConfig.TelemetryEnabled &&
                 !string.IsNullOrEmpty(_configService.AppConfig.TelemetryEndpoint) &&
                 _configService.AppConfig.EntraIdApp != null)
@@ -92,6 +141,37 @@ namespace SPOVersionManagement.Forms
                     _configService.AppConfig.AppVersion,
                     _configService.AppConfig.TelemetrySalt);
             }
+        }
+
+        /// <summary>
+        /// Resolves TenantId from the AdminUrl using Azure AD's public OpenID discovery endpoint.
+        /// No authentication required — the endpoint is public.
+        /// Example: https://contoso-admin.sharepoint.com → GET https://login.microsoftonline.com/contoso.sharepoint.com/.well-known/openid-configuration
+        /// → issuer "https://sts.windows.net/{tenantId}/" → extract GUID.
+        /// </summary>
+        private static string ResolveTenantIdFromAdminUrl(string adminUrl)
+        {
+            // Extract tenant name: "https://contoso-admin.sharepoint.com" → "contoso"
+            var uri = new Uri(adminUrl.TrimEnd('/'));
+            string host = uri.Host; // e.g. "contoso-admin.sharepoint.com"
+            string tenantName = host.Split('.')[0].Replace("-admin", "");
+
+            // Use .onmicrosoft.com — always a verified Azure AD domain (unlike .sharepoint.com)
+            string tenantDomain = $"{tenantName}.onmicrosoft.com";
+
+            // Azure AD OpenID discovery endpoint (public, no auth)
+            string discoveryUrl = $"https://login.microsoftonline.com/{tenantDomain}/.well-known/openid-configuration";
+
+            using (var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) })
+            {
+                string json = http.GetStringAsync(discoveryUrl).GetAwaiter().GetResult();
+                // Parse issuer: "https://sts.windows.net/{guid}/"
+                var match = System.Text.RegularExpressions.Regex.Match(json,
+                    @"""issuer""\s*:\s*""https://sts\.windows\.net/([0-9a-fA-F\-]{36})/?""");
+                if (match.Success)
+                    return match.Groups[1].Value;
+            }
+            return null;
         }
 
         private void EnsureTelemetryConsentOnce()
@@ -153,20 +233,23 @@ namespace SPOVersionManagement.Forms
         {
             SuspendLayout();
 
-            // ── Status Bar (bottom) ──
+            // ── Create all controls first ──
+
             _statusBar = new StatusBarControl();
             _statusBar.SetIndicator1("Cache: Ready", AppTheme.AccentGreen);
             _statusBar.SetIndicator2("Graph: Offline", AppTheme.AccentGold);
             _statusBar.SetSession("Session: None");
             _statusBar.SetMemory("");
-            Controls.Add(_statusBar);
 
-            // ── Notification Bar (top) ──
             _notificationBar = new NotificationBar();
             _notificationBar.Dock = DockStyle.Top;
-            Controls.Add(_notificationBar);
 
-            // ── Content Area (fill) ── must be added BEFORE sidebar so dock order is correct
+            _connectionBar = new ConnectionBar();
+            _connectionBar.Initialize(_configService, _psHost);
+            // Hidden: each PowerShell script handles its own SPO/Graph/Purview auth (interactive or app-only via AppPaths.json).
+            // The global connection bar is no longer required for execution and was misleading.
+            _connectionBar.Visible = false;
+
             _contentArea = new BufferedPanel
             {
                 Dock = DockStyle.Fill,
@@ -174,9 +257,7 @@ namespace SPOVersionManagement.Forms
                 Padding = new Padding(16, 12, 16, AppTheme.StatusBarHeight + 2)
             };
             _contentArea.Paint += (s, e) => AppTheme.PaintGradientBackground(e.Graphics, _contentArea.ClientRectangle);
-            Controls.Add(_contentArea);
 
-            // ── Sidebar (left) ── added after content so it docks first (WinForms z-order)
             _sidebar = new SidebarControl();
             _sidebar.SetVersion(_configService.AppConfig.AppVersion ?? "?");
             _sidebar.AddItem("\u2302", "Home", "home");
@@ -196,13 +277,22 @@ namespace SPOVersionManagement.Forms
             _sidebar.AddChild("exec", "Archive Sites", "exec.archive");
             _sidebar.AddChild("exec", "File Archive Explorer", "exec.filearchive");
             _sidebar.AddChild("exec", "File Archive Queue", "exec.filearchivequeue");
+            _sidebar.AddChild("exec", "Session Manager", "exec.sessions");
+            _sidebar.AddItem("\u23F0", "Task Scheduler", "scheduler");
             _sidebar.AddItem("\u29D6", "History", "history");
             _sidebar.AddItem("\u21BB", "Updates", "updates");
             _sidebar.SelectedKey = "home";
             _sidebar.NavigationChanged += Sidebar_NavigationChanged;
-            Controls.Add(_sidebar);
 
-            _notificationBar.BringToFront();
+            // ── Add controls in correct dock order ──
+            // WinForms docks from END of Controls collection first.
+            // Fill must be added FIRST (lowest z-index, docked last = gets remaining space).
+            // Edge-docked controls added AFTER (higher z-index, docked first = claim their edge).
+            Controls.Add(_contentArea);      // index 0: Fill (docked last → fills remaining)
+            Controls.Add(_sidebar);          // index 1: Left
+            Controls.Add(_statusBar);        // index 2: Bottom
+            Controls.Add(_connectionBar);    // index 3: Top (below notification)
+            Controls.Add(_notificationBar);  // index 4: Top (very top, docked first)
 
             ResumeLayout(false);
 
@@ -233,6 +323,8 @@ namespace SPOVersionManagement.Forms
             else if (key == "exec.archive") { panel = GetSitesPanel(); sitesView = "queue"; }
             else if (key == "exec.filearchive") panel = GetFileArchivePanel();
             else if (key == "exec.filearchivequeue") panel = GetFileArchiveQueuePanel();
+            else if (key == "exec.sessions") panel = GetSessionManagerPanel();
+            else if (key == "scheduler") panel = GetTaskSchedulerPanel();
             else if (key == "history") panel = GetHistoryPanel();
             else if (key == "updates") panel = GetUpdatePanel();
 
@@ -247,9 +339,11 @@ namespace SPOVersionManagement.Forms
                 if (_activePanel != null) _activePanel.Visible = false;
                 if (!_contentArea.Controls.Contains(panel))
                 {
+                    panel.Visible = false;
                     panel.Dock = DockStyle.Fill;
                     _contentArea.Controls.Add(panel);
                 }
+                _contentArea.ResumeLayout(false);
                 panel.Visible = true;
                 _activePanel = panel;
                 _contentArea.ResumeLayout(true);
@@ -351,6 +445,35 @@ namespace SPOVersionManagement.Forms
                 _historyPanel.Initialize(_configService, _historyService);
             }
             return _historyPanel;
+        }
+
+        private SessionManagerPanel GetSessionManagerPanel()
+        {
+            if (_sessionManagerPanel == null)
+            {
+                _sessionManagerPanel = new SessionManagerPanel();
+                _sessionManagerPanel.Initialize(_configService, _historyService, _psHost);
+                _sessionManagerPanel.StatusMessage += (s, msg) => SetStatus(msg);
+                _sessionManagerPanel.ResumeRequested += (s, session) =>
+                {
+                    // Navigate to Execution panel and trigger resume with session config
+                    _sidebar.SelectedKey = "exec.clean";
+                    ShowPanel("exec.clean");
+                    _executionPanel?.LoadSessionAndResume(session);
+                };
+            }
+            return _sessionManagerPanel;
+        }
+
+        private TaskSchedulerPanel GetTaskSchedulerPanel()
+        {
+            if (_taskSchedulerPanel == null)
+            {
+                _taskSchedulerPanel = new TaskSchedulerPanel();
+                _taskSchedulerPanel.Initialize(_configService, _psHost);
+                _taskSchedulerPanel.StatusMessage += (s, msg) => SetStatus(msg);
+            }
+            return _taskSchedulerPanel;
         }
 
         private UpdatePanel GetUpdatePanel()

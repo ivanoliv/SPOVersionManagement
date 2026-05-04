@@ -65,7 +65,14 @@ function Connect-RetentionPolicyManager {
 
     # If credentials not provided explicitly, try to load from AppPaths.json PurviewApp section
     if ($UseAppPaths -and (-not $AppId -or -not $CertificateThumbprint)) {
-        $appPathsFile = if ($LogPath) { Join-Path $LogPath "AppPaths.json" } else { $null }
+        # AppPaths.json lives in config/ (state files); Logs/ kept as fallback for legacy installs
+        $appPathsFile = $null
+        $moduleRoot = Split-Path -Parent $PSCommandPath
+        $candidates = New-Object System.Collections.ArrayList
+        [void]$candidates.Add((Join-Path $moduleRoot 'config\AppPaths.json'))
+        if ($LogPath) { [void]$candidates.Add((Join-Path $LogPath 'AppPaths.json')) }
+        [void]$candidates.Add((Join-Path $moduleRoot 'AppPaths.json'))
+        foreach ($c in $candidates) { if (Test-Path $c) { $appPathsFile = $c; break } }
         if ($appPathsFile -and (Test-Path $appPathsFile)) {
             try {
                 $appPathsJson = Get-Content $appPathsFile -Raw | ConvertFrom-Json
@@ -141,13 +148,11 @@ function Connect-RetentionPolicyManager {
     # Store LogPath for module-wide use (e.g., AllSites.json lookup)
     $script:LogPath = $LogPath
 
-    # Initialize log
-    if ($LogPath) {
-        $script:RetentionPolicyLogFile = Join-Path $LogPath "RetentionPolicyLog.json"
-    }
-    else {
-        $script:RetentionPolicyLogFile = Join-Path (Get-Location) "RetentionPolicyLog.json"
-    }
+    # Initialize log (state JSON lives in config/, not Logs/)
+    $moduleRoot = Split-Path -Parent $PSCommandPath
+    $configPath = Join-Path $moduleRoot 'config'
+    if (-not (Test-Path $configPath)) { New-Item -ItemType Directory -Path $configPath -Force | Out-Null }
+    $script:RetentionPolicyLogFile = Join-Path $configPath 'RetentionPolicyLog.json'
 
     # Load existing log
     if (Test-Path $script:RetentionPolicyLogFile) {

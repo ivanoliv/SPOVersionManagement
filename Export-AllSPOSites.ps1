@@ -56,7 +56,7 @@ try {
     # Check if already connected
     $existingConnection = $null
     try {
-        $existingConnection = Get-SPOSite -Limit 1 -ErrorAction SilentlyContinue
+        $existingConnection = Get-SPOSite -Limit 1 -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
     }
     catch {
         $existingConnection = $null
@@ -80,7 +80,7 @@ $startTime = Get-Date
 
 try {
     # Get all sites with details
-    $allSites = Get-SPOSite -Limit All -Detailed
+    $allSites = Get-SPOSite -Limit All -Detailed -WarningAction SilentlyContinue
     
     $elapsed = (Get-Date) - $startTime
     Write-Host "[OK] $($allSites.Count) sites found in $($elapsed.TotalSeconds.ToString('N1')) seconds" -ForegroundColor Green
@@ -152,7 +152,12 @@ if ($AutoConfirm) {
 }
 
 if ($saveToJson -eq 'Y' -or $saveToJson -eq 'y') {
-    $jsonOutputPath = Join-Path (Split-Path $OutputPath -Parent) "AllSites.json"
+    # AllSites.json must be in config/ (where the app reads it from), not Logs/
+    $configDir = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) "config"
+    if (-not (Test-Path $configDir)) {
+        New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+    }
+    $jsonOutputPath = Join-Path $configDir "AllSites.json"
     
     Write-Host ""
     Write-Host "Converting data for Dashboard format..." -ForegroundColor Yellow

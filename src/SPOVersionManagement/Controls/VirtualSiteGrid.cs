@@ -31,7 +31,7 @@ namespace SPOVersionManagement.Controls
         private HashSet<string> _sitesWithHistory = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private HashSet<string> _queuedUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private bool _showQueueCheckboxes;
-        private readonly Dictionary<int, string> _activeColumnFilters = new Dictionary<int, string>();
+        private readonly Dictionary<int, HashSet<string>> _activeColumnFilters = new Dictionary<int, HashSet<string>>();
         private int _sortColumnIndex = -1;
         private SortOrder _sortDirection = SortOrder.None;
         private int _targetScroll = 0;
@@ -40,23 +40,32 @@ namespace SPOVersionManagement.Controls
         private bool _hasPersistedColumnLayout;
 
         // Column indices (catalog mode)
-        private const int ColDetail = 0;
-        private const int ColTitle = 1;
-        private const int ColUrl = 2;
-        private const int ColStorage = 3;
-        private const int ColVersions = 4;
-        private const int ColVersionSize = 5;
-        private const int ColStatus = 6;
-        private const int ColArchive = 7;
-        private const int ColLock = 8;
-        private const int ColLastMod = 9;
-        private const int ColCreated = 10;
-        private const int ColOwner = 11;
+        private const int ColSelect = 0;
+        private const int ColDetail = 1;
+        private const int ColTitle = 2;
+        private const int ColUrl = 3;
+        private const int ColStorage = 4;
+        private const int ColVersions = 5;
+        private const int ColVersionSize = 6;
+        private const int ColStatus = 7;
+        private const int ColArchive = 8;
+        private const int ColLock = 9;
+        private const int ColLastMod = 10;
+        private const int ColCreated = 11;
+        private const int ColOwner = 12;
+
+        private HashSet<string> _checkedUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private bool _allChecked;
+
+        // Clipboard-copied banner state (overlays the URL cell briefly)
+        private int _copiedRowIndex = -1;
+        private System.Windows.Forms.Timer _copiedTimer;
 
         public event EventHandler<SiteCatalogEntry> DetailRequested;
         public event EventHandler SelectionUpdated;
         public event EventHandler<SiteCatalogEntry> QueueToggled;
         public event EventHandler VisibleDataChanged;
+        public event EventHandler CheckedChanged;
 
         public int TotalColumnsWidth
         {
@@ -205,7 +214,9 @@ namespace SPOVersionManagement.Controls
             Columns.Clear();
             AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
 
-            // 0: Detail icon
+            // 0: Select checkbox
+            Columns.Add(new DataGridViewTextBoxColumn { Name = "Select", HeaderText = "\u2610", Width = 36, MinimumWidth = 36, Resizable = DataGridViewTriState.False, SortMode = DataGridViewColumnSortMode.NotSortable });
+            // 1: Detail icon
             Columns.Add(new DataGridViewTextBoxColumn { Name = "Detail", HeaderText = "", Width = 32, MinimumWidth = 32, Resizable = DataGridViewTriState.False, SortMode = DataGridViewColumnSortMode.NotSortable });
             // 1: Title
             Columns.Add(new DataGridViewTextBoxColumn { Name = "Title", HeaderText = "TITLE", Width = 180, MinimumWidth = 120, SortMode = DataGridViewColumnSortMode.Programmatic });
@@ -230,6 +241,7 @@ namespace SPOVersionManagement.Controls
             // 11: Owner
             Columns.Add(new DataGridViewTextBoxColumn { Name = "Owner", HeaderText = "OWNER", Width = 140, MinimumWidth = 80, SortMode = DataGridViewColumnSortMode.Programmatic });
 
+            Columns["Select"].Frozen = true;
             Columns["Detail"].Frozen = true;
             Columns["Title"].Frozen = true;
         }
@@ -271,6 +283,9 @@ namespace SPOVersionManagement.Controls
         public void SetData(List<SiteCatalogEntry> data)
         {
             _allData = data?.ToList() ?? new List<SiteCatalogEntry>();
+            _checkedUrls.Clear();
+            _allChecked = false;
+            UpdateSelectAllHeader();
             EnsureHeaderState();
 
             RowTemplate.Height = 48;
@@ -301,6 +316,7 @@ namespace SPOVersionManagement.Controls
             _applyingColumnLayout = true;
             try
             {
+                SetColumnWidth("Select", 36);
                 SetColumnWidth("Detail", 32);
                 SetColumnWidth("Storage", 80);
                 SetColumnWidth("Versions", 80);
@@ -398,6 +414,10 @@ namespace SPOVersionManagement.Controls
 
         public List<SiteCatalogEntry> GetSelectedSites()
         {
+            // Prefer checked rows if any are checked
+            if (_checkedUrls.Count > 0)
+                return GetCheckedSites();
+
             var result = new List<SiteCatalogEntry>();
             foreach (DataGridViewRow row in SelectedRows)
             {
@@ -409,6 +429,10 @@ namespace SPOVersionManagement.Controls
 
         public List<string> GetSelectedUrls()
         {
+            // Prefer checked rows if any are checked
+            if (_checkedUrls.Count > 0)
+                return GetCheckedUrls();
+
             var urls = new List<string>();
             foreach (DataGridViewRow row in SelectedRows)
             {
@@ -431,6 +455,63 @@ namespace SPOVersionManagement.Controls
                 .ToList();
         }
 
+        public int CheckedCount => _checkedUrls.Count;
+
+        public List<SiteCatalogEntry> GetCheckedSites()
+        {
+            return (_data ?? new List<SiteCatalogEntry>())
+                .Where(s => !string.IsNullOrWhiteSpace(s.Url) && _checkedUrls.Contains(s.Url))
+                .ToList();
+        }
+
+        public List<string> GetCheckedUrls()
+        {
+            return (_data ?? new List<SiteCatalogEntry>())
+                .Where(s => !string.IsNullOrWhiteSpace(s.Url) && _checkedUrls.Contains(s.Url))
+                .Select(s => s.Url)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        public void ClearChecked()
+        {
+            _checkedUrls.Clear();
+            _allChecked = false;
+            UpdateSelectAllHeader();
+            if (Columns.Count > ColSelect)
+                InvalidateColumn(ColSelect);
+            CheckedChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void ToggleSelectAll()
+        {
+            if (_allChecked)
+            {
+                _checkedUrls.Clear();
+                _allChecked = false;
+            }
+            else
+            {
+                foreach (var site in _data)
+                {
+                    if (!string.IsNullOrWhiteSpace(site.Url))
+                        _checkedUrls.Add(site.Url);
+                }
+                _allChecked = true;
+            }
+
+            UpdateSelectAllHeader();
+            if (Columns.Count > ColSelect)
+                InvalidateColumn(ColSelect);
+            CheckedChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void UpdateSelectAllHeader()
+        {
+            if (Columns.Count > ColSelect)
+                Columns[ColSelect].HeaderText = _allChecked ? "\u2611" : "\u2610";
+        }
+
         public void ClearColumnFiltersAndSort()
         {
             _activeColumnFilters.Clear();
@@ -446,6 +527,10 @@ namespace SPOVersionManagement.Controls
 
             switch (e.ColumnIndex)
             {
+                case ColSelect:
+                    bool chk = site != null && !string.IsNullOrWhiteSpace(site.Url) && _checkedUrls.Contains(site.Url);
+                    e.Value = chk ? "\u2611" : "\u2610";
+                    break;
                 case ColDetail: e.Value = "\uD83D\uDD0D"; break; // magnifying glass
                 case ColTitle: e.Value = site.Title ?? ""; break;
                 case ColUrl: e.Value = site.Url ?? ""; break;
@@ -501,6 +586,10 @@ namespace SPOVersionManagement.Controls
 
                 switch (e.ColumnIndex)
                 {
+                    case ColSelect:
+                        DrawSelectCheckbox(g, bounds, isSelected, site);
+                        break;
+
                     case ColDetail:
                         DrawDetailIcon(g, bounds, isSelected, site);
                         break;
@@ -510,7 +599,9 @@ namespace SPOVersionManagement.Controls
                         break;
 
                     case ColUrl:
-                        DrawTwoLineCell(g, bounds, pad, TruncateUrl(site.Url), site.Owner ?? "", AppTheme.AccentCyan, AppTheme.TextMuted, isSelected);
+                        DrawTwoLineCell(g, bounds, pad, site.Url ?? "", site.Owner ?? "", AppTheme.AccentCyan, AppTheme.TextMuted, isSelected);
+                        if (e.RowIndex == _copiedRowIndex)
+                            DrawCopiedBanner(g, bounds);
                         break;
 
                     case ColStorage:
@@ -594,6 +685,17 @@ namespace SPOVersionManagement.Controls
 
             if (!_scrollTimer.Enabled)
                 _scrollTimer.Start();
+        }
+
+        private void DrawSelectCheckbox(Graphics g, Rectangle bounds, bool isSelected, SiteCatalogEntry site)
+        {
+            bool isChecked = site != null
+                && !string.IsNullOrWhiteSpace(site.Url)
+                && _checkedUrls.Contains(site.Url);
+            string glyph = isChecked ? "\u2611" : "\u2610";
+            Color color = isChecked ? AppTheme.AccentCyan : (isSelected ? Color.FromArgb(120, AppTheme.AccentCyan) : AppTheme.TextMuted);
+            TextRenderer.DrawText(g, glyph, FontIcon, bounds, color,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
 
         private void DrawDetailIcon(Graphics g, Rectangle bounds, bool isSelected, SiteCatalogEntry site)
@@ -740,17 +842,33 @@ namespace SPOVersionManagement.Controls
         {
             if (e.RowIndex < 0 || e.RowIndex >= _data.Count) return;
 
-            // Click on URL column → copy URL to clipboard
+            // Click on Select checkbox column → toggle check state
+            if (e.ColumnIndex == ColSelect)
+            {
+                var site = _data[e.RowIndex];
+                if (site != null && !string.IsNullOrWhiteSpace(site.Url))
+                {
+                    if (_checkedUrls.Contains(site.Url))
+                        _checkedUrls.Remove(site.Url);
+                    else
+                        _checkedUrls.Add(site.Url);
+
+                    _allChecked = _data.Count > 0 && _data.All(s => !string.IsNullOrWhiteSpace(s.Url) && _checkedUrls.Contains(s.Url));
+                    UpdateSelectAllHeader();
+                    InvalidateCell(ColSelect, e.RowIndex);
+                    CheckedChanged?.Invoke(this, EventArgs.Empty);
+                }
+                return;
+            }
+
+            // Click on URL column → copy URL to clipboard + show inline banner over the cell
             if (e.ColumnIndex == ColUrl)
             {
                 var site = _data[e.RowIndex];
                 if (!string.IsNullOrWhiteSpace(site.Url))
                 {
-                    Clipboard.SetText(site.Url);
-                    // Brief visual feedback via tooltip
-                    var cellRect = GetCellDisplayRectangle(e.ColumnIndex, e.RowIndex, false);
-                    var tip = new ToolTip();
-                    tip.Show("URL copied!", this, cellRect.X + 10, cellRect.Y - 20, 1200);
+                    try { Clipboard.SetText(site.Url); } catch { }
+                    ShowCopiedBanner(e.RowIndex);
                 }
                 return;
             }
@@ -804,18 +922,61 @@ namespace SPOVersionManagement.Controls
         private static string TruncateUrl(string url)
         {
             if (string.IsNullOrWhiteSpace(url)) return "";
-            // Show just the path portion for readability
-            try
+            return url;
+        }
+
+        private void ShowCopiedBanner(int rowIndex)
+        {
+            _copiedRowIndex = rowIndex;
+            InvalidateCell(ColUrl, rowIndex);
+            if (_copiedTimer == null)
             {
-                var uri = new Uri(url);
-                string host = uri.Host;
-                // Shorten tenant prefix
-                int dot = host.IndexOf('.');
-                if (dot > 0 && host.Contains("sharepoint"))
-                    host = host.Substring(0, dot) + "...";
-                return host + uri.AbsolutePath;
+                _copiedTimer = new System.Windows.Forms.Timer { Interval = 1200 };
+                _copiedTimer.Tick += (s, e) =>
+                {
+                    _copiedTimer.Stop();
+                    int prev = _copiedRowIndex;
+                    _copiedRowIndex = -1;
+                    if (prev >= 0 && prev < RowCount) InvalidateCell(ColUrl, prev);
+                };
             }
-            catch { return url; }
+            _copiedTimer.Stop();
+            _copiedTimer.Start();
+        }
+
+        private static void DrawCopiedBanner(Graphics g, Rectangle bounds)
+        {
+            const string text = "Url copied to clipboard";
+            using (var font = new Font("Segoe UI", 8.5f, FontStyle.Bold))
+            using (var bg = new SolidBrush(Color.FromArgb(230, AppTheme.AccentGreen)))
+            using (var fg = new SolidBrush(Color.Black))
+            {
+                var size = g.MeasureString(text, font);
+                int w = (int)Math.Ceiling(size.Width) + 16;
+                int h = (int)Math.Ceiling(size.Height) + 6;
+                int x = bounds.X + (bounds.Width - w) / 2;
+                int y = bounds.Y + (bounds.Height - h) / 2;
+                var rect = new Rectangle(x, y, w, h);
+                using (var path = RoundedRect(rect, 6))
+                {
+                    g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                    g.FillPath(bg, path);
+                }
+                using (var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                    g.DrawString(text, font, fg, rect, sf);
+            }
+        }
+
+        private static System.Drawing.Drawing2D.GraphicsPath RoundedRect(Rectangle r, int radius)
+        {
+            var path = new System.Drawing.Drawing2D.GraphicsPath();
+            int d = radius * 2;
+            path.AddArc(r.X, r.Y, d, d, 180, 90);
+            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+            path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+            path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
         }
 
         private static string TruncateText(string text, int max)
@@ -826,6 +987,13 @@ namespace SPOVersionManagement.Controls
 
         private void OnColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
         {
+            // Click on Select header → toggle all
+            if (e.ColumnIndex == ColSelect)
+            {
+                ToggleSelectAll();
+                return;
+            }
+
             if (e.ColumnIndex == ColDetail || e.ColumnIndex < 0) return;
             if (_allData == null || _allData.Count == 0) return;
 
@@ -900,8 +1068,9 @@ namespace SPOVersionManagement.Controls
 
             foreach (var kv in _activeColumnFilters.ToList())
             {
-                string activeValue = kv.Value ?? string.Empty;
-                filtered = filtered.Where(site => string.Equals(GetColumnFilterValue(site, kv.Key), activeValue, StringComparison.OrdinalIgnoreCase));
+                var allowedValues = kv.Value;
+                int colIdx = kv.Key;
+                filtered = filtered.Where(site => allowedValues.Contains(GetColumnFilterValue(site, colIdx) ?? string.Empty));
             }
 
             _data = filtered.ToList();
@@ -922,60 +1091,249 @@ namespace SPOVersionManagement.Controls
                 Columns[_sortColumnIndex].HeaderCell.SortGlyphDirection = _sortDirection;
         }
 
+        private ToolStripDropDown _activeFilterDropDown;
+
         private void ShowHeaderFilterMenu(int columnIndex, Point screenPoint)
         {
-            var menu = new ContextMenuStrip
+            // Dispose previous menu to avoid "Cannot access a disposed object" crash
+            if (_activeFilterDropDown != null)
             {
-                ShowImageMargin = false,
-                BackColor = AppTheme.BgInput,
-                ForeColor = AppTheme.TextPrimary
+                try { _activeFilterDropDown.Close(); _activeFilterDropDown.Dispose(); } catch { }
+                _activeFilterDropDown = null;
+            }
+
+            var allValues = GetDistinctColumnValues(columnIndex).ToList();
+            HashSet<string> currentFilter = _activeColumnFilters.ContainsKey(columnIndex)
+                ? _activeColumnFilters[columnIndex]
+                : null;
+
+            // Build a popup Form instead of ContextMenuStrip (avoids WinForms menu disposal issues)
+            var popup = new Form
+            {
+                FormBorderStyle = FormBorderStyle.FixedToolWindow,
+                ShowInTaskbar = false,
+                StartPosition = FormStartPosition.Manual,
+                BackColor = AppTheme.BgCard,
+                ForeColor = AppTheme.TextPrimary,
+                Size = new Size(260, Math.Min(400, 120 + allValues.Count * 20)),
+                Location = screenPoint,
+                TopMost = true
             };
 
-            var sortAsc = new ToolStripMenuItem("Sort A to Z");
-            sortAsc.Click += (s, e) =>
+            int y = 8;
+
+            // Sort A→Z button
+            var btnSortAsc = new Button
+            {
+                Text = "\u25B2  Sort A to Z",
+                FlatStyle = FlatStyle.Flat,
+                BackColor = AppTheme.BgCard,
+                ForeColor = AppTheme.TextPrimary,
+                Font = new Font("Segoe UI", 8.5f),
+                Size = new Size(240, 26),
+                Location = new Point(6, y),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Cursor = Cursors.Hand
+            };
+            btnSortAsc.FlatAppearance.BorderSize = 0;
+            btnSortAsc.Click += (s, ev) =>
             {
                 _sortColumnIndex = columnIndex;
                 _sortDirection = SortOrder.Ascending;
                 ApplyFiltersAndSort();
+                popup.Close();
             };
-            menu.Items.Add(sortAsc);
+            popup.Controls.Add(btnSortAsc);
+            y += 28;
 
-            var sortDesc = new ToolStripMenuItem("Sort Z to A");
-            sortDesc.Click += (s, e) =>
+            // Sort Z→A button
+            var btnSortDesc = new Button
+            {
+                Text = "\u25BC  Sort Z to A",
+                FlatStyle = FlatStyle.Flat,
+                BackColor = AppTheme.BgCard,
+                ForeColor = AppTheme.TextPrimary,
+                Font = new Font("Segoe UI", 8.5f),
+                Size = new Size(240, 26),
+                Location = new Point(6, y),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Cursor = Cursors.Hand
+            };
+            btnSortDesc.FlatAppearance.BorderSize = 0;
+            btnSortDesc.Click += (s, ev) =>
             {
                 _sortColumnIndex = columnIndex;
                 _sortDirection = SortOrder.Descending;
                 ApplyFiltersAndSort();
+                popup.Close();
             };
-            menu.Items.Add(sortDesc);
-            menu.Items.Add(new ToolStripSeparator());
+            popup.Controls.Add(btnSortDesc);
+            y += 34;
 
-            var clearFilter = new ToolStripMenuItem("Clear Filter") { Enabled = _activeColumnFilters.ContainsKey(columnIndex) };
-            clearFilter.Click += (s, e) =>
+            // Separator line
+            var sep = new Panel { BackColor = AppTheme.Border, Size = new Size(240, 1), Location = new Point(6, y) };
+            popup.Controls.Add(sep);
+            y += 6;
+
+            // Search textbox
+            var txtSearch = new TextBox
             {
-                _activeColumnFilters.Remove(columnIndex);
-                ApplyFiltersAndSort();
+                Size = new Size(240, 22),
+                Location = new Point(6, y),
+                BackColor = AppTheme.BgInput,
+                ForeColor = AppTheme.TextPrimary,
+                Font = new Font("Segoe UI", 8.5f),
+                BorderStyle = BorderStyle.FixedSingle
             };
-            menu.Items.Add(clearFilter);
+            txtSearch.PlaceholderText = "Search";
+            popup.Controls.Add(txtSearch);
+            y += 28;
 
-            foreach (var value in GetDistinctColumnValues(columnIndex).Take(25))
+            // CheckedListBox with values
+            int listHeight = Math.Min(220, 20 + allValues.Count * 18);
+            var clb = new CheckedListBox
             {
-                string localValue = value;
-                var item = new ToolStripMenuItem(string.IsNullOrWhiteSpace(localValue) ? "(Blanks)" : localValue)
-                {
-                    Checked = _activeColumnFilters.TryGetValue(columnIndex, out var current) &&
-                              string.Equals(current, localValue, StringComparison.OrdinalIgnoreCase)
-                };
-                item.Click += (s, e) =>
-                {
-                    _activeColumnFilters[columnIndex] = localValue ?? string.Empty;
-                    ApplyFiltersAndSort();
-                };
-                menu.Items.Add(item);
+                Size = new Size(240, listHeight),
+                Location = new Point(6, y),
+                BackColor = AppTheme.BgInput,
+                ForeColor = AppTheme.TextPrimary,
+                Font = new Font("Segoe UI", 8.5f),
+                BorderStyle = BorderStyle.FixedSingle,
+                CheckOnClick = true,
+                IntegralHeight = false
+            };
+
+            // Add "(Select All)" + values
+            clb.Items.Add("(Select All)");
+            foreach (string val in allValues)
+                clb.Items.Add(string.IsNullOrWhiteSpace(val) ? "(Blanks)" : val);
+
+            // Set initial check states
+            bool allSelected = currentFilter == null || currentFilter.Count == allValues.Count;
+            clb.SetItemChecked(0, allSelected);
+            for (int i = 0; i < allValues.Count; i++)
+            {
+                bool isChecked = currentFilter == null || currentFilter.Contains(allValues[i], StringComparer.OrdinalIgnoreCase);
+                clb.SetItemChecked(i + 1, isChecked);
             }
 
-            menu.Closed += (s, e) => menu.Dispose();
-            menu.Show(screenPoint);
+            bool _updatingChecks = false;
+            clb.ItemCheck += (s, ev) =>
+            {
+                if (_updatingChecks) return;
+                _updatingChecks = true;
+                try
+                {
+                    if (ev.Index == 0)
+                    {
+                        // "(Select All)" toggled — set all items to same state
+                        bool newState = ev.NewValue == CheckState.Checked;
+                        for (int i = 1; i < clb.Items.Count; i++)
+                            clb.SetItemChecked(i, newState);
+                    }
+                    else
+                    {
+                        // Individual item toggled — update "(Select All)" state
+                        int checkedCount = clb.CheckedIndices.Cast<int>().Count(idx => idx > 0);
+                        if (ev.NewValue == CheckState.Checked) checkedCount++;
+                        else checkedCount--;
+                        clb.SetItemChecked(0, checkedCount == clb.Items.Count - 1);
+                    }
+                }
+                finally { _updatingChecks = false; }
+            };
+
+            popup.Controls.Add(clb);
+            y += listHeight + 8;
+
+            // Search filtering
+            txtSearch.TextChanged += (s, ev) =>
+            {
+                string filter = txtSearch.Text.Trim();
+                _updatingChecks = true;
+                clb.Items.Clear();
+                clb.Items.Add("(Select All)");
+                var filtered = string.IsNullOrEmpty(filter)
+                    ? allValues
+                    : allValues.Where(v => v.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+                foreach (string val in filtered)
+                    clb.Items.Add(string.IsNullOrWhiteSpace(val) ? "(Blanks)" : val);
+                // Check all visible items
+                for (int i = 0; i < clb.Items.Count; i++)
+                    clb.SetItemChecked(i, true);
+                _updatingChecks = false;
+            };
+
+            // OK / Cancel buttons
+            var btnOk = new Button
+            {
+                Text = "OK",
+                Size = new Size(70, 26),
+                Location = new Point(100, y),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = AppTheme.AccentCyan,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI Semibold", 8.5f)
+            };
+            btnOk.FlatAppearance.BorderSize = 0;
+            var btnCancel = new Button
+            {
+                Text = "Cancel",
+                Size = new Size(70, 26),
+                Location = new Point(176, y),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = AppTheme.BgCard,
+                ForeColor = AppTheme.TextSecondary,
+                Font = new Font("Segoe UI", 8.5f)
+            };
+            btnCancel.FlatAppearance.BorderSize = 1;
+            btnCancel.FlatAppearance.BorderColor = AppTheme.Border;
+
+            btnOk.Click += (s, ev) =>
+            {
+                // Collect checked values (skip index 0 which is "Select All")
+                var selected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                for (int i = 1; i < clb.Items.Count; i++)
+                {
+                    if (clb.GetItemChecked(i))
+                    {
+                        string display = clb.Items[i].ToString();
+                        string actual = display == "(Blanks)" ? string.Empty : display;
+                        // Map display back to original value
+                        int idx = i - 1;
+                        if (idx < allValues.Count)
+                            selected.Add(allValues[idx]);
+                        else
+                            selected.Add(actual);
+                    }
+                }
+
+                if (selected.Count == 0 || selected.Count == allValues.Count)
+                {
+                    // All or none selected → remove filter
+                    _activeColumnFilters.Remove(columnIndex);
+                }
+                else
+                {
+                    _activeColumnFilters[columnIndex] = selected;
+                }
+                ApplyFiltersAndSort();
+                popup.Close();
+            };
+
+            btnCancel.Click += (s, ev) => popup.Close();
+
+            popup.Controls.Add(btnOk);
+            popup.Controls.Add(btnCancel);
+
+            // Adjust popup height
+            popup.Height = y + 40;
+
+            // Close on deactivate
+            popup.Deactivate += (s, ev) => { try { popup.Close(); } catch { } };
+
+            popup.Show();
+            txtSearch.Focus();
         }
 
         private IEnumerable<string> GetDistinctColumnValues(int columnIndex)

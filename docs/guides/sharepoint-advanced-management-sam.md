@@ -236,7 +236,7 @@ This positions SPO Version Management as a **governance orchestration hub** that
 
 ## Related Guides
 
-- [SharePoint Site & File Archiving]({{ '/guides/sharepoint-site-file-archiving' | relative_url }})
-- [SharePoint Governance Best Practices]({{ '/guides/sharepoint-governance-best-practices' | relative_url }})
-- [How to Reduce SharePoint Storage Costs]({{ '/guides/reduce-sharepoint-storage-costs' | relative_url }})
-- [Complete Guide to SharePoint Version Management]({{ '/guides/sharepoint-version-management' | relative_url }})
+- [SharePoint Site & File Archiving]({{ '/guides/sharepoint-site-file-archiving/' | relative_url }})
+- [SharePoint Governance Best Practices]({{ '/guides/sharepoint-governance-best-practices/' | relative_url }})
+- [How to Reduce SharePoint Storage Costs]({{ '/guides/reduce-sharepoint-storage-costs/' | relative_url }})
+- [Complete Guide to SharePoint Version Management]({{ '/guides/sharepoint-version-management/' | relative_url }})

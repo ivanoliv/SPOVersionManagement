@@ -192,12 +192,12 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
 <body>
     <!-- Site Navigation -->
     <nav style="background:#16213e;padding:0.6rem 1.5rem;text-align:center;font-size:0.85rem;">
-        <a href="guides/sharepoint-version-management" style="color:#90caf9;margin:0 1rem;">Version Management Guide</a>
-        <a href="guides/reduce-sharepoint-storage-costs" style="color:#90caf9;margin:0 1rem;">Reduce Storage Costs</a>
-        <a href="guides/powershell-sharepoint-version-cleanup" style="color:#90caf9;margin:0 1rem;">PowerShell Automation</a>
-        <a href="guides/sharepoint-governance-best-practices" style="color:#90caf9;margin:0 1rem;">Governance Guide</a>
-        <a href="guides/sharepoint-site-file-archiving" style="color:#90caf9;margin:0 1rem;">Site Archiving</a>
-        <a href="guides/sharepoint-advanced-management-sam" style="color:#90caf9;margin:0 1rem;">SAM Integration</a>
+        <a href="guides/sharepoint-version-management/" style="color:#90caf9;margin:0 1rem;">Version Management Guide</a>
+        <a href="guides/reduce-sharepoint-storage-costs/" style="color:#90caf9;margin:0 1rem;">Reduce Storage Costs</a>
+        <a href="guides/powershell-sharepoint-version-cleanup/" style="color:#90caf9;margin:0 1rem;">PowerShell Automation</a>
+        <a href="guides/sharepoint-governance-best-practices/" style="color:#90caf9;margin:0 1rem;">Governance Guide</a>
+        <a href="guides/sharepoint-site-file-archiving/" style="color:#90caf9;margin:0 1rem;">Site Archiving</a>
+        <a href="guides/sharepoint-advanced-management-sam/" style="color:#90caf9;margin:0 1rem;">SAM Integration</a>
     </nav>
 
     <!-- Hero -->
@@ -709,12 +709,12 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
 
             <h3 style="font-size:1.15rem;font-weight:600;margin-bottom:0.8rem;color:#1a1a2e;">Learn More</h3>
             <ul style="color:#444;line-height:1.8;padding-left:1.5rem;">
-                <li><a href="guides/sharepoint-version-management">Complete Guide to SharePoint Version Management</a> — Deep dive into version policies, limits, and cleanup strategies</li>
-                <li><a href="guides/reduce-sharepoint-storage-costs">How to Reduce SharePoint Storage Costs</a> — Step-by-step optimization plan with ROI calculations</li>
-                <li><a href="guides/powershell-sharepoint-version-cleanup">PowerShell Automation for Version Cleanup</a> — Scripts, cmdlets, and automation patterns</li>
-                <li><a href="guides/sharepoint-governance-best-practices">SharePoint Governance Best Practices</a> — Policies, lifecycle management, and Copilot readiness</li>
-                <li><a href="guides/sharepoint-site-file-archiving">SharePoint Site & File Archiving</a> — Discover inactive sites and large files for archival</li>
-                <li><a href="guides/sharepoint-advanced-management-sam">SharePoint Advanced Management (SAM) Integration</a> — Leverage SAM policies for data-driven governance</li>
+                <li><a href="guides/sharepoint-version-management/">Complete Guide to SharePoint Version Management</a> — Deep dive into version policies, limits, and cleanup strategies</li>
+                <li><a href="guides/reduce-sharepoint-storage-costs/">How to Reduce SharePoint Storage Costs</a> — Step-by-step optimization plan with ROI calculations</li>
+                <li><a href="guides/powershell-sharepoint-version-cleanup/">PowerShell Automation for Version Cleanup</a> — Scripts, cmdlets, and automation patterns</li>
+                <li><a href="guides/sharepoint-governance-best-practices/">SharePoint Governance Best Practices</a> — Policies, lifecycle management, and Copilot readiness</li>
+                <li><a href="guides/sharepoint-site-file-archiving/">SharePoint Site & File Archiving</a> — Discover inactive sites and large files for archival</li>
+                <li><a href="guides/sharepoint-advanced-management-sam/">SharePoint Advanced Management (SAM) Integration</a> — Leverage SAM policies for data-driven governance</li>
             </ul>
         </div>
     </section>
@@ -760,6 +760,16 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
             return n.toLocaleString();
         }
 
+        function formatStorage(tb, gb) {
+            if (tb >= 1000) {
+                const pb = tb / 1024;
+                if (pb >= 1000) return (pb / 1024).toFixed(2) + ' EB';
+                return pb.toFixed(2) + ' PB';
+            }
+            if (tb >= 1) return tb.toFixed(2) + ' TB';
+            return gb.toFixed(2) + ' GB';
+        }
+
         // Load live worldwide stats from telemetry backend
         async function loadLiveStats() {
             try {
@@ -767,7 +777,7 @@ description: "Free open-source PowerShell tool to manage SharePoint Online file 
                 if (!res.ok) throw new Error('API unavailable');
                 const d = await res.json();
 
-                const storage = d.storageFreedTB >= 1 ? d.storageFreedTB + ' TB' : d.storageFreedGB + ' GB';
+                const storage = formatStorage(d.storageFreedTB, d.storageFreedGB);
 
                 // Top banner
                 document.getElementById('ww-storage').textContent = storage;

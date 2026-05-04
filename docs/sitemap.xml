@@ -16,37 +16,37 @@ layout: null
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/sharepoint-version-management</loc>
+    <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/sharepoint-version-management/</loc>
     <lastmod>2026-04-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/reduce-sharepoint-storage-costs</loc>
+    <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/reduce-sharepoint-storage-costs/</loc>
     <lastmod>2026-04-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/powershell-sharepoint-version-cleanup</loc>
+    <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/powershell-sharepoint-version-cleanup/</loc>
     <lastmod>2026-04-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/sharepoint-governance-best-practices</loc>
+    <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/sharepoint-governance-best-practices/</loc>
     <lastmod>2026-04-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/sharepoint-site-file-archiving</loc>
+    <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/sharepoint-site-file-archiving/</loc>
     <lastmod>2026-04-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/sharepoint-advanced-management-sam</loc>
+    <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/sharepoint-advanced-management-sam/</loc>
     <lastmod>2026-04-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>

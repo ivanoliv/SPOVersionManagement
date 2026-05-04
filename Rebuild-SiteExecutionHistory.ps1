@@ -3,8 +3,10 @@
 
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $logsPath = Join-Path $scriptPath "Logs"
+$configPath = Join-Path $scriptPath "config"
+if (-not (Test-Path $configPath)) { New-Item -ItemType Directory -Path $configPath -Force | Out-Null }
 $executionHistoryFile = Join-Path $logsPath "ExecutionHistory.csv"
-$siteExecutionHistoryFile = Join-Path $logsPath "SiteExecutionHistory.json"
+$siteExecutionHistoryFile = Join-Path $configPath "SiteExecutionHistory.json"
 
 Write-Host "Rebuilding SiteExecutionHistory.json..." -ForegroundColor Cyan
 Write-Host "  Source: $executionHistoryFile" -ForegroundColor Gray

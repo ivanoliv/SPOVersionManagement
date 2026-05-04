@@ -308,6 +308,6 @@ Proactive version governance delivers measurable financial impact:
 
 ## Related Guides
 
-- [Complete Guide to SharePoint Version Management]({{ '/guides/sharepoint-version-management' | relative_url }})
-- [How to Reduce SharePoint Storage Costs]({{ '/guides/reduce-sharepoint-storage-costs' | relative_url }})
-- [PowerShell Automation for Version Cleanup]({{ '/guides/powershell-sharepoint-version-cleanup' | relative_url }})
+- [Complete Guide to SharePoint Version Management]({{ '/guides/sharepoint-version-management/' | relative_url }})
+- [How to Reduce SharePoint Storage Costs]({{ '/guides/reduce-sharepoint-storage-costs/' | relative_url }})
+- [PowerShell Automation for Version Cleanup]({{ '/guides/powershell-sharepoint-version-cleanup/' | relative_url }})

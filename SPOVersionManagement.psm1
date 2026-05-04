@@ -27,8 +27,19 @@ if (Test-Path $script:AppPathsFile) {
         $script:AppPaths = Get-Content $script:AppPathsFile -Raw | ConvertFrom-Json
         Write-Host "[CONFIG] Loaded AppPaths.json from: $script:AppPathsFile" -ForegroundColor Gray
         
+        # If RootPath is empty, default to module folder (portable install).
+        # In that case, ApplicationFolder must NOT be appended (the module IS in that folder),
+        # otherwise paths duplicate the folder name (e.g. ...\SPOVersionManagement\SPOVersionManagement\config\).
+        if ([string]::IsNullOrWhiteSpace($script:AppPaths.RootPath)) {
+            $script:AppPaths.RootPath = $script:ModuleRoot
+            $script:AppPaths.ApplicationFolder = ''
+        }
+        if ([string]::IsNullOrWhiteSpace($script:AppPaths.ApplicationFolder)) {
+            $script:AppPaths.ApplicationFolder = ''
+        }
+
         # Construir caminho base: RootPath + ApplicationFolder
-        $script:RootPath = Join-Path $script:AppPaths.RootPath $script:AppPaths.ApplicationFolder
+        $script:RootPath = if ([string]::IsNullOrWhiteSpace($script:AppPaths.ApplicationFolder)) { $script:AppPaths.RootPath } else { Join-Path $script:AppPaths.RootPath $script:AppPaths.ApplicationFolder }
         
         # Build directories paths relative to RootPath
         $script:LogPath = if ($script:AppPaths.Directories.Logs) { 
@@ -355,7 +366,7 @@ function Save-Session {
         [string]$GraphReportCSV,
         
         [Parameter()]
-        [ValidateSet("Started", "InProgress", "Completed", "Cancelled", "Failed")]
+        [ValidateSet("Started", "InProgress", "Completed", "Cancelled", "Failed", "Interrupted")]
         [string]$Status = "Started",
         
         [Parameter()]
@@ -380,7 +391,25 @@ function Save-Session {
         [int]$CheckBatchSize = 10,
 
         [Parameter()]
-        [int]$CheckBatchDelaySeconds = 2
+        [int]$CheckBatchDelaySeconds = 2,
+
+        [Parameter()]
+        [int]$DeleteBeforeDays = 0,
+
+        [Parameter()]
+        [switch]$UseFileCache,
+
+        [Parameter()]
+        [string]$CacheFilePath,
+
+        [Parameter()]
+        [string]$InputSiteSyncListCSV,
+
+        [Parameter()]
+        [string]$SamReportCSV,
+
+        [Parameter()]
+        [switch]$ManageRetention
     )
     
     $sessionFile = $script:SessionHistoryFile
@@ -428,6 +457,12 @@ function Save-Session {
             SyncOnly = [bool]$SyncOnly
             CheckBatchSize = $CheckBatchSize
             CheckBatchDelaySeconds = $CheckBatchDelaySeconds
+            DeleteBeforeDays = $DeleteBeforeDays
+            UseFileCache = [bool]$UseFileCache
+            CacheFilePath = if ($CacheFilePath) { $CacheFilePath } else { '' }
+            InputSiteSyncListCSV = if ($InputSiteSyncListCSV) { $InputSiteSyncListCSV } else { '' }
+            SamReportCSV = if ($SamReportCSV) { $SamReportCSV } else { '' }
+            ManageRetention = [bool]$ManageRetention
         }
         Progress = @{
             TotalSites = $TotalSites
@@ -475,7 +510,7 @@ function Update-SessionProgress {
         [string]$SessionId,
         
         [Parameter()]
-        [ValidateSet("Started", "InProgress", "Completed", "Cancelled", "Failed")]
+        [ValidateSet("Started", "InProgress", "Completed", "Cancelled", "Failed", "Interrupted")]
         [string]$Status,
         
         [Parameter()]
@@ -2662,6 +2697,49 @@ function Test-ShouldProcessSite {
     $lastExecution = Get-SiteLastSuccessfulExecution -SiteUrl $SiteUrl -JobType $JobType
     $result.LastExecution = $lastExecution
     
+    # Check 1b: If API returned a completed job not yet in history, capture it opportunistically
+    if ($existingJob -and $existingJob.IsCompleted -and $existingJob.WorkItemId) {
+        $alreadyRecorded = $lastExecution -and $lastExecution.WorkItemId -eq $existingJob.WorkItemId
+        if (-not $alreadyRecorded) {
+            $progress = $existingJob.Progress
+            # Extract SPO timing
+            $spoReqTime = if ($progress.RequestTimeInUTC) { ([DateTime]$progress.RequestTimeInUTC).ToString("o") } else { $null }
+            $spoCompTime = if ($progress.CompleteTimeInUTC) { ([DateTime]$progress.CompleteTimeInUTC).ToString("o") } else { $null }
+            $spoDuration = 0
+            if ($progress.RequestTimeInUTC -and $progress.CompleteTimeInUTC) {
+                try { $spoDuration = [math]::Round(([DateTime]$progress.CompleteTimeInUTC - [DateTime]$progress.RequestTimeInUTC).TotalMinutes, 2) } catch { }
+            }
+            # Detect hollow success
+            $versionsProcessed = if ($progress.VersionsProcessed) { [long]$progress.VersionsProcessed } else { [long]0 }
+            $versionsDeleted = if ($progress.VersionsDeleted) { [long]$progress.VersionsDeleted } else { [long]0 }
+            $storageReleased = if ($progress.StorageReleasedInBytes) { [long]$progress.StorageReleasedInBytes } else { [long]0 }
+            $isHollowSuccess = $versionsProcessed -gt 0 -and $versionsDeleted -eq 0 -and $storageReleased -eq 0
+            $finalStatus = if ($isHollowSuccess) { "CompleteSuccessNoEffect" } else { $existingJob.Status }
+
+            Save-SiteExecutionHistory -SiteUrl $SiteUrl -SiteTitle "" -JobType $JobType -ExecutionData @{
+                Status = $finalStatus
+                HollowSuccess = $isHollowSuccess
+                DurationMinutes = $spoDuration
+                SPORequestTime = $spoReqTime
+                SPOCompleteTime = $spoCompTime
+                SPOJobDurationMinutes = $spoDuration
+                WorkItemId = $existingJob.WorkItemId
+                ListsProcessed = if ($progress.ListsProcessed) { $progress.ListsProcessed } else { 0 }
+                ListsSynced = if ($progress.ListsSynced) { $progress.ListsSynced } else { 0 }
+                FilesProcessed = if ($progress.FilesProcessed) { $progress.FilesProcessed } else { 0 }
+                VersionsProcessed = $versionsProcessed
+                VersionsDeleted = $versionsDeleted
+                StorageReleasedBytes = $storageReleased
+                StorageBeforeBytes = if ($progress.InitialStorageUsedBytes) { [long]$progress.InitialStorageUsedBytes } else { [long]0 }
+                StorageAfterBytes = [long]0
+            }
+            Write-Host "    [SYNC] Captured completed $JobType job for $(Split-Path $SiteUrl -Leaf)" -ForegroundColor DarkCyan
+            # Refresh last execution so reexecution check uses the new record
+            $lastExecution = Get-SiteLastSuccessfulExecution -SiteUrl $SiteUrl -JobType $JobType
+            $result.LastExecution = $lastExecution
+        }
+    }
+    
     if ($lastExecution) {
         Write-Verbose "[Test-ShouldProcessSite] Found last execution: $($lastExecution.ExecutedAtDisplay) ($([Math]::Round($lastExecution.DaysSinceExecution, 2)) days ago)"
     } else {
@@ -3420,11 +3498,13 @@ function Start-SPOVersionPolicyOrchestration {
         [int]$MajorWithMinorVersionsLimit = 4,
         [int]$CheckBatchSize = 10,
         [int]$CheckBatchDelaySeconds = 2,
+        [string]$SessionId,
         [switch]$Resume,
         [switch]$UseFileCache,
         [switch]$ManageRetentionPolicy,
         [switch]$DeleteOnly,
-        [switch]$SyncOnly
+        [switch]$SyncOnly,
+        [switch]$SkipExternalSync
     )
     
     $script:CurrentMajorVersionLimit = $MajorVersionLimit
@@ -3476,7 +3556,11 @@ function Start-SPOVersionPolicyOrchestration {
     }
     
     # Sync pending job status before starting - check if any jobs completed while script was stopped
-    Sync-PendingJobStatus
+    if (-not $SkipExternalSync) {
+        Sync-PendingJobStatus
+    } else {
+        Write-Host "  [SKIP] External sync checks skipped (-SkipExternalSync)" -ForegroundColor Gray
+    }
     
     # Export retention policy database for Dashboard if retention management is enabled
     if ($ManageRetentionPolicy) {
@@ -3622,9 +3706,13 @@ function Start-SPOVersionPolicyOrchestration {
         return
     }
     
-    # Sync external job results - check for jobs completed by other scripts
-    # This ensures the Dashboard shows accurate status for jobs run outside this script
-    Sync-ExternalJobResults -Sites $sitesToProcess -DaysToCheck 7
+    # Update session progress with total sites count
+    if ($SessionId) {
+        Update-SessionProgress -SessionId $SessionId -TotalSites $sitesToProcess.Count -Status "InProgress" | Out-Null
+    }
+    
+    # External job sync is now run independently from the Data Sync panel (separate PS window).
+    # Removed from main execution flow to avoid delays during processing.
     
     # Check for sites with VersionCount=0 or VersionSize=0
     $sitesZeroVersions = @($sitesToProcess | Where-Object { 
@@ -3840,6 +3928,7 @@ function Start-SPOVersionPolicyOrchestration {
         }
     }
     
+    try {
     while ($siteQueue.Count -gt 0 -or $activeJobs.Count -gt 0) {
         
         # Start new jobs ONLY if there are available slots
@@ -4320,6 +4409,11 @@ function Start-SPOVersionPolicyOrchestration {
                     $completedJobs[$workItemId] = $completedJob
                     $processedCount++
                     
+                    # Update session progress
+                    if ($SessionId) {
+                        Update-SessionProgress -SessionId $SessionId -ProcessedSites $processedCount -QueuedSites $siteQueue.Count | Out-Null
+                    }
+                    
                     # Detect "hollow success" - job reported CompleteSuccess but retention hold prevented actual deletions
                     # Pattern: BatchDelete + CompleteSuccess + VersionsProcessed > 0 + VersionsDeleted = 0 + StorageReleased = 0
                     $isHollowSuccess = $false
@@ -4383,6 +4477,11 @@ function Start-SPOVersionPolicyOrchestration {
                     
                     $statusText = if ($isHollowSuccess) { "$($progress.Status) (RETENTION BLOCKED - no versions deleted)" } else { $progress.Status }
                     Write-Host "  $statusIcon $($job.JobType): $($job.SiteUrl) - $statusText" -ForegroundColor $statusColor
+                    
+                    # Send real-time telemetry for completed BatchDelete jobs
+                    if ($job.JobType -eq "BatchDelete") {
+                        Send-SPOTelemetry -WorkItemId $resolvedWorkItemId -SiteUrl $job.SiteUrl -JobType $job.JobType -StorageFreedBytes ([long]$progress.StorageReleasedInBytes) -VersionsDeleted ([long]$progress.VersionsDeleted)
+                    }
                     
                     # Resume retention policies after BatchDelete completes
                     if ($ManageRetentionPolicy -and $job.JobType -eq "BatchDelete") {
@@ -4460,6 +4559,33 @@ function Start-SPOVersionPolicyOrchestration {
         # Remove completed jobs
         foreach ($workItemId in $completedWorkItems) {
             $activeJobs.Remove($workItemId)
+        }
+    }
+    } # end try
+    catch {
+        Write-Host ""
+        Write-Host "  [ERROR] Orchestration interrupted: $_" -ForegroundColor Red
+        Write-Host "  [INFO] Session state has been saved. Use -Resume to continue." -ForegroundColor Yellow
+        throw
+    }
+    finally {
+        # Crash-proof: Always save state on exit (normal, error, or Ctrl+C)
+        try {
+            $queuedList = @()
+            if ($siteQueue -and $siteQueue.Count -gt 0) {
+                $queuedList = @($siteQueue.ToArray())
+            }
+            $activeList = @()
+            if ($activeJobs -and $activeJobs.Count -gt 0) {
+                $activeList = @($activeJobs.Values)
+            }
+            Update-JobStatus -ActiveJobs $activeList -QueuedSites $queuedList -RecentCompletedJobs @($completedJobs.Values) -MajorVersionLimit $MajorVersionLimit -MajorWithMinorVersionsLimit $MajorWithMinorVersionsLimit -DeleteOnly:$DeleteOnly -SyncOnly:$SyncOnly -ManageRetentionPolicy:$ManageRetentionPolicy
+            if ($SessionId) {
+                $finalStatus = if ($siteQueue.Count -eq 0 -and $activeJobs.Count -eq 0) { "Completed" } else { "Interrupted" }
+                Update-SessionProgress -SessionId $SessionId -Status $finalStatus -ProcessedSites $processedCount -QueuedSites $siteQueue.Count | Out-Null
+            }
+        } catch {
+            Write-Warning "Failed to save final state: $_"
         }
     }
     
@@ -4654,6 +4780,16 @@ function Export-AllSitesDataForDashboard {
     Write-Host "  Getting Last Activity from Graph API..." -ForegroundColor Cyan
     $siteActivityMap = @{}
     try {
+        # Ensure Microsoft.Graph.Reports is loaded — when invoked from the in-process
+        # runspace (app), the module is not auto-imported even if installed.
+        if (-not (Get-Command Get-MgReportSharePointSiteUsageDetail -ErrorAction SilentlyContinue)) {
+            if (Get-Module -ListAvailable -Name Microsoft.Graph.Reports) {
+                Import-Module Microsoft.Graph.Reports -ErrorAction Stop -WarningAction SilentlyContinue
+            }
+            else {
+                throw "Microsoft.Graph.Reports module not installed. Install with: Install-Module Microsoft.Graph.Reports -Scope CurrentUser"
+            }
+        }
         $tempFile = Join-Path $env:TEMP "SiteUsageDetail_$(Get-Date -Format 'yyyyMMdd_HHmmss').csv"
         $oldProgress = $ProgressPreference
         $ProgressPreference = 'SilentlyContinue'
@@ -5060,16 +5196,19 @@ function Send-SPOTelemetryBatch {
         $tenantHash = Get-TelemetryTenantHash
         $appVersion = $script:AppPaths.AppVersion
         $items = @()
+        $uniqueSiteHashes = @{}
 
         foreach ($siteProp in $history.Sites.PSObject.Properties) {
             $siteUrl = $siteProp.Name
             $siteHashedUrl = Get-HashedSiteUrl -SiteUrl $siteUrl
 
+            $siteHasValidExec = $false
             foreach ($exec in $siteProp.Value.Executions) {
                 if ($exec.Status -ne 'CompleteSuccess') { continue }
                 if ($exec.JobType -ne 'BatchDelete') { continue }
                 if ([string]::IsNullOrWhiteSpace($exec.WorkItemId)) { continue }
 
+                $siteHasValidExec = $true
                 $items += @{
                     tenantHash        = $tenantHash
                     appVersion        = $appVersion
@@ -5082,6 +5221,9 @@ function Send-SPOTelemetryBatch {
                     timestamp         = $exec.ExecutedAt
                 }
             }
+            if ($siteHasValidExec) {
+                $uniqueSiteHashes[$siteHashedUrl] = $true
+            }
         }
 
         if ($items.Count -eq 0) {
@@ -5089,7 +5231,8 @@ function Send-SPOTelemetryBatch {
             return
         }
 
-        Write-Host "  Syncing $($items.Count) historical executions to telemetry backend..." -ForegroundColor DarkGray
+        $uniqueSiteCount = $uniqueSiteHashes.Count
+        Write-Host "  Syncing $($items.Count) historical executions ($uniqueSiteCount unique sites) to telemetry backend..." -ForegroundColor DarkGray
 
         # Send in batches of 500
         $batchSize = 500
@@ -5098,7 +5241,11 @@ function Send-SPOTelemetryBatch {
 
         for ($i = 0; $i -lt $items.Count; $i += $batchSize) {
             $chunk = $items[$i..([Math]::Min($i + $batchSize - 1, $items.Count - 1))]
-            $body = @{ items = $chunk } | ConvertTo-Json -Depth 4 -Compress
+            $body = @{
+                items       = $chunk
+                uniqueSites = $uniqueSiteCount
+                tenantHash  = $tenantHash
+            } | ConvertTo-Json -Depth 4 -Compress
 
             $uri = "$($script:AppPaths.TelemetryEndpoint.TrimEnd('/'))/api/telemetry/batch"
             $response = Invoke-RestMethod -Uri $uri -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 30 -ErrorAction Stop

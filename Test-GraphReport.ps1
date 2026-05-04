@@ -22,14 +22,22 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Verify Graph connection
+# Ensure the user modules path is in PSModulePath (may be missing when spawned from app)
+$userModules = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'WindowsPowerShell\Modules'
+if ($env:PSModulePath -notlike "*$userModules*") {
+    $env:PSModulePath = "$userModules;$env:PSModulePath"
+}
+Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
+Import-Module Microsoft.Graph.Reports -ErrorAction Stop
+
 Write-Host "[1] Verifying Graph API connection..." -ForegroundColor Yellow
 try {
     $context = Get-MgContext -ErrorAction SilentlyContinue
     if ($context) {
         Write-Host "  [OK] Connected as: $($context.Account)" -ForegroundColor Green
     } else {
-        Write-Host "  [!] Not connected. Connecting..." -ForegroundColor Yellow
-        Connect-MgGraph -Scopes "Reports.Read.All" -NoWelcome
+        Write-Host "  [!] Not connected. Connecting via browser..." -ForegroundColor Yellow
+        Connect-MgGraph -Scopes "Reports.Read.All" -NoWelcome -ErrorAction Stop
         Write-Host "  [OK] Connected" -ForegroundColor Green
     }
 }
@@ -116,7 +124,7 @@ if (Test-Path $tempFile) {
     Write-Host "[6] Testing monthly aggregation..." -ForegroundColor Yellow
     
     $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-    Import-Module "$scriptPath\SPOVersionManagement.psm1" -Force -DisableNameChecking
+    Import-Module "$scriptPath\SPOVersionManagement.psm1" -Force -DisableNameChecking -WarningAction SilentlyContinue
     
     $aggregated = Get-TenantStorageHistoryAggregated -Period $Period
     

@@ -1,5 +1,5 @@
 {
-  "Language": "pt-br",
+  "Language": "es",
   "Currency": {
     "Symbol": "R$",
     "Code": "BRL",
@@ -20,7 +20,8 @@
   "TimeFormat": "HH:mm:ss",
   "RefreshIntervalSeconds": 3,
   "ReexecutionDays": 60,
-  "ZeroVersionAction": "syncOnly",
+  "LookBackDays": 60,
+  "ZeroVersionAction": "skip",
   "LastModified": "2026-02-05T00:00:00.000Z",
   "Version": "1.1",
   "DashboardPort": 8080,

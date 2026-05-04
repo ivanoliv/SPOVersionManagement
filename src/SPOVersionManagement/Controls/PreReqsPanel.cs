@@ -111,11 +111,14 @@ namespace SPOVersionManagement.Controls
             _lblSummary = new Label
             {
                 Text = "Ready",
-                Font = AppTheme.FontSmall,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
                 ForeColor = AppTheme.TextMuted,
-                AutoSize = true,
+                AutoSize = false,
                 BackColor = Color.Transparent,
-                Location = new Point(236, 17)
+                TextAlign = ContentAlignment.MiddleLeft,
+                Location = new Point(236, 7),
+                Size = new Size(action.Width - 236 - 12, 20),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
             action.Controls.Add(_lblSummary);
 
@@ -124,9 +127,12 @@ namespace SPOVersionManagement.Controls
                 Text = "PnP.PowerShell requires PS 7.4+, others work on PS 5.1. Click Install to add.",
                 Font = AppTheme.FontSmall,
                 ForeColor = AppTheme.TextMuted,
-                AutoSize = true,
+                AutoSize = false,
                 BackColor = Color.Transparent,
-                Location = new Point(236, 30)
+                TextAlign = ContentAlignment.MiddleLeft,
+                Location = new Point(236, 27),
+                Size = new Size(action.Width - 236 - 12, 18),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
             action.Controls.Add(_lblInstallInfo);
 
@@ -212,6 +218,10 @@ namespace SPOVersionManagement.Controls
                 return;
 
             _btnRefresh.Enabled = false;
+            _btnRefresh.Text = "Checking\u2026";
+            _lblSummary.Text = "\u23F3  Analyzing prerequisites\u2026";
+            _lblSummary.ForeColor = AppTheme.AccentGold;
+            _lblInstallInfo.Visible = false;
             _grid.Rows.Clear();
             _txtDebug.Clear();
             int pass = 0;
@@ -259,21 +269,24 @@ namespace SPOVersionManagement.Controls
                     }
                 }
 
-                _lblSummary.Text = $"✓ {pass} passed | ✗ {fail} failed";
+                _lblSummary.Text = $"\u2713 {pass} passed  |  \u2717 {fail} failed";
                 _lblSummary.ForeColor = fail == 0 ? AppTheme.AccentGreen : AppTheme.AccentGold;
+                _lblInstallInfo.Visible = true;
                 StatusMessage?.Invoke(this, _lblSummary.Text);
                 AppendDebug($"\nCheck complete: {pass} passed, {fail} failed");
             }
             catch (Exception ex)
             {
                 AddCheckRow("Prerequisite execution", false, ex.Message, "Error");
-                _lblSummary.Text = "Checks failed with errors.";
+                _lblSummary.Text = "\u2717  Checks failed with errors.";
                 _lblSummary.ForeColor = AppTheme.AccentRed;
+                _lblInstallInfo.Visible = true;
                 AppendDebug("[ERROR] " + ex.Message);
             }
             finally
             {
                 _btnRefresh.Enabled = true;
+                _btnRefresh.Text = "Run Checks";
             }
         }
 
@@ -282,26 +295,37 @@ namespace SPOVersionManagement.Controls
             _btnJwtDebug.Enabled = false;
             try
             {
-                AppendDebug("\nRunning JWT debug (roles/scopes) ...\n");
-                string script = @"
-$token = $null
-try {
-    $token = Get-PnPAccessToken
-} catch {
-    Write-Output 'Get-PnPAccessToken failed (not connected).'
+                string adminUrl = _config?.AppConfig?.AdminUrl?.Trim();
+                if (string.IsNullOrEmpty(adminUrl))
+                {
+                    AppendDebug("\n[ERROR] Admin URL not configured. Set it in Config first.");
+                    return;
+                }
+
+                AppendDebug("\nRunning JWT debug (connecting to SPO and inspecting token) ...\n");
+
+                string script = $@"
+Import-Module Microsoft.Online.SharePoint.PowerShell -ErrorAction Stop
+try {{
+    Connect-SPOService -Url '{adminUrl}' -ErrorAction Stop
+}} catch {{
+    Write-Output ('Connection failed: ' + $_.Exception.Message)
     return
-}
-if (-not $token) { Write-Output 'Token is empty.'; return }
-$parts = $token.Split('.')
-if ($parts.Length -lt 2) { Write-Output 'Invalid token format.'; return }
-$payload = $parts[1].Replace('-', '+').Replace('_', '/')
-switch ($payload.Length % 4) { 2 {$payload += '=='}; 3 {$payload += '='} }
-$json = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($payload))
-$obj = $json | ConvertFrom-Json
-Write-Output ('aud: ' + $obj.aud)
-Write-Output ('appid: ' + $obj.appid)
-Write-Output ('scp: ' + $obj.scp)
-Write-Output ('roles: ' + ($obj.roles -join ','))
+}}
+Write-Output 'Connected to SPO successfully.'
+Write-Output ''
+# Get tenant info as proof of connection
+try {{
+    $tenant = Get-SPOTenant -ErrorAction Stop
+    Write-Output ('Tenant: ' + $tenant.RootSiteUrl)
+    Write-Output ('StorageQuota: ' + $tenant.StorageQuota + ' MB')
+    Write-Output ('StorageQuotaAllocated: ' + $tenant.StorageQuotaAllocated + ' MB')
+    Write-Output ('ResourceQuota: ' + $tenant.ResourceQuota)
+    Write-Output ('SharingCapability: ' + $tenant.SharingCapability)
+    Write-Output ('ConditionalAccessPolicy: ' + $tenant.ConditionalAccessPolicy)
+}} catch {{
+    Write-Output ('Get-SPOTenant failed: ' + $_.Exception.Message)
+}}
 ";
 
                 var output = await _psHost.RunScriptAsync(script);

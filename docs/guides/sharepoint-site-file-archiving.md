@@ -77,7 +77,7 @@ The GUI application provides an interactive search interface with:
 
 If your organization has a **SharePoint Advanced Management license** (add-on to Microsoft 365), SPO Version Management can import the SAM Content Management Assessment report to enrich archive analysis with Microsoft's own inactivity classification.
 
-See the dedicated guide: [SharePoint Advanced Management (SAM) Integration]({{ '/guides/sharepoint-advanced-management-sam' | relative_url }})
+See the dedicated guide: [SharePoint Advanced Management (SAM) Integration]({{ '/guides/sharepoint-advanced-management-sam/' | relative_url }})
 
 ---
 
@@ -165,7 +165,7 @@ All archiving operations use official, supported Microsoft mechanisms:
 
 ## Related Guides
 
-- [SharePoint Advanced Management (SAM) Integration]({{ '/guides/sharepoint-advanced-management-sam' | relative_url }})
-- [How to Reduce SharePoint Storage Costs]({{ '/guides/reduce-sharepoint-storage-costs' | relative_url }})
-- [SharePoint Governance Best Practices]({{ '/guides/sharepoint-governance-best-practices' | relative_url }})
-- [Complete Guide to SharePoint Version Management]({{ '/guides/sharepoint-version-management' | relative_url }})
+- [SharePoint Advanced Management (SAM) Integration]({{ '/guides/sharepoint-advanced-management-sam/' | relative_url }})
+- [How to Reduce SharePoint Storage Costs]({{ '/guides/reduce-sharepoint-storage-costs/' | relative_url }})
+- [SharePoint Governance Best Practices]({{ '/guides/sharepoint-governance-best-practices/' | relative_url }})
+- [Complete Guide to SharePoint Version Management]({{ '/guides/sharepoint-version-management/' | relative_url }})

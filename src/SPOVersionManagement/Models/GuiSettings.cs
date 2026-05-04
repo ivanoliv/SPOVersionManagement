@@ -30,6 +30,13 @@ namespace SPOVersionManagement.Models
         [JsonProperty("deleteBeforeDays")]
         public int DeleteBeforeDays { get; set; } = 180;
 
+        // Re-run rules
+        [JsonProperty("reexecutionDays")]
+        public int ReexecutionDays { get; set; } = 60;
+
+        [JsonProperty("lookBackDays")]
+        public int LookBackDays { get; set; } = 7;
+
         // Operation Mode
         [JsonProperty("syncVersionPolicy")]
         public bool SyncVersionPolicy { get; set; } = true;
@@ -65,5 +72,25 @@ namespace SPOVersionManagement.Models
 
         [JsonProperty("cacheFilePath")]
         public string CacheFilePath { get; set; } = "";
+
+        // Data Sync Panel
+        [JsonProperty("dataSyncExportAllSites")]
+        public bool DataSyncExportAllSites { get; set; } = true;
+
+        [JsonProperty("dataSyncExportGraphReport")]
+        public bool DataSyncExportGraphReport { get; set; } = true;
+
+        [JsonProperty("dataSyncExportArchiveAnalysis")]
+        public bool DataSyncExportArchiveAnalysis { get; set; } = true;
+
+        [JsonProperty("dataSyncExportTenantStorage")]
+        public bool DataSyncExportTenantStorage { get; set; } = true;
+
+        // File Archive Panel
+        [JsonProperty("fileArchiveRegion")]
+        public string FileArchiveRegion { get; set; } = "BRA";
+
+        [JsonProperty("fileArchiveSummaryOnly")]
+        public bool FileArchiveSummaryOnly { get; set; } = false;
     }
 }

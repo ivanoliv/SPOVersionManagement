@@ -75,6 +75,10 @@ namespace SPOVersionManagement.Controls
         private HashSet<string> _historySiteUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private DataGridView _targetGrid;
         private DataGridView _skipGrid;
+        private Panel _scopeWarningBanner;
+        private FlatButton _btnScopeEditDesc, _btnScopeRemove;
+        private FlatButton _btnScopeImportTarget, _btnScopeSaveTarget, _btnScopeImportSkip, _btnScopeSaveSkip;
+        private FlatButton _btnScopeExportCsv, _btnScopeAddTarget, _btnScopeAddSkip;
         private TextBox _archiveConsole;
         private ProgressBar _progressBar;
         private ProgressBar _loadingBar;
@@ -490,10 +494,15 @@ namespace SPOVersionManagement.Controls
             _scopeViewPanel.Controls.Add(MakeLabel("Execution Scope", AppTheme.FontTitle, AppTheme.TextPrimary, 0, 0));
             _scopeViewPanel.Controls.Add(MakeLabel("Target Sites are explicit allow-list entries. Skip Sites are explicit exclusions.", AppTheme.FontBody, AppTheme.TextSecondary, 0, 28));
 
+            // Warning banner: hidden once user adds at least one Target Site
+            _scopeWarningBanner = CreateScopeWarningBanner(contentW);
+            _scopeWarningBanner.Location = new Point(0, 52);
+            _scopeViewPanel.Controls.Add(_scopeWarningBanner);
+
             // Button bar above panels
             var btnBar = new Panel
             {
-                Location = new Point(0, 52),
+                Location = new Point(0, 102),
                 Size = new Size(contentW, 34),
                 BackColor = Color.Transparent,
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
@@ -501,28 +510,34 @@ namespace SPOVersionManagement.Controls
             _scopeViewPanel.Controls.Add(btnBar);
 
             int bx = 0;
-            var btnImportTarget = new FlatButton { Text = "Import Target", Size = new Size(100, 26), Location = new Point(bx, 4) };
-            btnImportTarget.SetGhostStyle(); btnImportTarget.Click += (s, e) => ImportScopeCsv(true); btnBar.Controls.Add(btnImportTarget); bx += 106;
+            _btnScopeImportTarget = new FlatButton { Text = "Import Target", Size = new Size(100, 26), Location = new Point(bx, 4) };
+            _btnScopeImportTarget.SetGhostStyle(); _btnScopeImportTarget.Click += (s, e) => ImportScopeCsv(true); btnBar.Controls.Add(_btnScopeImportTarget); bx += 106;
 
-            var btnSaveTarget = new FlatButton { Text = "Save Target", Size = new Size(90, 26), Location = new Point(bx, 4) };
-            btnSaveTarget.SetAccentColor(AppTheme.AccentCyan); btnSaveTarget.Click += (s, e) => SaveScopeList(true); btnBar.Controls.Add(btnSaveTarget); bx += 96;
+            _btnScopeSaveTarget = new FlatButton { Text = "Save Target", Size = new Size(90, 26), Location = new Point(bx, 4) };
+            _btnScopeSaveTarget.SetAccentColor(AppTheme.AccentCyan); _btnScopeSaveTarget.Click += (s, e) => SaveScopeList(true); btnBar.Controls.Add(_btnScopeSaveTarget); bx += 96;
 
-            var btnImportSkip = new FlatButton { Text = "Import Skip", Size = new Size(90, 26), Location = new Point(bx, 4) };
-            btnImportSkip.SetGhostStyle(); btnImportSkip.Click += (s, e) => ImportScopeCsv(false); btnBar.Controls.Add(btnImportSkip); bx += 96;
+            _btnScopeImportSkip = new FlatButton { Text = "Import Skip", Size = new Size(90, 26), Location = new Point(bx, 4) };
+            _btnScopeImportSkip.SetGhostStyle(); _btnScopeImportSkip.Click += (s, e) => ImportScopeCsv(false); btnBar.Controls.Add(_btnScopeImportSkip); bx += 96;
 
-            var btnSaveSkip = new FlatButton { Text = "Save Skip", Size = new Size(80, 26), Location = new Point(bx, 4) };
-            btnSaveSkip.SetAccentColor(AppTheme.AccentGold); btnSaveSkip.Click += (s, e) => SaveScopeList(false); btnBar.Controls.Add(btnSaveSkip); bx += 86;
+            _btnScopeSaveSkip = new FlatButton { Text = "Save Skip", Size = new Size(80, 26), Location = new Point(bx, 4) };
+            _btnScopeSaveSkip.SetAccentColor(AppTheme.AccentGold); _btnScopeSaveSkip.Click += (s, e) => SaveScopeList(false); btnBar.Controls.Add(_btnScopeSaveSkip); bx += 86;
 
-            var btnExportTarget = new FlatButton { Text = "Export CSV", Size = new Size(84, 26), Location = new Point(bx, 4) };
-            btnExportTarget.SetGhostStyle(); btnExportTarget.Click += (s, e) => ExportScopeCsv(true); btnBar.Controls.Add(btnExportTarget); bx += 90;
+            _btnScopeExportCsv = new FlatButton { Text = "Export CSV", Size = new Size(84, 26), Location = new Point(bx, 4) };
+            _btnScopeExportCsv.SetGhostStyle(); _btnScopeExportCsv.Click += (s, e) => ExportScopeCsv(GetFocusedScopeGrid() == _targetGrid); btnBar.Controls.Add(_btnScopeExportCsv); bx += 90;
 
-            var btnAddTarget = new FlatButton { Text = "+ Target", Size = new Size(72, 26), Location = new Point(bx, 4) };
-            btnAddTarget.SetAccentColor(AppTheme.AccentCyan); btnAddTarget.Click += (s, e) => AddScopeEntryByPopup(true); btnBar.Controls.Add(btnAddTarget); bx += 78;
+            _btnScopeAddTarget = new FlatButton { Text = "+ Target", Size = new Size(72, 26), Location = new Point(bx, 4) };
+            _btnScopeAddTarget.SetAccentColor(AppTheme.AccentCyan); _btnScopeAddTarget.Click += (s, e) => AddScopeEntryByPopup(true); btnBar.Controls.Add(_btnScopeAddTarget); bx += 78;
 
-            var btnAddSkip = new FlatButton { Text = "+ Skip", Size = new Size(60, 26), Location = new Point(bx, 4) };
-            btnAddSkip.SetAccentColor(AppTheme.AccentGold); btnAddSkip.Click += (s, e) => AddScopeEntryByPopup(false); btnBar.Controls.Add(btnAddSkip);
+            _btnScopeAddSkip = new FlatButton { Text = "+ Skip", Size = new Size(60, 26), Location = new Point(bx, 4) };
+            _btnScopeAddSkip.SetAccentColor(AppTheme.AccentGold); _btnScopeAddSkip.Click += (s, e) => AddScopeEntryByPopup(false); btnBar.Controls.Add(_btnScopeAddSkip); bx += 66;
 
-            int panelTop = 90;
+            _btnScopeEditDesc = new FlatButton { Text = "\u270E Edit", Size = new Size(66, 26), Location = new Point(bx, 4) };
+            _btnScopeEditDesc.SetGhostStyle(); _btnScopeEditDesc.Click += (s, e) => EditScopeDescriptionForFocused(); btnBar.Controls.Add(_btnScopeEditDesc); bx += 72;
+
+            _btnScopeRemove = new FlatButton { Text = "\u2716 Remove", Size = new Size(80, 26), Location = new Point(bx, 4) };
+            _btnScopeRemove.SetAccentColor(AppTheme.AccentRed); _btnScopeRemove.Click += (s, e) => RemoveScopeForFocused(); btnBar.Controls.Add(_btnScopeRemove);
+
+            int panelTop = 140;
             var cardsHost = new SplitContainer
             {
                 Location = new Point(0, panelTop),
@@ -566,6 +581,54 @@ namespace SPOVersionManagement.Controls
             _skipGrid.Margin = new Padding(14, 0, 14, 14);
             skipCard.Controls.Add(_skipGrid);
             _skipGrid.BringToFront();
+
+            // Wire banner visibility to target grid contents (hide when user adds an entry)
+            _targetGrid.RowsAdded += (s, e) => UpdateScopeWarningVisibility();
+            _targetGrid.RowsRemoved += (s, e) => UpdateScopeWarningVisibility();
+            UpdateScopeWarningVisibility();
+        }
+
+        private Panel CreateScopeWarningBanner(int width)
+        {
+            var banner = new Panel
+            {
+                Size = new Size(width, 44),
+                BackColor = Color.Transparent,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+            banner.Paint += (s, pe) =>
+            {
+                var g = pe.Graphics;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                var rect = new Rectangle(0, 0, banner.Width - 1, banner.Height - 1);
+                using (var path = AppTheme.CreateRoundedRect(rect, 8))
+                {
+                    using (var bgBrush = new SolidBrush(Color.FromArgb(30, 26, 14)))
+                        g.FillPath(bgBrush, path);
+                    using (var borderPen = new Pen(Color.FromArgb(80, AppTheme.AccentGold), 1f))
+                        g.DrawPath(borderPen, path);
+                }
+                using (var accentBrush = new SolidBrush(AppTheme.AccentGold))
+                    g.FillRectangle(accentBrush, 0, 6, 3, banner.Height - 12);
+            };
+            banner.Controls.Add(new Label
+            {
+                Text = "\u26A0  If Target Sites is empty, all sites in the tenant will be processed (minus Skip Sites).",
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                ForeColor = AppTheme.AccentGold,
+                AutoSize = true,
+                BackColor = Color.Transparent,
+                Location = new Point(14, 13)
+            });
+            return banner;
+        }
+
+        private void UpdateScopeWarningVisibility()
+        {
+            if (_scopeWarningBanner == null || _targetGrid == null) return;
+            bool empty = _targetGrid.Rows.Count == 0;
+            if (_scopeWarningBanner.Visible != empty)
+                _scopeWarningBanner.Visible = empty;
         }
 
         private DataGridView CreateScopeGrid()
@@ -578,24 +641,238 @@ namespace SPOVersionManagement.Controls
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
                 RowHeadersVisible = false,
-                ScrollBars = ScrollBars.Both
+                ScrollBars = ScrollBars.Both,
+                MultiSelect = true,
+                EditMode = DataGridViewEditMode.EditOnEnter
             };
             AppTheme.StyleDataGrid(grid);
+
+            // Checkbox column
+            var chkCol = new DataGridViewCheckBoxColumn
+            {
+                Name = "Select",
+                HeaderText = "\u2610",
+                Width = 36,
+                MinimumWidth = 36,
+                FillWeight = 1,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                Resizable = DataGridViewTriState.False,
+                SortMode = DataGridViewColumnSortMode.NotSortable
+            };
+            grid.Columns.Add(chkCol);
+
             grid.Columns.Add("SiteUrl", "Site URL");
             grid.Columns.Add("Reason", "Reason / Notes");
-            grid.Columns[0].FillWeight = 72;
-            grid.Columns[0].SortMode = DataGridViewColumnSortMode.Automatic;
-            grid.Columns[1].FillWeight = 28;
-            grid.Columns[1].SortMode = DataGridViewColumnSortMode.Automatic;
+            grid.Columns["SiteUrl"].FillWeight = 72;
+            grid.Columns["SiteUrl"].SortMode = DataGridViewColumnSortMode.Automatic;
+            grid.Columns["Reason"].FillWeight = 28;
+            grid.Columns["Reason"].SortMode = DataGridViewColumnSortMode.Automatic;
+
+            // Single-click checkbox toggling — commit dirty state immediately
+            grid.CurrentCellDirtyStateChanged += (s, e) =>
+            {
+                if (grid.IsCurrentCellDirty && grid.CurrentCell?.ColumnIndex == grid.Columns["Select"].Index)
+                    grid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            };
+
+            // Also handle direct click on checkbox cell to ensure it toggles
+            grid.CellClick += (s, e) =>
+            {
+                if (e.ColumnIndex == grid.Columns["Select"].Index && e.RowIndex >= 0)
+                {
+                    var cell = grid.Rows[e.RowIndex].Cells["Select"];
+                    bool current = cell.Value is true;
+                    cell.Value = !current;
+                    grid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+                }
+            };
+
+            // Column header click on checkbox → toggle all
+            grid.ColumnHeaderMouseClick += (s, e) =>
+            {
+                if (e.ColumnIndex == grid.Columns["Select"].Index)
+                    ToggleScopeSelectAll(grid);
+            };
+
+            // Track which grid is "active" for toolbar buttons
+            grid.Enter += (s, e) => UpdateScopeButtonStates();
+            grid.SelectionChanged += (s, e) => UpdateScopeButtonStates();
+            grid.CellValueChanged += (s, e) => UpdateScopeButtonStates();
+
             grid.KeyDown += (s, e) =>
             {
                 if (e.KeyCode != Keys.Delete)
                     return;
-                foreach (DataGridViewRow row in grid.SelectedRows)
-                    if (!row.IsNewRow)
-                        grid.Rows.Remove(row);
+                RemoveScopeSelectedRows(grid);
             };
+
+            // Context menu
+            grid.CellMouseClick += (s, e) =>
+            {
+                if (e.Button != MouseButtons.Right || e.RowIndex < 0)
+                    return;
+
+                // Select the row under cursor if not already selected
+                if (!grid.Rows[e.RowIndex].Selected)
+                {
+                    grid.ClearSelection();
+                    grid.Rows[e.RowIndex].Selected = true;
+                }
+
+                ShowScopeContextMenu(grid, Cursor.Position);
+            };
+
             return grid;
+        }
+
+        private void ToggleScopeSelectAll(DataGridView grid)
+        {
+            bool anyUnchecked = false;
+            foreach (DataGridViewRow row in grid.Rows)
+            {
+                if (row.IsNewRow) continue;
+                if (row.Cells["Select"].Value == null || !(bool)row.Cells["Select"].Value)
+                { anyUnchecked = true; break; }
+            }
+            foreach (DataGridViewRow row in grid.Rows)
+            {
+                if (!row.IsNewRow)
+                    row.Cells["Select"].Value = anyUnchecked;
+            }
+            grid.Columns["Select"].HeaderText = anyUnchecked ? "\u2611" : "\u2610";
+            grid.InvalidateColumn(grid.Columns["Select"].Index);
+        }
+
+        private List<DataGridViewRow> GetScopeCheckedOrSelectedRows(DataGridView grid)
+        {
+            var rows = new List<DataGridViewRow>();
+            foreach (DataGridViewRow row in grid.Rows)
+            {
+                if (row.IsNewRow) continue;
+                if (row.Cells["Select"].Value is true)
+                    rows.Add(row);
+            }
+            if (rows.Count == 0)
+            {
+                foreach (DataGridViewRow row in grid.SelectedRows)
+                    if (!row.IsNewRow) rows.Add(row);
+            }
+            return rows;
+        }
+
+        private void ShowScopeContextMenu(DataGridView grid, Point screenPoint)
+        {
+            bool isTarget = grid == _targetGrid;
+            var menu = new ContextMenuStrip
+            {
+                ShowImageMargin = false,
+                BackColor = AppTheme.BgInput,
+                ForeColor = AppTheme.TextPrimary
+            };
+
+            var rows = GetScopeCheckedOrSelectedRows(grid);
+            int count = rows.Count;
+
+            var editItem = new ToolStripMenuItem($"Edit Description ({count})");
+            editItem.Enabled = count > 0;
+            editItem.Click += (s2, e2) => EditScopeDescription(grid);
+            menu.Items.Add(editItem);
+
+            menu.Items.Add(new ToolStripSeparator());
+
+            var removeItem = new ToolStripMenuItem($"Remove ({count})");
+            removeItem.Enabled = count > 0;
+            removeItem.ForeColor = AppTheme.AccentRed;
+            removeItem.Click += (s2, e2) => RemoveScopeCheckedOrSelected(grid);
+            menu.Items.Add(removeItem);
+
+            menu.Items.Add(new ToolStripSeparator());
+
+            var selectAll = new ToolStripMenuItem("Select All");
+            selectAll.Click += (s2, e2) => ToggleScopeSelectAll(grid);
+            menu.Items.Add(selectAll);
+
+            menu.Closed += (s2, e2) => BeginInvoke((Action)(() => menu.Dispose()));
+            menu.Show(screenPoint);
+        }
+
+        private void RemoveScopeCheckedOrSelected(DataGridView grid)
+        {
+            var rows = GetScopeCheckedOrSelectedRows(grid);
+            if (rows.Count == 0) return;
+
+            if (MessageBox.Show($"Remove {rows.Count} selected site(s)?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+
+            foreach (var row in rows)
+                if (!row.IsNewRow) grid.Rows.Remove(row);
+        }
+
+        private void RemoveScopeSelectedRows(DataGridView grid)
+        {
+            var toRemove = new List<DataGridViewRow>();
+            foreach (DataGridViewRow row in grid.SelectedRows)
+                if (!row.IsNewRow) toRemove.Add(row);
+            foreach (var row in toRemove)
+                grid.Rows.Remove(row);
+        }
+
+        private void EditScopeDescription(DataGridView grid)
+        {
+            var rows = GetScopeCheckedOrSelectedRows(grid);
+            if (rows.Count == 0) return;
+
+            string current = rows.Count == 1 ? (rows[0].Cells["Reason"].Value?.ToString() ?? "") : "";
+            using (var dlg = new Form
+            {
+                Text = "Edit Description",
+                Size = new Size(480, 180),
+                StartPosition = FormStartPosition.CenterParent,
+                BackColor = AppTheme.BgDark,
+                ForeColor = AppTheme.TextPrimary,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false
+            })
+            {
+                var host = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent, Padding = new Padding(16, 14, 16, 10) };
+                dlg.Controls.Add(host);
+
+                host.Controls.Add(new Label
+                {
+                    Text = rows.Count == 1 ? "Description / Notes:" : $"Set description for {rows.Count} sites:",
+                    Font = AppTheme.FontBody,
+                    ForeColor = AppTheme.TextSecondary,
+                    AutoSize = true,
+                    BackColor = Color.Transparent,
+                    Location = new Point(0, 2)
+                });
+
+                var txt = new TextBox { Location = new Point(0, 26), Size = new Size(430, 24), Text = current, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+                AppTheme.StyleTextBox(txt);
+                host.Controls.Add(txt);
+
+                var btnOk = new FlatButton { Text = "OK", Size = new Size(70, 28), Location = new Point(360, 64), Anchor = AnchorStyles.Bottom | AnchorStyles.Right };
+                btnOk.SetAccentColor(AppTheme.AccentCyan);
+                host.Controls.Add(btnOk);
+
+                var btnCancel = new FlatButton { Text = "Cancel", Size = new Size(80, 28), Location = new Point(272, 64), Anchor = AnchorStyles.Bottom | AnchorStyles.Right };
+                btnCancel.SetGhostStyle();
+                host.Controls.Add(btnCancel);
+
+                btnCancel.Click += (s, e) => dlg.Close();
+                btnOk.Click += (s, e) =>
+                {
+                    string val = txt.Text.Trim();
+                    foreach (var row in rows)
+                        row.Cells["Reason"].Value = val;
+                    dlg.DialogResult = DialogResult.OK;
+                    dlg.Close();
+                };
+
+                txt.Focus();
+                dlg.ShowDialog(ParentForm);
+            }
         }
 
         private async Task LoadAllDataAsync(bool forceReload)
@@ -676,6 +953,7 @@ namespace SPOVersionManagement.Controls
         {
             LoadScopeIntoGrid(_targetGrid, "IncludeSites.csv");
             LoadScopeIntoGrid(_skipGrid, "ExcludeSites.csv");
+            UpdateScopeButtonStates();
         }
 
         private void ConfigureToolbarForView()
@@ -1143,6 +1421,43 @@ namespace SPOVersionManagement.Controls
             MessageBox.Show($"Added {added} site(s) to Skip list.", "Skip List", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
+        private DataGridView GetFocusedScopeGrid()
+        {
+            if (_targetGrid != null && _targetGrid.Focused) return _targetGrid;
+            if (_skipGrid != null && _skipGrid.Focused) return _skipGrid;
+            // Default to whichever has selected rows
+            if (_targetGrid != null && _targetGrid.SelectedRows.Count > 0) return _targetGrid;
+            if (_skipGrid != null && _skipGrid.SelectedRows.Count > 0) return _skipGrid;
+            return _targetGrid;
+        }
+
+        private void UpdateScopeButtonStates()
+        {
+            if (_btnScopeEditDesc == null) return;
+
+            var focused = GetFocusedScopeGrid();
+            bool hasSelection = focused != null && GetScopeCheckedOrSelectedRows(focused).Count > 0;
+
+            _btnScopeEditDesc.Enabled = hasSelection;
+            _btnScopeRemove.Enabled = hasSelection;
+
+            // Save buttons enabled when respective grid has rows
+            _btnScopeSaveTarget.Enabled = _targetGrid != null && _targetGrid.Rows.Count > 0;
+            _btnScopeSaveSkip.Enabled = _skipGrid != null && _skipGrid.Rows.Count > 0;
+        }
+
+        private void EditScopeDescriptionForFocused()
+        {
+            var grid = GetFocusedScopeGrid();
+            if (grid != null) EditScopeDescription(grid);
+        }
+
+        private void RemoveScopeForFocused()
+        {
+            var grid = GetFocusedScopeGrid();
+            if (grid != null) RemoveScopeCheckedOrSelected(grid);
+        }
+
         private void BtnAddToQueue_Click(object sender, EventArgs e)
         {
             var urls = GetSelectedUrls();
@@ -1330,14 +1645,14 @@ namespace SPOVersionManagement.Controls
         {
             grid.Rows.Clear();
             foreach (var item in _siteData.LoadScopeList(fileName))
-                grid.Rows.Add(item.SiteUrl, item.Reason);
+                grid.Rows.Add(false, item.SiteUrl, item.Reason);
         }
 
         private void AddScopeRow(bool isTarget)
         {
             var grid = isTarget ? _targetGrid : _skipGrid;
-            int index = grid.Rows.Add(string.Empty, string.Empty);
-            grid.CurrentCell = grid.Rows[index].Cells[0];
+            int index = grid.Rows.Add(false, string.Empty, string.Empty);
+            grid.CurrentCell = grid.Rows[index].Cells["SiteUrl"];
             grid.BeginEdit(true);
         }
 
@@ -1402,14 +1717,14 @@ namespace SPOVersionManagement.Controls
                     var grid = isTarget ? _targetGrid : _skipGrid;
                     bool exists = grid.Rows.Cast<DataGridViewRow>()
                         .Where(r => !r.IsNewRow)
-                        .Any(r => string.Equals(r.Cells[0].Value?.ToString()?.Trim(), url, StringComparison.OrdinalIgnoreCase));
+                        .Any(r => string.Equals(r.Cells["SiteUrl"].Value?.ToString()?.Trim(), url, StringComparison.OrdinalIgnoreCase));
                     if (exists)
                     {
                         MessageBox.Show("This site already exists in the list.", "Validation", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         return;
                     }
 
-                    grid.Rows.Add(url, reason);
+                    grid.Rows.Add(false, url, reason);
                     dlg.DialogResult = DialogResult.OK;
                     dlg.Close();
                 };
@@ -1432,7 +1747,7 @@ namespace SPOVersionManagement.Controls
                     if (string.IsNullOrWhiteSpace(line))
                         continue;
                     var parts = line.Split(new[] { ',' }, 2);
-                    grid.Rows.Add(parts[0].Trim().Trim('"'), parts.Length > 1 ? parts[1].Trim().Trim('"') : string.Empty);
+                    grid.Rows.Add(false, parts[0].Trim().Trim('"'), parts.Length > 1 ? parts[1].Trim().Trim('"') : string.Empty);
                 }
             }
         }
@@ -1447,14 +1762,14 @@ namespace SPOVersionManagement.Controls
                 if (row.IsNewRow)
                     continue;
 
-                string url = row.Cells[0].Value?.ToString()?.Trim();
+                string url = row.Cells["SiteUrl"].Value?.ToString()?.Trim();
                 if (string.IsNullOrWhiteSpace(url))
                     continue;
 
                 items.Add(new ScopeSiteItem
                 {
                     SiteUrl = url,
-                    Reason = row.Cells[1].Value?.ToString()?.Trim() ?? string.Empty
+                    Reason = row.Cells["Reason"].Value?.ToString()?.Trim() ?? string.Empty
                 });
             }
 
@@ -1475,8 +1790,8 @@ namespace SPOVersionManagement.Controls
                 {
                     if (row.IsNewRow)
                         continue;
-                    string url = row.Cells[0].Value?.ToString() ?? string.Empty;
-                    string reason = row.Cells[1].Value?.ToString() ?? string.Empty;
+                    string url = row.Cells["SiteUrl"].Value?.ToString() ?? string.Empty;
+                    string reason = row.Cells["Reason"].Value?.ToString() ?? string.Empty;
                     if (!string.IsNullOrWhiteSpace(url))
                         lines.Add($"{QuoteCsv(url)},{QuoteCsv(reason)}");
                 }

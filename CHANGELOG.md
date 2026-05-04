@@ -4,6 +4,68 @@ All notable changes to SPO Version Management are documented in this file.
 
 ---
 
+## v2.4.0.0 (2026-05-04)
+
+**Major Platform Upgrade: .NET 10 + PowerShell 7 Hosting**
+
+This release represents a major architecture upgrade — the Windows GUI application has been migrated from .NET Framework 4.7.2 to **.NET 10**, with in-process PowerShell 7 hosting via the official SDK.
+
+#### Why .NET 10?
+
+| Benefit | Detail |
+|---------|--------|
+| Security | Modern TLS 1.3 by default, up-to-date cryptographic libraries, regular LTS security patches |
+| Performance | ~30% faster startup, reduced memory allocations, improved GC |
+| PowerShell 7 Hosting | Run PS scripts in-process via Microsoft.PowerShell.SDK 7.5.0 — no external process spawning |
+| Self-Contained | Single-file executable, no runtime prerequisites for end users |
+| Long-Term Support | .NET 10 is an LTS release (supported until Nov 2029) |
+
+### ✨ New Features
+
+#### GUI Application
+- **Tenant ID Auto-Resolution** — Automatically resolves TenantId from AdminUrl via Azure AD's public OpenID discovery endpoint (no authentication needed). Includes a manual "Resolve" button in Config panel.
+- **Purview Organization Auto-Fill** — Derived from AdminUrl prefix (no HTTP call needed).
+- **Excel-Like Column Filter** — Site Management grid now has proper Excel-style filtering: Sort A→Z/Z→A, search box, multi-select checkboxes with "(Select All)", OK/Cancel buttons. Replaces the old single-value ContextMenuStrip.
+- **Worldwide Impact Refresh Button** — Manual refresh on the Home panel's global stats card for community telemetry data.
+- **Session Manager Panel** — Full session save/resume with inline detail view.
+- **Task Scheduler Panel** — Create, manage, enable/disable Windows scheduled tasks for unattended execution (run as administrator required).
+- **Execution Panel Improvements** — GUI settings persistence, auto-save on change, tenant mismatch detection, interactive prompt bridge for PS scripts.
+- **Site Management Enhancements** — Virtual grid with checkbox selection, copy URL on click, scope management with include/exclude lists.
+- **Data Sync Panel** — External job sync with configurable look-back days.
+- **File Archive Panel** — Improved settings persistence.
+- **Prerequisites Panel** — Enhanced environment validation.
+
+#### PowerShell Module
+- **Opportunistic Job Sync** — `Test-ShouldProcessSite` now captures completed jobs found via the SPO API that weren't yet recorded in local history (avoids re-processing already-completed sites).
+- **Telemetry** — Real-time `Send-SPOTelemetry` on BatchDelete completion with per-site metrics, `Send-SPOTelemetryBatch` for historical bulk sync, `SessionProgress` tracking.
+
+### 🔒 Security
+
+- TenantId resolved via public `.well-known/openid-configuration` endpoint — no credentials stored or transmitted
+- Telemetry uses one-way SHA-256 hashing (TenantId + local salt) — original values never sent
+- .NET 10 brings modern TLS stack and security patches
+
+### 🐛 Bug Fixes
+
+- **Fixed "Cannot access a disposed object" crash** — Column header filter popup no longer uses ContextMenuStrip (replaced with proper Form-based popup).
+- **Fixed `_loadingSettings` guard** — `ApplySession` now properly wraps control assignments in try/finally to prevent event cascade during session load.
+
+### 📦 Packaging
+
+Two download options available:
+
+| Package | Contents | Size | Requirements |
+|---------|----------|------|--------------|
+| **Standalone** (`_standalone.zip`) | Self-contained single-file .exe + PS scripts + config | ~55 MB | Windows 10/11, no .NET install needed |
+| **Standard** (`_standard.zip`) | Framework-dependent .exe + PS scripts + config | ~2 MB | .NET 10 Desktop Runtime installed |
+
+### 📖 Documentation
+
+- `docs/WINDOWS_APP.md` updated with both package options and .NET 10 build instructions
+- GitHub Pages version bump
+
+---
+
 ## v2.3.1.0 (2026-04-30)
 
 **Release: Unified Script, Executable Packaging & Documentation**

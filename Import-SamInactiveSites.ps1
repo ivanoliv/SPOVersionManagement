@@ -29,6 +29,7 @@
 [CmdletBinding()]
 param(
     [string]$LogPath,
+    [string]$ConfigPath,
     [string]$SAMReportPath,
     [string]$AllSitesPath
 )
@@ -37,7 +38,9 @@ $ErrorActionPreference = "Stop"
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 if (-not $LogPath) { $LogPath = Join-Path $scriptRoot "Logs" }
-if (-not $AllSitesPath) { $AllSitesPath = Join-Path $LogPath "AllSites.json" }
+if (-not $ConfigPath) { $ConfigPath = Join-Path $scriptRoot "config" }
+if (-not (Test-Path $ConfigPath)) { New-Item -ItemType Directory -Path $ConfigPath -Force | Out-Null }
+if (-not $AllSitesPath) { $AllSitesPath = Join-Path $ConfigPath "AllSites.json" }
 
 Write-Host ""
 Write-Host "========================================================" -ForegroundColor Cyan
@@ -61,7 +64,7 @@ Write-Host "  Loaded $($allSites.Count) sites in $($sw.Elapsed.TotalSeconds.ToSt
 
 # ── 1b. Load previous ArchiveAnalysis.json (preserve EffectiveDates) ──
 $previousED = @{}
-$previousAnalysisPath = Join-Path $LogPath "ArchiveAnalysis.json"
+$previousAnalysisPath = Join-Path $ConfigPath "ArchiveAnalysis.json"
 if (Test-Path $previousAnalysisPath) {
     Write-Host "  Loading previous ArchiveAnalysis.json to preserve EffectiveDates..." -ForegroundColor Gray
     try {
@@ -289,7 +292,7 @@ $samOnlyStats.InactiveStorageGB = [math]::Round($samOnlyStats.InactiveStorageMB 
 $samOnlyStats.OwnerlessStorageGB = [math]::Round($samOnlyStats.OwnerlessStorageMB / 1024, 2)
 
 # ── 5. Write ArchiveAnalysis.json ─────────────────────────────────
-$outputPath = Join-Path $LogPath "ArchiveAnalysis.json"
+$outputPath = Join-Path $ConfigPath "ArchiveAnalysis.json"
 
 $analysis = [ordered]@{
     LastUpdated      = (Get-Date).ToString("o")

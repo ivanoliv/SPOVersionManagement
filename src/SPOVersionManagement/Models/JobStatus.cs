@@ -72,6 +72,9 @@ namespace SPOVersionManagement.Models
         [JsonProperty("Status")]
         public string Status { get; set; }
 
+        [JsonProperty("Label", NullValueHandling = NullValueHandling.Ignore)]
+        public string Label { get; set; }
+
         [JsonProperty("AdminUrl")]
         public string AdminUrl { get; set; }
 
@@ -110,6 +113,14 @@ namespace SPOVersionManagement.Models
         public int CheckBatchDelaySeconds { get; set; }
         [JsonProperty("DeleteBeforeDays")]
         public int DeleteBeforeDays { get; set; }
+        [JsonProperty("UseFileCache")]
+        public bool UseFileCache { get; set; }
+        [JsonProperty("CacheFilePath")]
+        public string CacheFilePath { get; set; }
+        [JsonProperty("SamReportCSV")]
+        public string SamReportCsv { get; set; }
+        [JsonProperty("ManageRetention")]
+        public bool ManageRetention { get; set; }
     }
 
     public class SessionProgress

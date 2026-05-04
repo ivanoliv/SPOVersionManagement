@@ -4,7 +4,7 @@
 
 The Windows GUI application provides a graphical interface for managing SharePoint Online version policies, monitoring execution progress, configuring settings, and viewing storage analytics — without requiring direct PowerShell interaction.
 
-It is built as a **.NET Framework 4.8 WinForms** application with a modern flat UI theme.
+It is built as a **.NET 10 WinForms** application with a modern flat UI theme, published as a self-contained single-file executable.
 
 ---
 
@@ -19,8 +19,8 @@ This application is provided "AS IS" without warranty. It is not affiliated with
 | Requirement | Version |
 |-------------|---------|
 | OS | Windows 10/11 or Windows Server 2016+ |
-| .NET Framework | 4.8 (pre-installed on Windows 10 1903+) |
-| PowerShell | 5.1 (ships with Windows) |
+| .NET | 10.0 (bundled — self-contained) |
+| PowerShell | 7.x (pwsh) for script execution |
 | Disk Space | ~20 MB |
 | Network | HTTPS outbound to SharePoint Online |
 
@@ -28,13 +28,23 @@ This application is provided "AS IS" without warranty. It is not affiliated with
 
 ## Installation
 
-### Option A: Use pre-built release
+### Option A: Standalone Package (Recommended)
 
-1. Download the latest release from [Releases](https://github.com/ivanoliv/SPOVersionManagement/releases)
+No .NET runtime installation required — everything is bundled in a single executable.
+
+1. Download `SPOVersionManagement_v<version>_standalone.zip` from [Releases](https://github.com/ivanoliv/SPOVersionManagement/releases)
 2. Extract the ZIP to your desired installation folder
 3. Run `SPOVersionManagement.exe`
 
-### Option B: Build from source
+### Option B: Standard Package (Smaller download)
+
+Requires [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) installed on the machine.
+
+1. Download `SPOVersionManagement_v<version>_standard.zip` from [Releases](https://github.com/ivanoliv/SPOVersionManagement/releases)
+2. Extract the ZIP to your desired installation folder
+3. Run `SPOVersionManagement.exe`
+
+### Option C: Build from source
 
 See [Building from Source](#building-from-source) below.
 
@@ -44,8 +54,8 @@ See [Building from Source](#building-from-source) below.
 
 ### Prerequisites
 
-- [.NET SDK 6.0+](https://dotnet.microsoft.com/download) (builds .NET Framework 4.8 projects)
-- Or [Visual Studio 2022](https://visualstudio.microsoft.com/) with ".NET desktop development" workload
+- [.NET SDK 10.0+](https://dotnet.microsoft.com/download/dotnet/10.0)
+- Or [Visual Studio 2022 17.12+](https://visualstudio.microsoft.com/) with ".NET desktop development" workload
 - Windows only (WinForms dependency)
 
 ### Build Commands
@@ -58,8 +68,19 @@ cd SPOVersionManagement
 # Build in Release mode
 dotnet build src\SPOVersionManagement.sln -c Release
 
+# Publish as self-contained single-file (standalone — no runtime needed)
+dotnet publish src\SPOVersionManagement\SPOVersionManagement.csproj `
+  -c Release -r win-x64 --self-contained `
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+  -o app
+
+# Publish as framework-dependent (standard — requires .NET 10 Desktop Runtime)
+dotnet publish src\SPOVersionManagement\SPOVersionManagement.csproj `
+  -c Release --no-self-contained -o app-standard
+
 # Output binary location:
-# src\SPOVersionManagement\bin\Release\SPOVersionManagement.exe
+# app\SPOVersionManagement.exe            (standalone, ~165 MB)
+# app-standard\SPOVersionManagement.exe   (standard, ~2 MB)
 ```
 
 ### Build from Visual Studio
@@ -74,7 +95,7 @@ dotnet build src\SPOVersionManagement.sln -c Release
 | Package | Version | Purpose |
 |---------|---------|---------|
 | `Newtonsoft.Json` | 13.0.3 | JSON serialization/deserialization |
-| `Microsoft.PowerShell.5.ReferenceAssemblies` | 1.1.0 | PowerShell hosting in-process |
+| `Microsoft.PowerShell.SDK` | 7.5.0 | PowerShell 7 hosting in-process |
 
 ---
 
@@ -87,6 +108,8 @@ SPOVersionManagement.exe
 ├── Controls/                    # UI Panels (one per sidebar tab)
 │   ├── HomePanel.cs             # Home — tenant status, storage overview
 │   ├── ExecutionPanel.cs        # Execution — run/monitor version jobs
+│   ├── SessionManagerPanel.cs   # Session Manager — save/resume sessions
+│   ├── TaskSchedulerPanel.cs    # Task Scheduler — Windows scheduled tasks
 │   ├── SiteManagementPanel.cs   # Sites — browse, filter, manage sites
 │   ├── HistoryPanel.cs          # History — execution logs and CSV viewer
 │   ├── RetentionPolicyPanel.cs  # Retention — manage compliance policies
@@ -121,6 +144,25 @@ Displays tenant storage overview: quota, used, available, extra cost estimate. S
 
 ### Execution
 Run version management jobs directly from the GUI. Configure major version limits, select sites, launch execution, and monitor real-time progress with console output.
+
+### Session Manager
+Save and resume execution sessions. Selecting a session shows inline details: session ID, status, admin URL, started/updated timestamps, configuration parameters (DeleteBeforeDays, UseFileCache, CacheFilePath, SyncList, SAM Report, ManageRetention), progress (total sites, completed, pending), and the pending queue from JobStatus.json for interrupted/in-progress sessions. Double-click a session to resume it.
+
+### Task Scheduler
+Manage Windows Task Scheduler entries for unattended execution. All tasks are created under the `\SPOVersionManagement\` folder in Task Scheduler for clean organization. Features:
+
+- **Admin detection**: Displays a gold warning banner when not elevated, with a "Run as Admin" button that relaunches the app with UAC elevation and navigates directly back to the Task Scheduler panel.
+- **Task operations**: Refresh, Create, Enable, Disable, Run Now, Delete.
+- **Structured Create dialog**: Task Name, Admin URL, Schedule (Daily/Weekly/Monthly), Start Time, plus execution option checkboxes:
+  - Delete Only / Sync Only (mutually exclusive)
+  - Use File Cache (default on)
+  - Manage Retention Policy
+  - Skip Graph Connection
+  - Max Concurrent Jobs (checkbox + value, default: 10)
+  - Check Batch Size (checkbox + value)
+  - Batch Delay in seconds (checkbox + value)
+- Tasks run `pwsh.exe` with `Start-SPOVersionManagement.ps1 -Unattended` and the selected parameters.
+- Requires Entra ID App authentication configured (TenantId/ClientId/Certificate in AppPaths.json).
 
 ### Site Management
 Browse all SharePoint Online sites with filtering, sorting, and storage details. View site execution history. Queue sites for processing or exclusion.
@@ -180,22 +222,37 @@ See [ENTRA_ID_APP_SETUP.md](../ENTRA_ID_APP_SETUP.md) for full Entra ID app regi
 
 # Or run from source build output:
 .\src\SPOVersionManagement\bin\Release\SPOVersionManagement.exe
+
+# Navigate directly to a specific panel on launch:
+.\app\SPOVersionManagement.exe --navigate=exec.scheduler
 ```
 
 The application searches for `config\AppPaths.json` relative to the executable path to determine the project root.
+
+### Command-Line Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `--navigate=<key>` | Open a specific panel on startup (e.g., `exec.scheduler`, `exec`, `sites`) |
+
+### Administrator Mode
+
+When running elevated (Run as Administrator), the title bar displays **"Administrator: SPO Version Management"**. Elevation is required for Task Scheduler management. The app detects elevation using `WindowsIdentity` / `WindowsPrincipal` and offers a one-click "Run as Admin" button that relaunches via UAC while preserving panel navigation.
 
 ---
 
 ## Troubleshooting
 
 ### Application won't start
-- Verify .NET Framework 4.8 is installed: `(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full').Release -ge 528040`
+- The app is self-contained (.NET 10 bundled) — no runtime install required
 - Run as Administrator if file access errors occur
+- Ensure Windows 10 1903+ or Windows Server 2016+
 
 ### PowerShell execution errors
-- The app hosts PowerShell 5.1 in-process
+- The app hosts PowerShell 7 (via Microsoft.PowerShell.SDK) in-process
 - Ensure execution policy allows script execution: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
-- Required modules must be installed for the **Windows PowerShell** (5.1) environment
+- Required modules: `PnP.PowerShell`, `Microsoft.Graph` (install for pwsh)
+- For Task Scheduler tasks, `pwsh.exe` must be in PATH
 
 ### Cannot connect to SharePoint
 - Verify credentials in Configuration panel
@@ -228,7 +285,8 @@ dotnet build SPOVersionManagement.sln
 ```
 
 ### Code Style
-- C# 7.3 (constrained by .NET Framework 4.8)
-- No nullable reference types
+- C# 12 (.NET 10)
+- Nullable reference types disabled
 - Newtonsoft.Json for serialization
 - Event-driven UI (no async/await in UI event handlers except fire-and-forget)
+- Dark theme via `AppTheme` static class (colors: BgDark, BgInput, BgMedium, AccentCyan, AccentGold, AccentGreen, AccentRed)

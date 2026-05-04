@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Net;
 using System.Windows.Forms;
 using SPOVersionManagement.Forms;
 
@@ -15,9 +14,6 @@ namespace SPOVersionManagement
         /// </summary>
         public static void Main(string rootPath)
         {
-            // GitHub API requires TLS 1.2
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
             if (string.IsNullOrEmpty(rootPath) || !Directory.Exists(rootPath))
             {
                 MessageBox.Show(
@@ -37,16 +33,22 @@ namespace SPOVersionManagement
         [STAThread]
         public static void Main(string[] args)
         {
-            // GitHub API requires TLS 1.2
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            string rootPath = null;
+            string navigateTo = null;
 
-            string rootPath;
-
-            if (args != null && args.Length > 0 && Directory.Exists(args[0]))
+            // Parse arguments
+            if (args != null)
             {
-                rootPath = args[0];
+                foreach (var arg in args)
+                {
+                    if (arg.StartsWith("--navigate=", StringComparison.OrdinalIgnoreCase))
+                        navigateTo = arg.Substring("--navigate=".Length);
+                    else if (rootPath == null && Directory.Exists(arg))
+                        rootPath = arg;
+                }
             }
-            else
+
+            if (rootPath == null)
             {
                 // Auto-detect: assume DLL is in src\...\bin\ — walk up to find AppPaths.json
                 rootPath = FindRootPath();
@@ -63,17 +65,17 @@ namespace SPOVersionManagement
                 return;
             }
 
-            LaunchUI(rootPath);
+            LaunchUI(rootPath, navigateTo);
         }
 
-        private static void LaunchUI(string rootPath)
+        private static void LaunchUI(string rootPath, string navigateTo = null)
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
             try
             {
-                var form = new MainForm(rootPath);
+                var form = new MainForm(rootPath, navigateTo);
                 Application.Run(form);
             }
             catch (Exception ex)

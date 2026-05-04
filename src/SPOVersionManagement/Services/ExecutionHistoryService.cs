@@ -165,6 +165,50 @@ namespace SPOVersionManagement.Services
                    ?? new List<SessionRecord>();
         }
 
+        /// <summary>
+        /// Updates the human-readable Label for a session and persists SessionHistory.json,
+        /// preserving the original wrapper shape ({ "Sessions": [...] } or plain array).
+        /// </summary>
+        public bool RenameSession(string sessionId, string newLabel)
+        {
+            if (string.IsNullOrWhiteSpace(sessionId)) return false;
+            string path = Path.Combine(_config.ConfigPath, "SessionHistory.json");
+            if (!File.Exists(path)) return false;
+
+            string json = File.ReadAllText(path);
+            var token = Newtonsoft.Json.Linq.JToken.Parse(json);
+            Newtonsoft.Json.Linq.JArray arr = null;
+            bool wrapped = false;
+
+            if (token.Type == Newtonsoft.Json.Linq.JTokenType.Object)
+            {
+                arr = token["Sessions"] as Newtonsoft.Json.Linq.JArray;
+                wrapped = true;
+            }
+            else if (token is Newtonsoft.Json.Linq.JArray plainArr)
+            {
+                arr = plainArr;
+            }
+            if (arr == null) return false;
+
+            bool changed = false;
+            foreach (var item in arr)
+            {
+                var idTok = item["SessionId"];
+                if (idTok != null && string.Equals((string)idTok, sessionId, StringComparison.OrdinalIgnoreCase))
+                {
+                    item["Label"] = string.IsNullOrWhiteSpace(newLabel) ? null : newLabel.Trim();
+                    changed = true;
+                    break;
+                }
+            }
+            if (!changed) return false;
+
+            string outJson = wrapped ? token.ToString(Newtonsoft.Json.Formatting.Indented) : arr.ToString(Newtonsoft.Json.Formatting.Indented);
+            File.WriteAllText(path, outJson);
+            return true;
+        }
+
         public int ClearSessionState(bool includeCurrentJobStatus = true)
         {
             int deleted = 0;

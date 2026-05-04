@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
@@ -12,12 +13,14 @@ namespace SPOVersionManagement.Controls
         private string _selectedKey = "";
         private int _hoverIndex = -1;
         private string _version = "";
+        private int _scrollOffset;
         private const int ItemHeight = 40;
         private const int ChildItemHeight = 32;
         private const int HeaderHeight = 72;
 
         public event EventHandler<string> NavigationChanged;
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string SelectedKey
         {
             get => _selectedKey;
@@ -32,6 +35,24 @@ namespace SPOVersionManagement.Controls
             Width = Theme.AppTheme.SidebarWidth;
             Dock = DockStyle.Left;
             Cursor = Cursors.Default;
+        }
+
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            int totalHeight = GetTotalContentHeight();
+            int available = Height - HeaderHeight - 30;
+            if (totalHeight <= available) { _scrollOffset = 0; base.OnMouseWheel(e); return; }
+            _scrollOffset -= e.Delta / 3;
+            _scrollOffset = Math.Max(0, Math.Min(_scrollOffset, totalHeight - available));
+            Invalidate();
+            base.OnMouseWheel(e);
+        }
+
+        private int GetTotalContentHeight()
+        {
+            int h = 0;
+            foreach (var entry in GetVisibleItems()) h += entry.Height;
+            return h;
         }
 
         public void SetVersion(string version)
@@ -147,6 +168,10 @@ namespace SPOVersionManagement.Controls
 
             // ── Nav Items ──
             var visibleItems = GetVisibleItems();
+            int contentStart = y;
+            y -= _scrollOffset;
+            g.SetClip(new Rectangle(0, contentStart, Width, Height - contentStart));
+
             for (int i = 0; i < visibleItems.Count; i++)
             {
                 var entry = visibleItems[i];
@@ -241,6 +266,22 @@ namespace SPOVersionManagement.Controls
 
                 y += h;
             }
+
+            g.ResetClip();
+
+            // ── Discrete scrollbar ──
+            int totalH = GetTotalContentHeight();
+            int availH = Height - contentStart;
+            if (totalH > availH)
+            {
+                int trackX = Width - 5;
+                int trackH = availH;
+                float ratio = (float)availH / totalH;
+                int thumbH = Math.Max(20, (int)(trackH * ratio));
+                int thumbY = contentStart + (int)((float)_scrollOffset / (totalH - availH) * (trackH - thumbH));
+                using (var brush = new SolidBrush(Color.FromArgb(60, 255, 255, 255)))
+                    g.FillRectangle(brush, trackX, thumbY, 3, thumbH);
+            }
         }
 
         private bool IsChildSelected(NavItem parent)
@@ -303,8 +344,8 @@ namespace SPOVersionManagement.Controls
 
         private int HitTest(int mouseY)
         {
-            int y = HeaderHeight + 30;
-            if (mouseY < y) return -1;
+            int y = HeaderHeight + 30 - _scrollOffset;
+            if (mouseY < HeaderHeight + 30) return -1;
             var visibleItems = GetVisibleItems();
             for (int i = 0; i < visibleItems.Count; i++)
             {

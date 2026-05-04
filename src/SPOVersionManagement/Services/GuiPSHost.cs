@@ -219,7 +219,7 @@ namespace SPOVersionManagement.Services
     }
 
     /// <summary>
-    /// Simple input dialog for PowerShell prompts.
+    /// Simple input dialog for PowerShell prompts — dark themed.
     /// </summary>
     internal class InputDialog : Form
     {
@@ -229,26 +229,47 @@ namespace SPOVersionManagement.Services
         public InputDialog(string title, string prompt, bool isPassword = false)
         {
             Text = title;
-            Size = new System.Drawing.Size(420, 180);
+            Size = new System.Drawing.Size(480, 210);
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
+            BackColor = System.Drawing.Color.FromArgb(20, 24, 36);
+            ForeColor = System.Drawing.Color.White;
+            Font = new System.Drawing.Font("Segoe UI", 9.5f);
+
+            var iconLabel = new Label
+            {
+                Text = isPassword ? "\uD83D\uDD12" : "\u2328",
+                Font = new System.Drawing.Font("Segoe UI", 16f),
+                ForeColor = System.Drawing.Color.FromArgb(0, 212, 255),
+                Location = new System.Drawing.Point(16, 16),
+                AutoSize = true,
+                BackColor = System.Drawing.Color.Transparent
+            };
+            Controls.Add(iconLabel);
 
             var lbl = new Label
             {
                 Text = prompt,
-                Location = new System.Drawing.Point(12, 12),
-                Size = new System.Drawing.Size(380, 60),
-                AutoSize = false
+                Location = new System.Drawing.Point(52, 16),
+                Size = new System.Drawing.Size(400, 60),
+                AutoSize = false,
+                ForeColor = System.Drawing.Color.FromArgb(200, 200, 200),
+                BackColor = System.Drawing.Color.Transparent,
+                Font = new System.Drawing.Font("Segoe UI", 9.5f)
             };
             Controls.Add(lbl);
 
             _textBox = new TextBox
             {
-                Location = new System.Drawing.Point(12, 78),
-                Size = new System.Drawing.Size(380, 22),
-                UseSystemPasswordChar = isPassword
+                Location = new System.Drawing.Point(16, 88),
+                Size = new System.Drawing.Size(432, 28),
+                UseSystemPasswordChar = isPassword,
+                BackColor = System.Drawing.Color.FromArgb(30, 36, 52),
+                ForeColor = System.Drawing.Color.FromArgb(0, 212, 255),
+                BorderStyle = BorderStyle.FixedSingle,
+                Font = new System.Drawing.Font("Cascadia Code", 10f)
             };
             Controls.Add(_textBox);
 
@@ -256,18 +277,31 @@ namespace SPOVersionManagement.Services
             {
                 Text = "OK",
                 DialogResult = DialogResult.OK,
-                Location = new System.Drawing.Point(230, 110),
-                Size = new System.Drawing.Size(75, 28)
+                Location = new System.Drawing.Point(280, 130),
+                Size = new System.Drawing.Size(80, 32),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = System.Drawing.Color.FromArgb(0, 230, 118),
+                ForeColor = System.Drawing.Color.FromArgb(20, 24, 36),
+                Font = new System.Drawing.Font("Segoe UI", 9f, System.Drawing.FontStyle.Bold),
+                Cursor = Cursors.Hand
             };
+            btnOk.FlatAppearance.BorderSize = 0;
             Controls.Add(btnOk);
 
             var btnCancel = new Button
             {
                 Text = "Cancel",
                 DialogResult = DialogResult.Cancel,
-                Location = new System.Drawing.Point(315, 110),
-                Size = new System.Drawing.Size(75, 28)
+                Location = new System.Drawing.Point(370, 130),
+                Size = new System.Drawing.Size(80, 32),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = System.Drawing.Color.Transparent,
+                ForeColor = System.Drawing.Color.FromArgb(0, 212, 255),
+                Font = new System.Drawing.Font("Segoe UI", 9f),
+                Cursor = Cursors.Hand
             };
+            btnCancel.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(60, 80, 120);
+            btnCancel.FlatAppearance.BorderSize = 1;
             Controls.Add(btnCancel);
 
             AcceptButton = btnOk;
@@ -276,7 +310,7 @@ namespace SPOVersionManagement.Services
     }
 
     /// <summary>
-    /// Dialog that shows each PowerShell choice as a clickable button.
+    /// Dialog that shows each PowerShell choice as a clickable button — dark themed.
     /// </summary>
     internal class ChoiceDialog : Form
     {
@@ -292,28 +326,56 @@ namespace SPOVersionManagement.Services
             MaximizeBox = false;
             MinimizeBox = false;
             AutoSize = false;
+            BackColor = System.Drawing.Color.FromArgb(20, 24, 36);
+            ForeColor = System.Drawing.Color.White;
+            Font = new System.Drawing.Font("Segoe UI", 9.5f);
 
-            int btnWidth = 140;
-            int btnHeight = 36;
-            int btnGap = 8;
-            int margin = 16;
+            int btnWidth = 150;
+            int btnHeight = 40;
+            int btnGap = 10;
+            int margin = 20;
+
+            // Icon
+            var iconLabel = new Label
+            {
+                Text = "\u2753",
+                Font = new System.Drawing.Font("Segoe UI", 18f),
+                ForeColor = System.Drawing.Color.FromArgb(255, 193, 7),
+                Location = new System.Drawing.Point(margin, margin),
+                AutoSize = true,
+                BackColor = System.Drawing.Color.Transparent
+            };
+            Controls.Add(iconLabel);
 
             // Message label
             var lbl = new Label
             {
                 Text = message,
-                Location = new System.Drawing.Point(margin, margin),
+                Location = new System.Drawing.Point(margin + 40, margin),
                 MaximumSize = new System.Drawing.Size(500, 0),
-                AutoSize = true
+                AutoSize = true,
+                ForeColor = System.Drawing.Color.FromArgb(200, 200, 200),
+                BackColor = System.Drawing.Color.Transparent,
+                Font = new System.Drawing.Font("Segoe UI", 10f)
             };
             Controls.Add(lbl);
 
-            int btnY = lbl.PreferredHeight + margin + 20;
+            int msgHeight = Math.Max(lbl.PreferredHeight, 30);
+            int btnY = margin + msgHeight + 24;
+
+            // Separator line
+            var sep = new Panel
+            {
+                Location = new System.Drawing.Point(margin, btnY - 10),
+                Size = new System.Drawing.Size(500, 1),
+                BackColor = System.Drawing.Color.FromArgb(40, 50, 70)
+            };
+            Controls.Add(sep);
 
             // Calculate total width needed for buttons
             int totalBtnWidth = choices.Count * btnWidth + (choices.Count - 1) * btnGap;
-            int formWidth = Math.Max(totalBtnWidth + margin * 2, lbl.PreferredWidth + margin * 2);
-            formWidth = Math.Max(formWidth, 320);
+            int formWidth = Math.Max(totalBtnWidth + margin * 2, lbl.PreferredWidth + margin * 2 + 40);
+            formWidth = Math.Max(formWidth, 400);
 
             int btnStartX = (formWidth - totalBtnWidth) / 2;
 
@@ -328,14 +390,23 @@ namespace SPOVersionManagement.Services
                     Text = label,
                     Size = new System.Drawing.Size(btnWidth, btnHeight),
                     Location = new System.Drawing.Point(btnStartX + i * (btnWidth + btnGap), btnY),
-                    FlatStyle = FlatStyle.Flat
+                    FlatStyle = FlatStyle.Flat,
+                    Cursor = Cursors.Hand,
+                    Font = new System.Drawing.Font("Segoe UI", 9.5f, System.Drawing.FontStyle.Bold)
                 };
 
                 if (i == defaultChoice)
                 {
-                    btn.Font = new System.Drawing.Font(btn.Font, System.Drawing.FontStyle.Bold);
-                    btn.FlatAppearance.BorderColor = System.Drawing.Color.DodgerBlue;
-                    btn.FlatAppearance.BorderSize = 2;
+                    btn.BackColor = System.Drawing.Color.FromArgb(0, 212, 255);
+                    btn.ForeColor = System.Drawing.Color.FromArgb(20, 24, 36);
+                    btn.FlatAppearance.BorderSize = 0;
+                }
+                else
+                {
+                    btn.BackColor = System.Drawing.Color.Transparent;
+                    btn.ForeColor = System.Drawing.Color.FromArgb(0, 212, 255);
+                    btn.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(0, 212, 255);
+                    btn.FlatAppearance.BorderSize = 1;
                 }
 
                 if (!string.IsNullOrEmpty(helpText))
@@ -353,6 +424,7 @@ namespace SPOVersionManagement.Services
                 Controls.Add(btn);
             }
 
+            sep.Size = new System.Drawing.Size(formWidth - margin * 2, 1);
             ClientSize = new System.Drawing.Size(formWidth, btnY + btnHeight + margin);
         }
 

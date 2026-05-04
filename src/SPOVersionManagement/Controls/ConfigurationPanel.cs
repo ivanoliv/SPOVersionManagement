@@ -17,10 +17,12 @@ namespace SPOVersionManagement.Controls
         private TextBox _txtPurviewClientId, _txtPurviewCertThumb, _txtPurviewOrg;
         private TextBox _txtCurrencySymbol, _txtCurrencyCode, _txtCostTBYear, _txtPort, _txtReexecutionDays;
         private TextBox _txtRootPath, _txtApplicationFolder, _txtLogsFolder, _txtBackupFolder;
+        private TextBox _txtConfigFolder, _txtWebFolder, _txtAppFolder;
         private ComboBox _cmbLanguage, _cmbDateFormat, _cmbZeroVersion, _cmbDashboardLaunchMode;
         private CheckBox _chkTelemetry;
         private TextBox _txtTelemetryEndpoint, _txtGitHubRepo;
         private Label _lblPathPreviewRoot, _lblPathPreviewLogs, _lblPathPreviewBackup, _lblPathPreviewJobStatus;
+        private Label _lblPathPreviewConfig, _lblPathPreviewWeb, _lblPathPreviewApp;
         private bool _isDirty;
 
         public event EventHandler BackupClicked;
@@ -87,9 +89,10 @@ namespace SPOVersionManagement.Controls
 
             // ═══ TENANT CONNECTION ═══
             y = AddSection("TENANT CONNECTION", AppTheme.AccentCyan, y);
-            var tenantCard = new GlassPanel { Location = new Point(0, y), Size = new Size(880, 64), AccentLeft = AppTheme.AccentCyan };
+            var tenantCard = new GlassPanel { Location = new Point(0, y), Size = new Size(880, 100), AccentLeft = AppTheme.AccentCyan };
             Controls.Add(tenantCard);
-            AddFieldInCard(tenantCard, "Admin URL:", ref _txtAdminUrl, lblW, inW, 14);
+            int ty = 14;
+            AddFieldInCard(tenantCard, "Admin URL:", ref _txtAdminUrl, lblW, inW, ty);
             tenantCard.Controls.Add(new Label
             {
                 Text = "https://contoso-admin.sharepoint.com",
@@ -97,19 +100,33 @@ namespace SPOVersionManagement.Controls
                 ForeColor = AppTheme.TextMuted,
                 AutoSize = true,
                 BackColor = Color.Transparent,
-                Location = new Point(lblW + inW + 22, 16)
+                Location = new Point(lblW + inW + 22, ty + 2)
             });
-            y += 64 + sectionGap;
+            ty += rowH + 4;
+            AddFieldInCard(tenantCard, "Tenant ID:", ref _txtTenantId, lblW, inW, ty);
+            var btnResolve = new FlatButton { Text = "Resolve", Size = new Size(64, 22), Location = new Point(lblW + inW + 18, ty - 1) };
+            btnResolve.SetGhostStyle();
+            btnResolve.Click += BtnResolveTenantId_Click;
+            tenantCard.Controls.Add(btnResolve);
+            tenantCard.Controls.Add(new Label
+            {
+                Text = "Auto-resolved from Admin URL",
+                Font = new Font("Cascadia Code", 6.5f),
+                ForeColor = AppTheme.TextMuted,
+                AutoSize = true,
+                BackColor = Color.Transparent,
+                Location = new Point(lblW + inW + 88, ty + 2)
+            });
+            y += 100 + sectionGap;
 
             // ═══ ENTRA ID ═══
             y = AddSection("ENTRA ID APP REGISTRATION", AppTheme.AccentCyan, y);
-            var entraCard = new GlassPanel { Location = new Point(0, y), Size = new Size(880, 130), AccentLeft = AppTheme.AccentCyan };
+            var entraCard = new GlassPanel { Location = new Point(0, y), Size = new Size(880, 96), AccentLeft = AppTheme.AccentCyan };
             Controls.Add(entraCard);
             int ey = 14;
-            AddFieldInCard(entraCard, "Tenant ID:", ref _txtTenantId, lblW, inW, ey); ey += rowH + 4;
             AddFieldInCard(entraCard, "Client ID:", ref _txtClientId, lblW, inW, ey); ey += rowH + 4;
             AddFieldInCard(entraCard, "Certificate Thumbprint:", ref _txtCertThumb, lblW, inW, ey);
-            y += 130 + sectionGap;
+            y += 96 + sectionGap;
 
             // ═══ PURVIEW ═══
             y = AddSection("PURVIEW APP (Optional)", AppTheme.AccentPurple, y);
@@ -183,34 +200,55 @@ namespace SPOVersionManagement.Controls
                 BackColor = Color.Transparent,
                 Location = new Point(lblW + 102, ry + 4)
             });
-
             y += 126 + sectionGap;
 
             // ═══ EXECUTION DIRECTORIES ═══
             y = AddSection("EXECUTION DIRECTORIES", AppTheme.AccentCyan, y);
-            var dirCard = new GlassPanel { Location = new Point(0, y), Size = new Size(880, 226), AccentLeft = AppTheme.AccentCyan };
+            var dirCard = new GlassPanel { Location = new Point(0, y), Size = new Size(880, 370), AccentLeft = AppTheme.AccentCyan };
             Controls.Add(dirCard);
             int dirY = 14;
+            int browseW = 30;
+            int txtDirW = 260;
 
             AddLblInCard(dirCard, "Root Directory:", 14, dirY, lblW);
-            _txtRootPath = AddTxtInCard(dirCard, lblW + 14, dirY, 300);
+            _txtRootPath = AddTxtInCard(dirCard, lblW + 14, dirY, txtDirW);
+            AddBrowseButton(dirCard, _txtRootPath, lblW + 14 + txtDirW + 6, dirY);
             dirY += rowH + 4;
 
             AddLblInCard(dirCard, "Application Folder:", 14, dirY, lblW);
-            _txtApplicationFolder = AddTxtInCard(dirCard, lblW + 14, dirY, 300);
+            _txtApplicationFolder = AddTxtInCard(dirCard, lblW + 14, dirY, txtDirW);
+            AddBrowseButton(dirCard, _txtApplicationFolder, lblW + 14 + txtDirW + 6, dirY);
             dirY += rowH + 4;
 
             AddLblInCard(dirCard, "Logs Subfolder:", 14, dirY, lblW);
-            _txtLogsFolder = AddTxtInCard(dirCard, lblW + 14, dirY, 220);
+            _txtLogsFolder = AddTxtInCard(dirCard, lblW + 14, dirY, txtDirW);
+            AddBrowseButton(dirCard, _txtLogsFolder, lblW + 14 + txtDirW + 6, dirY);
             dirY += rowH + 4;
 
             AddLblInCard(dirCard, "Backup Subfolder:", 14, dirY, lblW);
-            _txtBackupFolder = AddTxtInCard(dirCard, lblW + 14, dirY, 220);
+            _txtBackupFolder = AddTxtInCard(dirCard, lblW + 14, dirY, txtDirW);
+            AddBrowseButton(dirCard, _txtBackupFolder, lblW + 14 + txtDirW + 6, dirY);
+            dirY += rowH + 4;
+
+            AddLblInCard(dirCard, "Config Folder:", 14, dirY, lblW);
+            _txtConfigFolder = AddTxtInCard(dirCard, lblW + 14, dirY, txtDirW);
+            AddBrowseButton(dirCard, _txtConfigFolder, lblW + 14 + txtDirW + 6, dirY);
+            dirY += rowH + 4;
+
+            AddLblInCard(dirCard, "Web Folder:", 14, dirY, lblW);
+            _txtWebFolder = AddTxtInCard(dirCard, lblW + 14, dirY, txtDirW);
+            AddBrowseButton(dirCard, _txtWebFolder, lblW + 14 + txtDirW + 6, dirY);
+            dirY += rowH + 4;
+
+            AddLblInCard(dirCard, "App Folder:", 14, dirY, lblW);
+            _txtAppFolder = AddTxtInCard(dirCard, lblW + 14, dirY, txtDirW);
+            AddBrowseButton(dirCard, _txtAppFolder, lblW + 14 + txtDirW + 6, dirY);
+            dirY += rowH + 10;
 
             var previewCard = new Panel
             {
-                Location = new Point(14, 146),
-                Size = new Size(852, 70),
+                Location = new Point(14, dirY),
+                Size = new Size(852, 90),
                 BackColor = Color.FromArgb(24, 255, 255, 255)
             };
             dirCard.Controls.Add(previewCard);
@@ -226,20 +264,29 @@ namespace SPOVersionManagement.Controls
             });
 
             _lblPathPreviewRoot = new Label { Font = new Font("Cascadia Code", 7f), ForeColor = AppTheme.TextSecondary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(10, 24) };
-            _lblPathPreviewLogs = new Label { Font = new Font("Cascadia Code", 7f), ForeColor = AppTheme.TextSecondary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(10, 40) };
-            _lblPathPreviewBackup = new Label { Font = new Font("Cascadia Code", 7f), ForeColor = AppTheme.TextSecondary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(430, 24) };
-            _lblPathPreviewJobStatus = new Label { Font = new Font("Cascadia Code", 7f), ForeColor = AppTheme.TextSecondary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(430, 40) };
+            _lblPathPreviewLogs = new Label { Font = new Font("Cascadia Code", 7f), ForeColor = AppTheme.TextSecondary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(10, 38) };
+            _lblPathPreviewBackup = new Label { Font = new Font("Cascadia Code", 7f), ForeColor = AppTheme.TextSecondary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(10, 52) };
+            _lblPathPreviewJobStatus = new Label { Font = new Font("Cascadia Code", 7f), ForeColor = AppTheme.TextSecondary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(10, 66) };
+            _lblPathPreviewConfig = new Label { Font = new Font("Cascadia Code", 7f), ForeColor = AppTheme.TextSecondary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(430, 24) };
+            _lblPathPreviewWeb = new Label { Font = new Font("Cascadia Code", 7f), ForeColor = AppTheme.TextSecondary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(430, 38) };
+            _lblPathPreviewApp = new Label { Font = new Font("Cascadia Code", 7f), ForeColor = AppTheme.TextSecondary, AutoSize = true, BackColor = Color.Transparent, Location = new Point(430, 52) };
             previewCard.Controls.Add(_lblPathPreviewRoot);
             previewCard.Controls.Add(_lblPathPreviewLogs);
             previewCard.Controls.Add(_lblPathPreviewBackup);
             previewCard.Controls.Add(_lblPathPreviewJobStatus);
+            previewCard.Controls.Add(_lblPathPreviewConfig);
+            previewCard.Controls.Add(_lblPathPreviewWeb);
+            previewCard.Controls.Add(_lblPathPreviewApp);
 
             _txtRootPath.TextChanged += (s, e) => UpdateDirectoryPreview();
             _txtApplicationFolder.TextChanged += (s, e) => UpdateDirectoryPreview();
             _txtLogsFolder.TextChanged += (s, e) => UpdateDirectoryPreview();
             _txtBackupFolder.TextChanged += (s, e) => UpdateDirectoryPreview();
+            _txtConfigFolder.TextChanged += (s, e) => UpdateDirectoryPreview();
+            _txtWebFolder.TextChanged += (s, e) => UpdateDirectoryPreview();
+            _txtAppFolder.TextChanged += (s, e) => UpdateDirectoryPreview();
 
-            y += 226 + sectionGap;
+            y += 370 + sectionGap;
 
             // ═══ AUTO-UPDATE ═══
             y = AddSection("AUTO-UPDATE", AppTheme.AccentCyan, y);
@@ -316,6 +363,9 @@ namespace SPOVersionManagement.Controls
             _txtApplicationFolder.Text = ac.ApplicationFolder ?? "SPOVersionManagement";
             _txtLogsFolder.Text = ac.Directories?.Logs ?? "Logs";
             _txtBackupFolder.Text = ac.Directories?.Backup ?? @"Logs\Backup";
+            _txtConfigFolder.Text = ac.Directories?.Config ?? "config";
+            _txtWebFolder.Text = ac.Directories?.Web ?? "web";
+            _txtAppFolder.Text = ac.Directories?.App ?? "app";
             SelectCombo(_cmbDashboardLaunchMode,
                 string.Equals(dc.DashboardLaunchMode, "powershell", StringComparison.OrdinalIgnoreCase)
                     ? "PowerShell Script"
@@ -337,6 +387,9 @@ namespace SPOVersionManagement.Controls
                 _config.AppConfig.EntraIdApp.TenantId = _txtTenantId.Text.Trim();
                 _config.AppConfig.EntraIdApp.ClientId = _txtClientId.Text.Trim();
                 _config.AppConfig.EntraIdApp.CertificateThumbprint = _txtCertThumb.Text.Trim();
+
+                // Auto-resolve TenantId and Purview Org from AdminUrl if empty
+                AutoResolveFromAdminUrl();
                 if (_config.AppConfig.PurviewApp == null) _config.AppConfig.PurviewApp = new PurviewAppConfig();
                 _config.AppConfig.PurviewApp.ClientId = _txtPurviewClientId.Text.Trim();
                 _config.AppConfig.PurviewApp.CertificateThumbprint = _txtPurviewCertThumb.Text.Trim();
@@ -349,6 +402,9 @@ namespace SPOVersionManagement.Controls
                 if (_config.AppConfig.Directories == null) _config.AppConfig.Directories = new DirectoryPaths();
                 _config.AppConfig.Directories.Logs = _txtLogsFolder.Text.Trim();
                 _config.AppConfig.Directories.Backup = _txtBackupFolder.Text.Trim();
+                _config.AppConfig.Directories.Config = _txtConfigFolder.Text.Trim();
+                _config.AppConfig.Directories.Web = _txtWebFolder.Text.Trim();
+                _config.AppConfig.Directories.App = _txtAppFolder.Text.Trim();
                 _config.DashboardConfig.Language = _cmbLanguage.SelectedItem?.ToString() ?? "en";
                 if (_config.DashboardConfig.Currency == null) _config.DashboardConfig.Currency = new CurrencyConfig();
                 _config.DashboardConfig.Currency.Symbol = _txtCurrencySymbol.Text.Trim();
@@ -378,6 +434,101 @@ namespace SPOVersionManagement.Controls
             StatusMessage?.Invoke(this, "Changes discarded.");
         }
 
+        /// <summary>
+        /// Manual "Resolve" button — always attempts resolution regardless of current field values.
+        /// </summary>
+        private void BtnResolveTenantId_Click(object sender, EventArgs e)
+        {
+            string adminUrl = _txtAdminUrl.Text.Trim();
+            if (string.IsNullOrWhiteSpace(adminUrl))
+            {
+                MessageBox.Show("Enter the Admin URL first.", "Resolve Tenant ID", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                var uri = new Uri(adminUrl.TrimEnd('/'));
+                string host = uri.Host;
+                string tenantName = host.Split('.')[0].Replace("-admin", "");
+
+                // Fill Purview Organization
+                _txtPurviewOrg.Text = tenantName;
+
+                // Resolve TenantId via Azure AD OpenID discovery
+                string tenantDomain = $"{tenantName}.onmicrosoft.com";
+                string discoveryUrl = $"https://login.microsoftonline.com/{tenantDomain}/.well-known/openid-configuration";
+
+                using (var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) })
+                {
+                    string json = http.GetStringAsync(discoveryUrl).GetAwaiter().GetResult();
+                    var match = System.Text.RegularExpressions.Regex.Match(json,
+                        @"""issuer""\s*:\s*""https://sts\.windows\.net/([0-9a-fA-F\-]{36})/?""");
+                    if (match.Success)
+                    {
+                        _txtTenantId.Text = match.Groups[1].Value;
+                        StatusMessage?.Invoke(this, $"Tenant ID resolved: {match.Groups[1].Value}");
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Could not resolve Tenant ID from '{tenantDomain}'.\nVerify the Admin URL is correct.", "Resolve Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error resolving Tenant ID:\n{ex.Message}", "Resolve Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Auto-resolves TenantId (via Azure AD discovery) and Purview Organization
+        /// from AdminUrl if those fields are empty. Updates both config and UI.
+        /// </summary>
+        private void AutoResolveFromAdminUrl()
+        {
+            string adminUrl = _config.AppConfig.AdminUrl;
+            if (string.IsNullOrWhiteSpace(adminUrl))
+                return;
+
+            try
+            {
+                var uri = new Uri(adminUrl.TrimEnd('/'));
+                string host = uri.Host; // e.g. "contoso-admin.sharepoint.com"
+                string tenantName = host.Split('.')[0].Replace("-admin", "");
+
+                // Auto-fill Purview Organization if empty
+                if (_config.AppConfig.PurviewApp != null &&
+                    string.IsNullOrWhiteSpace(_config.AppConfig.PurviewApp.Organization))
+                {
+                    _config.AppConfig.PurviewApp.Organization = tenantName;
+                    _txtPurviewOrg.Text = tenantName;
+                }
+
+                // Auto-resolve TenantId via Azure AD OpenID discovery if empty
+                if (string.IsNullOrWhiteSpace(_config.AppConfig.EntraIdApp?.TenantId))
+                {
+                    string tenantDomain = $"{tenantName}.onmicrosoft.com";
+                    string discoveryUrl = $"https://login.microsoftonline.com/{tenantDomain}/.well-known/openid-configuration";
+
+                    using (var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) })
+                    {
+                        string json = http.GetStringAsync(discoveryUrl).GetAwaiter().GetResult();
+                        var match = System.Text.RegularExpressions.Regex.Match(json,
+                            @"""issuer""\s*:\s*""https://sts\.windows\.net/([0-9a-fA-F\-]{36})/?""");
+                        if (match.Success)
+                        {
+                            string resolved = match.Groups[1].Value;
+                            _config.AppConfig.EntraIdApp.TenantId = resolved;
+                            _txtTenantId.Text = resolved;
+                            StatusMessage?.Invoke(this, $"Tenant ID auto-resolved: {resolved}");
+                        }
+                    }
+                }
+            }
+            catch { /* best-effort — user can always fill manually */ }
+        }
+
         private void BtnPreviewTelemetry_Click(object sender, EventArgs e)
         {
             var sample = new { tenantHash = "(SHA256 of TenantId)", appVersion = _config.AppConfig.AppVersion ?? "2.x", storageFreedBytes = 536870912, versionsDeleted = 1250, sitesProcessed = 47, timestamp = DateTime.UtcNow.ToString("o") };
@@ -390,6 +541,18 @@ namespace SPOVersionManagement.Controls
         }
 
         private void BtnResetLocalDb_Click(object sender, EventArgs e)
+        {
+            string resetType = ShowResetLocalDbDialog(ParentForm);
+            if (resetType == null) return;
+            PerformReset(resetType);
+        }
+
+        /// <summary>
+        /// Shows the "Reset Local Database" dialog and returns the chosen reset type
+        /// ("sites" / "tenant" / "both") or null if the user cancelled. Does not perform the reset itself.
+        /// Reusable across panels so the same UI is shown whenever a reset is needed.
+        /// </summary>
+        public static string ShowResetLocalDbDialog(IWin32Window owner)
         {
             using (var dlg = new Form())
             {
@@ -521,17 +684,14 @@ namespace SPOVersionManagement.Controls
                         MessageBox.Show(dlg, "Type YES to confirm this reset.", "Confirmation Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         return;
                     }
-
                     dlg.DialogResult = DialogResult.OK;
                 };
                 dlg.Controls.Add(btnConfirm);
 
-                if (dlg.ShowDialog(ParentForm) != DialogResult.OK)
-                    return;
+                if (dlg.ShowDialog(owner) != DialogResult.OK)
+                    return null;
 
-                // Determine what to reset
-                string resetType = rbSitesOnly.Checked ? "sites" : (rbTenantOnly.Checked ? "tenant" : "both");
-                PerformReset(resetType);
+                return rbSitesOnly.Checked ? "sites" : (rbTenantOnly.Checked ? "tenant" : "both");
             }
         }
 
@@ -611,6 +771,85 @@ namespace SPOVersionManagement.Controls
             return txt;
         }
 
+        private void AddBrowseButton(Control card, TextBox target, int x, int y)
+        {
+            var btn = new Button
+            {
+                Text = "\u2026",
+                Size = new Size(30, 22),
+                Location = new Point(x, y),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = AppTheme.BgInput,
+                ForeColor = AppTheme.TextPrimary,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+            btn.FlatAppearance.BorderColor = AppTheme.Border;
+            btn.FlatAppearance.BorderSize = 1;
+            btn.Click += (s, e) =>
+            {
+                using (var dlg = new FolderBrowserDialog())
+                {
+                    // Resolve current value to full path for initial selection
+                    string currentFull = ResolveToFullPath(target.Text);
+                    if (!string.IsNullOrEmpty(currentFull) && Directory.Exists(currentFull))
+                        dlg.SelectedPath = currentFull;
+
+                    if (dlg.ShowDialog() == DialogResult.OK)
+                    {
+                        // Root directory always stores full path
+                        if (target == _txtRootPath)
+                        {
+                            target.Text = dlg.SelectedPath;
+                        }
+                        else
+                        {
+                            // Make relative if inside root, otherwise keep full
+                            target.Text = MakeRelativeIfInRoot(dlg.SelectedPath);
+                        }
+                    }
+                }
+            };
+            card.Controls.Add(btn);
+        }
+
+        private string GetEffectiveRoot()
+        {
+            string root = _txtRootPath?.Text?.Trim();
+            if (string.IsNullOrEmpty(root))
+                root = _config.RootPath;
+            return root;
+        }
+
+        private string ResolveToFullPath(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            if (Path.IsPathRooted(value)) return value;
+            string root = GetEffectiveRoot();
+            if (string.IsNullOrEmpty(root)) return value;
+            return Path.GetFullPath(Path.Combine(root, value));
+        }
+
+        private string MakeRelativeIfInRoot(string fullPath)
+        {
+            if (string.IsNullOrWhiteSpace(fullPath)) return fullPath;
+            string root = GetEffectiveRoot();
+            if (string.IsNullOrEmpty(root)) return fullPath;
+
+            // Normalize both paths for comparison
+            string normalizedRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            string normalizedPath = Path.GetFullPath(fullPath).TrimEnd(Path.DirectorySeparatorChar);
+
+            if (normalizedPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                string relative = normalizedPath.Substring(normalizedRoot.Length);
+                return string.IsNullOrEmpty(relative) ? "." : relative;
+            }
+
+            // Outside root — keep full path
+            return fullPath;
+        }
+
         private ComboBox AddCmb(int x, int y, int w, string[] items)
         {
             var cmb = new ComboBox { Location = new Point(x, y), Size = new Size(w, 22), DropDownStyle = ComboBoxStyle.DropDownList };
@@ -664,6 +903,9 @@ namespace SPOVersionManagement.Controls
             string appFolder = (_txtApplicationFolder?.Text ?? string.Empty).Trim();
             string logsFolder = (_txtLogsFolder?.Text ?? string.Empty).Trim();
             string backupFolder = (_txtBackupFolder?.Text ?? string.Empty).Trim();
+            string configFolder = (_txtConfigFolder?.Text ?? string.Empty).Trim();
+            string webFolder = (_txtWebFolder?.Text ?? string.Empty).Trim();
+            string appDirFolder = (_txtAppFolder?.Text ?? string.Empty).Trim();
 
             string appRoot = string.IsNullOrWhiteSpace(rootDir)
                 ? appFolder
@@ -677,6 +919,18 @@ namespace SPOVersionManagement.Controls
                 ? backupFolder
                 : Path.Combine(appRoot, backupFolder);
 
+            string configPath = Path.IsPathRooted(configFolder)
+                ? configFolder
+                : Path.Combine(appRoot, configFolder);
+
+            string webPath = Path.IsPathRooted(webFolder)
+                ? webFolder
+                : Path.Combine(appRoot, webFolder);
+
+            string appDirPath = Path.IsPathRooted(appDirFolder)
+                ? appDirFolder
+                : Path.Combine(appRoot, appDirFolder);
+
             string jobStatusFile = _config?.AppConfig?.Files?.JobStatus ?? "JobStatus.json";
             string jobStatusPath = Path.Combine(logsPath, jobStatusFile);
 
@@ -684,6 +938,9 @@ namespace SPOVersionManagement.Controls
             _lblPathPreviewLogs.Text = "Logs: " + logsPath;
             _lblPathPreviewBackup.Text = "Backup: " + backupPath;
             _lblPathPreviewJobStatus.Text = "JobStatus: " + jobStatusPath;
+            if (_lblPathPreviewConfig != null) _lblPathPreviewConfig.Text = "Config: " + configPath;
+            if (_lblPathPreviewWeb != null) _lblPathPreviewWeb.Text = "Web: " + webPath;
+            if (_lblPathPreviewApp != null) _lblPathPreviewApp.Text = "App: " + appDirPath;
         }
 
         private Label ML(string text, Font font, Color color, int x, int y)

@@ -222,6 +222,6 @@ Recovered budget can be reinvested into AI initiatives (Microsoft Copilot), secu
 
 ## Related Guides
 
-- [How to Reduce SharePoint Storage Costs]({{ '/guides/reduce-sharepoint-storage-costs' | relative_url }})
-- [PowerShell Automation for Version Cleanup]({{ '/guides/powershell-sharepoint-version-cleanup' | relative_url }})
-- [SharePoint Governance Best Practices]({{ '/guides/sharepoint-governance-best-practices' | relative_url }})
+- [How to Reduce SharePoint Storage Costs]({{ '/guides/reduce-sharepoint-storage-costs/' | relative_url }})
+- [PowerShell Automation for Version Cleanup]({{ '/guides/powershell-sharepoint-version-cleanup/' | relative_url }})
+- [SharePoint Governance Best Practices]({{ '/guides/sharepoint-governance-best-practices/' | relative_url }})

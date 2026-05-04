@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
+using System.Net.Http;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 using Newtonsoft.Json.Linq;
@@ -27,6 +28,11 @@ namespace SPOVersionManagement.Controls
         private Panel _recentExecPanel;
         // Chart
         private Chart _chart;
+        // Pending banner
+        private Panel _pendingBanner;
+        // Resize debounce
+        private System.Windows.Forms.Timer _resizeTimer;
+        private int _lastLayoutWidth;
 
         public event EventHandler StartClicked;
         public event EventHandler DashboardClicked;
@@ -50,9 +56,31 @@ namespace SPOVersionManagement.Controls
         {
             _config = config;
             _history = history;
+            _resizeTimer = new System.Windows.Forms.Timer { Interval = 150 };
+            _resizeTimer.Tick += (s, e) =>
+            {
+                _resizeTimer.Stop();
+                int newW = ClientSize.Width;
+                if (Math.Abs(newW - _lastLayoutWidth) > 20)
+                {
+                    SuspendLayout();
+                    BuildLayout();
+                    RefreshData();
+                    ResumeLayout(true);
+                    _lastLayoutWidth = newW;
+                }
+            };
             BuildLayout();
             RefreshData();
-            Resize += (s, e) => { if (_config != null) { BuildLayout(); RefreshData(); } };
+            _lastLayoutWidth = ClientSize.Width;
+            Resize += (s, e) =>
+            {
+                if (_config != null)
+                {
+                    _resizeTimer.Stop();
+                    _resizeTimer.Start();
+                }
+            };
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -79,26 +107,103 @@ namespace SPOVersionManagement.Controls
             int col2W = (fullW - gap) * 2 / 3;
             int col1W = fullW - col2W - gap;
 
-            // Top-right actions
+            // Top-right actions — aligned to the right of the header
+            var btnBackup = new FlatButton
+            {
+                Text = "\u25A8  Backup Data",
+                Size = new Size(140, 34),
+                Location = new Point(fullW - 140, 6)
+            };
+            btnBackup.SetGhostStyle();
+            btnBackup.Click += (s, e) => BackupClicked?.Invoke(this, EventArgs.Empty);
+            Controls.Add(btnBackup);
+
             var btnDashboard = new FlatButton
             {
                 Text = "\u25A3  Open Dashboard",
                 Size = new Size(170, 34),
-                Location = new Point(Math.Max(m, fullW - 320), 6)
+                Location = new Point(fullW - 140 - 8 - 170, 6)
             };
             btnDashboard.SetAccentColor(AppTheme.AccentCyan);
             btnDashboard.Click += (s, e) => DashboardClicked?.Invoke(this, EventArgs.Empty);
             Controls.Add(btnDashboard);
 
-            var btnBackup = new FlatButton
+            // ═══ PENDING CONFIGURATION BANNER ═══
+            var pendingItems = GetPendingItems();
+            if (pendingItems.Count > 0)
             {
-                Text = "\u25A8  Backup Data",
-                Size = new Size(140, 34),
-                Location = new Point(Math.Max(m, fullW - 142), 6)
-            };
-            btnBackup.SetGhostStyle();
-            btnBackup.Click += (s, e) => BackupClicked?.Invoke(this, EventArgs.Empty);
-            Controls.Add(btnBackup);
+                int bannerH = 40 + (pendingItems.Count * 22);
+                _pendingBanner = new Panel
+                {
+                    Location = new Point(m, y),
+                    Size = new Size(fullW, bannerH),
+                    BackColor = Color.Transparent
+                };
+                _pendingBanner.Paint += (s, pe) =>
+                {
+                    var g = pe.Graphics;
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+                    var rect = new Rectangle(0, 0, _pendingBanner.Width - 1, _pendingBanner.Height - 1);
+
+                    // Dark card with amber border
+                    using (var path = AppTheme.CreateRoundedRect(rect, 8))
+                    {
+                        using (var bgBrush = new SolidBrush(Color.FromArgb(30, 26, 14)))
+                            g.FillPath(bgBrush, path);
+                        using (var borderPen = new Pen(Color.FromArgb(80, AppTheme.AccentGold), 1f))
+                            g.DrawPath(borderPen, path);
+                    }
+
+                    // Left accent stripe
+                    using (var accentBrush = new SolidBrush(AppTheme.AccentGold))
+                        g.FillRectangle(accentBrush, 0, 6, 3, _pendingBanner.Height - 12);
+                };
+                Controls.Add(_pendingBanner);
+
+                // Banner header — paint icon in OnPaint to avoid label overlap
+                var lblBannerTitle = new Label
+                {
+                    Text = $"\u26A0  Action required \u2014 {pendingItems.Count} pending item{(pendingItems.Count > 1 ? "s" : "")}",
+                    Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                    ForeColor = AppTheme.AccentGold,
+                    AutoSize = true,
+                    BackColor = Color.Transparent,
+                    Location = new Point(14, 12)
+                };
+                _pendingBanner.Controls.Add(lblBannerTitle);
+
+                // Fix button
+                var btnFix = new FlatButton
+                {
+                    Text = "Go to Config",
+                    Size = new Size(100, 26),
+                    Location = new Point(fullW - 120, 8),
+                    Font = new Font("Segoe UI", 8f, FontStyle.Bold)
+                };
+                btnFix.SetAccentColor(AppTheme.AccentGold);
+                btnFix.ForeColor = AppTheme.BgDark;
+                btnFix.Click += (s, e) => ConfigClicked?.Invoke(this, EventArgs.Empty);
+                _pendingBanner.Controls.Add(btnFix);
+
+                // List items
+                int itemY = 36;
+                foreach (var item in pendingItems)
+                {
+                    var bullet = new Label
+                    {
+                        Text = "\u2022  " + item,
+                        Font = new Font("Segoe UI", 8.5f),
+                        ForeColor = AppTheme.TextSecondary,
+                        AutoSize = true,
+                        BackColor = Color.Transparent,
+                        Location = new Point(20, itemY)
+                    };
+                    _pendingBanner.Controls.Add(bullet);
+                    itemY += 22;
+                }
+
+                y += bannerH + gap;
+            }
 
             // Session Summary Card
             var sessionCard = new GlassPanel { Location = new Point(m, y), Size = new Size(col2W, 140), AccentLeft = AppTheme.AccentCyan };
@@ -109,7 +214,7 @@ namespace SPOVersionManagement.Controls
             int subW = (col2W - 48) / 3;
             int subY = 44;
             var pAuth = MakeSubCard(sessionCard, 14, subY, subW, 80);
-            _lblAuthStatus = AddSubCardContent(pAuth, "AUTH STATUS", "\u2713 App-Only (Cert)", AppTheme.AccentGreen);
+            _lblAuthStatus = AddSubCardContent(pAuth, "AUTH STATUS", GetAuthStatusText(), GetAuthStatusColor());
 
             var pSync = MakeSubCard(sessionCard, 14 + subW + 8, subY, subW, 80);
             _lblLastSync = AddSubCardContent(pSync, "LAST SYNC", "-", AppTheme.TextSecondary);
@@ -181,6 +286,12 @@ namespace SPOVersionManagement.Controls
             globalCard.Controls.Add(_lblGlobalVal);
             globalCard.Controls.Add(MakeLabel("Global Storage Freed (all users)", AppTheme.FontSmall, AppTheme.TextMuted, 14, 72));
 
+            var btnRefreshGlobal = new FlatButton { Text = "\u21BB", Size = new Size(28, 24), Location = new Point(halfW - 42, 10) };
+            btnRefreshGlobal.SetGhostStyle();
+            btnRefreshGlobal.Font = new Font("Segoe UI", 11f, FontStyle.Bold);
+            btnRefreshGlobal.Click += async (s, e) => await RefreshGlobalStatsAsync();
+            globalCard.Controls.Add(btnRefreshGlobal);
+
             // Recent Executions
             var recentCard = new GlassPanel { Location = new Point(m + halfW + gap, y), Size = new Size(halfW, 100) };
             Controls.Add(recentCard);
@@ -200,6 +311,21 @@ namespace SPOVersionManagement.Controls
         public void RefreshData()
         {
             if (_config == null || _history == null) return;
+
+            // Reload config from disk to pick up changes made in other panels
+            _config.Load();
+
+            // If pending items changed, rebuild the entire layout
+            var currentPending = GetPendingItems();
+            bool hadBanner = _pendingBanner != null;
+            bool needsBanner = currentPending.Count > 0;
+            if (hadBanner != needsBanner || (hadBanner && needsBanner))
+            {
+                SuspendLayout();
+                BuildLayout();
+                ResumeLayout(true);
+            }
+
             try
             {
                 var (versionsDeleted, storageGB, sites, sessionCount) = _history.GetSummaryStats();
@@ -223,9 +349,43 @@ namespace SPOVersionManagement.Controls
                 }
 
                 // Load tenant storage
+                // Update auth status
+                _lblAuthStatus.Text = GetAuthStatusText();
+                _lblAuthStatus.ForeColor = GetAuthStatusColor();
+
                 LoadTenantStorage();
             }
             catch { }
+        }
+
+        private string GetAuthStatusText()
+        {
+            if (_config == null) return "Not configured";
+            var ac = _config.AppConfig;
+            bool hasAdmin = !string.IsNullOrWhiteSpace(ac.AdminUrl);
+            bool hasCert = ac.EntraIdApp != null &&
+                           !string.IsNullOrWhiteSpace(ac.EntraIdApp.TenantId) &&
+                           !string.IsNullOrWhiteSpace(ac.EntraIdApp.ClientId) &&
+                           !string.IsNullOrWhiteSpace(ac.EntraIdApp.CertificateThumbprint);
+
+            if (hasCert && hasAdmin) return "\u2713 App-Only (Cert)";
+            if (hasAdmin) return "\u2713 Interactive";
+            return "\u26A0 Not configured";
+        }
+
+        private Color GetAuthStatusColor()
+        {
+            if (_config == null) return AppTheme.TextMuted;
+            var ac = _config.AppConfig;
+            bool hasAdmin = !string.IsNullOrWhiteSpace(ac.AdminUrl);
+            bool hasCert = ac.EntraIdApp != null &&
+                           !string.IsNullOrWhiteSpace(ac.EntraIdApp.TenantId) &&
+                           !string.IsNullOrWhiteSpace(ac.EntraIdApp.ClientId) &&
+                           !string.IsNullOrWhiteSpace(ac.EntraIdApp.CertificateThumbprint);
+
+            if (hasCert && hasAdmin) return AppTheme.AccentGreen;
+            if (hasAdmin) return AppTheme.AccentCyan;
+            return AppTheme.AccentGold;
         }
 
         private void LoadTenantStorage()
@@ -368,6 +528,33 @@ namespace SPOVersionManagement.Controls
             if (InvokeRequired) Invoke(a); else a();
         }
 
+        private async System.Threading.Tasks.Task RefreshGlobalStatsAsync()
+        {
+            if (_config == null || _lblGlobalVal == null || IsDisposed) return;
+            string endpoint = _config.AppConfig?.TelemetryEndpoint;
+            if (string.IsNullOrWhiteSpace(endpoint)) return;
+
+            try
+            {
+                _lblGlobalVal.Text = "...";
+                using (var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) })
+                {
+                    var json = await http.GetStringAsync(endpoint.TrimEnd('/') + "/api/stats").ConfigureAwait(false);
+                    var obj = JObject.Parse(json);
+                    long bytes = (long)(obj["totalStorageFreedBytes"] ?? 0);
+                    double gb = bytes / (1024.0 * 1024 * 1024);
+                    string text = gb >= 1024 ? $"{gb / 1024.0:F1} TB freed globally" : $"{gb:F1} GB freed globally";
+                    Action a = () => _lblGlobalVal.Text = text;
+                    if (InvokeRequired) Invoke(a); else a();
+                }
+            }
+            catch
+            {
+                Action a = () => _lblGlobalVal.Text = "(unavailable)";
+                if (InvokeRequired) Invoke(a); else a();
+            }
+        }
+
         private void ResetTenantStorageView()
         {
             _lblStorageQuota.Text = "-";
@@ -474,6 +661,26 @@ namespace SPOVersionManagement.Controls
             lbl.Click += click;
             btn.Controls.Add(lbl);
             parent.Controls.Add(btn);
+        }
+
+        private System.Collections.Generic.List<string> GetPendingItems()
+        {
+            var items = new System.Collections.Generic.List<string>();
+            if (_config == null) return items;
+
+            if (string.IsNullOrWhiteSpace(_config.AppConfig.AdminUrl))
+                items.Add("Admin URL is not configured \u2014 required for all SPO operations");
+
+            var entra = _config.AppConfig.EntraIdApp;
+            if (entra == null || string.IsNullOrWhiteSpace(entra.ClientId) || string.IsNullOrWhiteSpace(entra.TenantId))
+                items.Add("Entra ID App registration is incomplete \u2014 required for app-only authentication");
+            else if (string.IsNullOrWhiteSpace(entra.CertificateThumbprint))
+                items.Add("Certificate thumbprint is missing \u2014 required for app-only certificate auth");
+
+            if (!_config.HasWritePermission)
+                items.Add("Configuration folder is read-only \u2014 app cannot save settings or logs");
+
+            return items;
         }
 
         private Label MakeLabel(string text, Font font, Color color, int x, int y)
