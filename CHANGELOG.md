@@ -52,12 +52,10 @@ This release represents a major architecture upgrade — the Windows GUI applica
 
 ### 📦 Packaging
 
-Two download options available:
-
-| Package | Contents | Size | Requirements |
-|---------|----------|------|--------------|
-| **Standalone** (`_standalone.zip`) | Self-contained single-file .exe + PS scripts + config | ~55 MB | Windows 10/11, no .NET install needed |
-| **Standard** (`_standard.zip`) | Framework-dependent .exe + PS scripts + config | ~2 MB | .NET 10 Desktop Runtime installed |
+- Framework-dependent package (requires [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0))
+- Self-contained (standalone) build not available as download due to GitHub's 100 MB file size limit — users can build locally from source if preferred
+- `Build-DeployPackage.ps1` sanitizes all secrets, tenant data, and CSV content before packing
+- `app/` directory removed from repository (built dynamically via `dotnet publish`)
 
 ### 📖 Documentation
 

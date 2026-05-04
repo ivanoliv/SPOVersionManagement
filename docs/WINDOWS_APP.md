@@ -4,7 +4,7 @@
 
 The Windows GUI application provides a graphical interface for managing SharePoint Online version policies, monitoring execution progress, configuring settings, and viewing storage analytics — without requiring direct PowerShell interaction.
 
-It is built as a **.NET 10 WinForms** application with a modern flat UI theme, published as a self-contained single-file executable.
+It is built as a **.NET 10 WinForms** application with a modern flat UI theme. Requires [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) installed on the target machine.
 
 ---
 
@@ -19,7 +19,7 @@ This application is provided "AS IS" without warranty. It is not affiliated with
 | Requirement | Version |
 |-------------|---------|
 | OS | Windows 10/11 or Windows Server 2016+ |
-| .NET | 10.0 (bundled — self-contained) |
+| .NET | [10.0 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (required) |
 | PowerShell | 7.x (pwsh) for script execution |
 | Disk Space | ~20 MB |
 | Network | HTTPS outbound to SharePoint Online |
@@ -28,23 +28,20 @@ This application is provided "AS IS" without warranty. It is not affiliated with
 
 ## Installation
 
-### Option A: Standalone Package (Recommended)
+### Prerequisites
 
-No .NET runtime installation required — everything is bundled in a single executable.
+The application requires [**.NET 10 Desktop Runtime**](https://dotnet.microsoft.com/download/dotnet/10.0) installed on the target machine.
 
-1. Download `SPOVersionManagement_v<version>_standalone.zip` from [Releases](https://github.com/ivanoliv/SPOVersionManagement/releases)
-2. Extract the ZIP to your desired installation folder
-3. Run `SPOVersionManagement.exe`
+> **Note**: A self-contained (standalone) build is not available as a download due to GitHub's 100 MB file size limit for release assets. Users who prefer a standalone deployment can build from source using the self-contained publish command below.
 
-### Option B: Standard Package (Smaller download)
+### Option A: Use pre-built release
 
-Requires [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) installed on the machine.
+1. Download the latest `.zip` from [Releases](https://github.com/ivanoliv/SPOVersionManagement/releases)
+2. Install [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) if not already installed
+3. Extract the ZIP to your desired installation folder
+4. Run `SPOVersionManagement.exe`
 
-1. Download `SPOVersionManagement_v<version>_standard.zip` from [Releases](https://github.com/ivanoliv/SPOVersionManagement/releases)
-2. Extract the ZIP to your desired installation folder
-3. Run `SPOVersionManagement.exe`
-
-### Option C: Build from source
+### Option B: Build from source
 
 See [Building from Source](#building-from-source) below.
 
@@ -55,7 +52,7 @@ See [Building from Source](#building-from-source) below.
 ### Prerequisites
 
 - [.NET SDK 10.0+](https://dotnet.microsoft.com/download/dotnet/10.0)
-- Or [Visual Studio 2022 17.12+](https://visualstudio.microsoft.com/) with ".NET desktop development" workload
+- [Visual Studio Code](https://code.visualstudio.com/) with C# Dev Kit extension, or [Visual Studio 2022 17.12+](https://visualstudio.microsoft.com/) with ".NET desktop development" workload
 - Windows only (WinForms dependency)
 
 ### Build Commands
@@ -68,19 +65,19 @@ cd SPOVersionManagement
 # Build in Release mode
 dotnet build src\SPOVersionManagement.sln -c Release
 
-# Publish as self-contained single-file (standalone — no runtime needed)
+# Publish as framework-dependent (requires .NET 10 Desktop Runtime on target)
+dotnet publish src\SPOVersionManagement\SPOVersionManagement.csproj `
+  -c Release --no-self-contained -o app
+
+# (Optional) Publish as self-contained single-file — no runtime needed, ~165 MB
 dotnet publish src\SPOVersionManagement\SPOVersionManagement.csproj `
   -c Release -r win-x64 --self-contained `
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
-  -o app
-
-# Publish as framework-dependent (standard — requires .NET 10 Desktop Runtime)
-dotnet publish src\SPOVersionManagement\SPOVersionManagement.csproj `
-  -c Release --no-self-contained -o app-standard
+  -o app-standalone
 
 # Output binary location:
-# app\SPOVersionManagement.exe            (standalone, ~165 MB)
-# app-standard\SPOVersionManagement.exe   (standard, ~2 MB)
+# app\SPOVersionManagement.exe              (framework-dependent, ~2 MB)
+# app-standalone\SPOVersionManagement.exe   (self-contained, ~165 MB)
 ```
 
 ### Build from Visual Studio
@@ -244,7 +241,7 @@ When running elevated (Run as Administrator), the title bar displays **"Administ
 ## Troubleshooting
 
 ### Application won't start
-- The app is self-contained (.NET 10 bundled) — no runtime install required
+- Ensure [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) is installed
 - Run as Administrator if file access errors occur
 - Ensure Windows 10 1903+ or Windows Server 2016+
 

@@ -1,29 +1,22 @@
 <#
 .SYNOPSIS
-    Builds deploy packages (ZIP) for SPO Version Management.
+    Builds a deploy package (ZIP) for SPO Version Management.
 
 .DESCRIPTION
     Reads the AppVersion from config\AppPaths.json, copies all distributable files
-    to a staging folder, sanitizes secrets/data from JSON and CSV files, and compresses
-    them into versioned ZIP files under deploy\.
+    to a staging folder, sanitizes secrets/data from JSON and CSV files, builds the
+    .NET application, and compresses everything into a versioned ZIP under deploy\.
 
-    Produces TWO packages:
-    - Standalone (_standalone.zip): Self-contained single-file .exe (no .NET required)
-    - Standard  (_standard.zip):   Framework-dependent (requires .NET 10 Desktop Runtime)
-
-.PARAMETER PackageType
-    Which package(s) to build: 'Both' (default), 'Standalone', or 'Standard'.
+    The package is framework-dependent and requires .NET 10 Desktop Runtime installed
+    on the target machine. A self-contained (standalone) build is not supported due to
+    GitHub's 100 MB file size limit for release assets.
 
 .EXAMPLE
     .\Build-DeployPackage.ps1
-    .\Build-DeployPackage.ps1 -PackageType Standalone
 #>
 
 [CmdletBinding()]
-param(
-    [ValidateSet('Both','Standalone','Standard')]
-    [string]$PackageType = 'Both'
-)
+param()
 
 $ErrorActionPreference = "Stop"
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -156,7 +149,6 @@ function Invoke-SanitizePackage {
 # --- Helper: Build a single package ---
 function Build-Package {
     param(
-        [string]$Type,  # 'Standalone' or 'Standard'
         [string]$Version,
         [string]$Timestamp,
         [string]$ScriptPath,
@@ -165,13 +157,12 @@ function Build-Package {
         [string[]]$WebFiles
     )
 
-    $suffix = $Type.ToLower()
-    $zipName = "SPOVersionManagement_v${Version}_${Timestamp}_${suffix}.zip"
-    $stagingPath = Join-Path $env:TEMP "SPOVersionManagement_Build_${Timestamp}_${suffix}"
+    $zipName = "SPOVersionManagement_v${Version}_${Timestamp}.zip"
+    $stagingPath = Join-Path $env:TEMP "SPOVersionManagement_Build_${Timestamp}"
     $stagingRoot = Join-Path $stagingPath "SPOVersionManagement"
 
     Write-Host ""
-    Write-Host "--- Building $Type package ---" -ForegroundColor Yellow
+    Write-Host "--- Building package ---" -ForegroundColor Yellow
 
     # Create directory structure
     New-Item -Path $stagingRoot -ItemType Directory -Force | Out-Null
@@ -205,20 +196,13 @@ function Build-Package {
         }
     }
 
-    # Build and copy app executable
+    # Build and copy app executable (framework-dependent)
     $projPath = Join-Path $ScriptPath "src\SPOVersionManagement\SPOVersionManagement.csproj"
     $appOutDir = Join-Path $stagingRoot "app"
 
-    if ($Type -eq 'Standalone') {
-        Write-Host "  Building self-contained single-file..." -ForegroundColor Gray
-        & dotnet publish $projPath -c Release -r win-x64 --self-contained `
-            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
-            -o $appOutDir --nologo -v quiet 2>&1 | Out-Null
-    } else {
-        Write-Host "  Building framework-dependent..." -ForegroundColor Gray
-        & dotnet publish $projPath -c Release --no-self-contained `
-            -o $appOutDir --nologo -v quiet 2>&1 | Out-Null
-    }
+    Write-Host "  Building framework-dependent (.NET 10)..." -ForegroundColor Gray
+    & dotnet publish $projPath -c Release --no-self-contained `
+        -o $appOutDir --nologo -v quiet 2>&1 | Out-Null
 
     $exePath = Join-Path $appOutDir "SPOVersionManagement.exe"
     if (Test-Path $exePath) {
@@ -254,36 +238,28 @@ function Build-Package {
 
 # --- Create staging directory ---
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-$zipName = "SPOVersionManagement_v${version}_${timestamp}.zip"
 $deployDir = Join-Path $scriptPath "deploy"
 
-# --- Build packages ---
-$results = @()
-
-if ($PackageType -in @('Both','Standalone')) {
-    $results += Build-Package -Type 'Standalone' -Version $version -Timestamp $timestamp `
-        -ScriptPath $scriptPath -RootFiles $rootFiles -ConfigFiles $configFiles -WebFiles $webFiles
-}
-
-if ($PackageType -in @('Both','Standard')) {
-    $results += Build-Package -Type 'Standard' -Version $version -Timestamp $timestamp `
-        -ScriptPath $scriptPath -RootFiles $rootFiles -ConfigFiles $configFiles -WebFiles $webFiles
-}
+# --- Build package ---
+$zipPath = Build-Package -Version $version -Timestamp $timestamp `
+    -ScriptPath $scriptPath -RootFiles $rootFiles -ConfigFiles $configFiles -WebFiles $webFiles
 
 # --- Summary ---
+$zipName = Split-Path $zipPath -Leaf
+$sizeMB = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)
+
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "  Build Complete!" -ForegroundColor Green
 Write-Host "  Version: v$version" -ForegroundColor Green
-foreach ($zip in $results) {
-    $name = Split-Path $zip -Leaf
-    $sizeMB = [math]::Round((Get-Item $zip).Length / 1MB, 2)
-    Write-Host "  Package: deploy\$name ($sizeMB MB)" -ForegroundColor Green
-}
+Write-Host "  Package: deploy\$zipName ($sizeMB MB)" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "To deploy:" -ForegroundColor Cyan
 Write-Host "  1. Send the ZIP to the user" -ForegroundColor White
 Write-Host "  2. User extracts and runs:" -ForegroundColor White
 Write-Host "     .\SPOVersionManagement\Install-SPOVersionManagement.ps1" -ForegroundColor White
+Write-Host ""
+Write-Host "Prerequisite: .NET 10 Desktop Runtime" -ForegroundColor Yellow
+Write-Host "  https://dotnet.microsoft.com/download/dotnet/10.0" -ForegroundColor Gray
 Write-Host ""
