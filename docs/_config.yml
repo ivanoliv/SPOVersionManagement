@@ -10,6 +10,7 @@ plugins:
 
 include:
   - sitemap.xml
+  - sitemap
   - robots.txt
 
 defaults:
