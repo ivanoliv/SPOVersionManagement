@@ -1,55 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://ivanoliv.github.io/SPOVersionManagement/</loc>
-    <lastmod>2026-05-04T00:00:00+00:00</lastmod>
+    <lastmod>2026-05-04</lastmod>
   </url>
   <url>
     <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/</loc>
-    <lastmod>2026-04-30T00:00:00+00:00</lastmod>
+    <lastmod>2026-04-30</lastmod>
   </url>
   <url>
     <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/sharepoint-version-management/</loc>
-    <lastmod>2026-04-30T00:00:00+00:00</lastmod>
+    <lastmod>2026-04-30</lastmod>
   </url>
   <url>
     <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/reduce-sharepoint-storage-costs/</loc>
-    <lastmod>2026-04-30T00:00:00+00:00</lastmod>
+    <lastmod>2026-04-30</lastmod>
   </url>
   <url>
     <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/powershell-sharepoint-version-cleanup/</loc>
-    <lastmod>2026-04-30T00:00:00+00:00</lastmod>
+    <lastmod>2026-04-30</lastmod>
   </url>
   <url>
     <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/sharepoint-governance-best-practices/</loc>
-    <lastmod>2026-04-30T00:00:00+00:00</lastmod>
+    <lastmod>2026-04-30</lastmod>
   </url>
   <url>
     <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/sharepoint-site-file-archiving/</loc>
-    <lastmod>2026-04-30T00:00:00+00:00</lastmod>
+    <lastmod>2026-04-30</lastmod>
   </url>
   <url>
     <loc>https://ivanoliv.github.io/SPOVersionManagement/guides/sharepoint-advanced-management-sam/</loc>
-    <lastmod>2026-04-30T00:00:00+00:00</lastmod>
+    <lastmod>2026-04-30</lastmod>
   </url>
   <url>
     <loc>https://ivanoliv.github.io/SPOVersionManagement/es/</loc>
-    <lastmod>2026-05-04T00:00:00+00:00</lastmod>
+    <lastmod>2026-05-04</lastmod>
   </url>
   <url>
     <loc>https://ivanoliv.github.io/SPOVersionManagement/pt/</loc>
-    <lastmod>2026-05-04T00:00:00+00:00</lastmod>
+    <lastmod>2026-05-04</lastmod>
   </url>
   <url>
     <loc>https://ivanoliv.github.io/SPOVersionManagement/de/</loc>
-    <lastmod>2026-05-04T00:00:00+00:00</lastmod>
+    <lastmod>2026-05-04</lastmod>
   </url>
   <url>
     <loc>https://ivanoliv.github.io/SPOVersionManagement/fr/</loc>
-    <lastmod>2026-05-04T00:00:00+00:00</lastmod>
+    <lastmod>2026-05-04</lastmod>
   </url>
   <url>
     <loc>https://ivanoliv.github.io/SPOVersionManagement/ja/</loc>
-    <lastmod>2026-05-04T00:00:00+00:00</lastmod>
+    <lastmod>2026-05-04</lastmod>
   </url>
 </urlset>
