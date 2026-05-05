@@ -41,6 +41,7 @@ docs/*
 !docs/screenshots/
 !docs/ww-savings.html
 !docs/sitemap.xml
+!docs/robots.txt
 !docs/WINDOWS_APP.md
 !docs/es/
 !docs/pt/
