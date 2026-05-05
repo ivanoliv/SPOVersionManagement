@@ -8,6 +8,10 @@ permalink: pretty
 plugins:
   - jekyll-seo-tag
 
+include:
+  - sitemap.xml
+  - robots.txt
+
 defaults:
   - scope:
       path: ""
