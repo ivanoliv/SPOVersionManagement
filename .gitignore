@@ -42,6 +42,11 @@ docs/*
 !docs/ww-savings.html
 !docs/sitemap.xml
 !docs/WINDOWS_APP.md
+!docs/es/
+!docs/pt/
+!docs/de/
+!docs/fr/
+!docs/ja/
 Examples/
 # .github/ — tracked for CI workflows
 _analysis_results.txt

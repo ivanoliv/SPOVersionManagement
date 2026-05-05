@@ -1,0 +1,157 @@
+---
+layout: null
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimización de Almacenamiento SharePoint Online — Herramienta Gratuita de Gestión de Versiones</title>
+    <meta name="description" content="Herramienta gratuita y open-source para reducir costos de almacenamiento en SharePoint Online. Elimina versiones innecesarias de archivos a escala empresarial. APIs oficiales de Microsoft, automatización PowerShell.">
+    <link rel="canonical" href="https://ivanoliv.github.io/SPOVersionManagement/es/">
+    <link rel="alternate" hreflang="en" href="https://ivanoliv.github.io/SPOVersionManagement/">
+    <link rel="alternate" hreflang="es" href="https://ivanoliv.github.io/SPOVersionManagement/es/">
+    <link rel="alternate" hreflang="pt" href="https://ivanoliv.github.io/SPOVersionManagement/pt/">
+    <link rel="alternate" hreflang="de" href="https://ivanoliv.github.io/SPOVersionManagement/de/">
+    <link rel="alternate" hreflang="fr" href="https://ivanoliv.github.io/SPOVersionManagement/fr/">
+    <link rel="alternate" hreflang="ja" href="https://ivanoliv.github.io/SPOVersionManagement/ja/">
+    <link rel="alternate" hreflang="x-default" href="https://ivanoliv.github.io/SPOVersionManagement/">
+    <meta property="og:title" content="SPO Version Management — Optimización de Almacenamiento SharePoint">
+    <meta property="og:description" content="Reduce costos de almacenamiento en SharePoint Online eliminando versiones innecesarias. Gratuita, open-source, segura para producción.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ivanoliv.github.io/SPOVersionManagement/es/">
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PEQ56HRX67"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-PEQ56HRX67');</script>
+    <style>
+        :root{--blue:#0078d4;--blue-dark:#005a9e;--blue-light:#e8f4fd;--green:#107c10;--green-light:#dff6dd;--gray-50:#f8f9fa;--gray-100:#f0f2f5;--gray-600:#555;--gray-800:#1a1a2e;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,0.06);--shadow-lg:0 8px 32px rgba(0,0,0,0.10)}
+        *{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:var(--gray-800);background:var(--gray-50)}.container{max-width:1100px;margin:0 auto;padding:0 1.5rem}a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+        .hero{background:linear-gradient(135deg,#0078d4 0%,#004578 100%);color:#fff;padding:4rem 1.5rem 3rem;text-align:center}.hero h1{font-size:2.4rem;margin-bottom:0.8rem;font-weight:800}.hero .subtitle{font-size:1.2rem;opacity:0.92;max-width:700px;margin:0 auto 2rem}
+        .btn{display:inline-block;padding:0.85rem 2rem;border-radius:8px;font-weight:600;font-size:1rem;transition:all 0.2s;border:2px solid transparent}.btn-primary{background:#fff;color:var(--blue)}.btn-primary:hover{background:var(--blue-light);text-decoration:none}.btn-secondary{border-color:rgba(255,255,255,0.6);color:#fff;background:transparent}.btn-secondary:hover{background:rgba(255,255,255,0.1);text-decoration:none}
+        .cta-group{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+        .live-stats{background:var(--gray-800);color:#fff;padding:1.5rem}.live-stats .container{display:flex;justify-content:center;align-items:center;gap:2.5rem;flex-wrap:wrap}.stat{text-align:center}.stat-value{font-size:1.6rem;font-weight:700;color:#4fc3f7}.stat-label{font-size:0.8rem;text-transform:uppercase;letter-spacing:0.5px;color:#90a4ae}.pulse{display:inline-block;width:8px;height:8px;background:#4caf50;border-radius:50%;animation:pulse 2s infinite;margin-right:6px}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+        section{padding:3.5rem 0}.section-title{font-size:2rem;font-weight:700;text-align:center;margin-bottom:0.5rem}.section-subtitle{text-align:center;color:var(--gray-600);font-size:1.1rem;margin-bottom:2.5rem;max-width:650px;margin-left:auto;margin-right:auto}
+        .problem-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem}.problem-card{background:#fff;padding:1.5rem;border-radius:var(--radius);box-shadow:var(--shadow);border-left:4px solid #e74c3c}.problem-card h3{color:#c0392b;margin-bottom:0.4rem;font-size:1rem}.problem-card p{color:var(--gray-600);font-size:0.95rem}
+        .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem}.feature-card{background:#fff;padding:2rem;border-radius:var(--radius);box-shadow:var(--shadow)}.feature-card .icon{font-size:2rem;margin-bottom:0.8rem}.feature-card h3{font-size:1.1rem;margin-bottom:0.5rem}.feature-card p{color:var(--gray-600);font-size:0.95rem}
+        .roi-box{max-width:700px;margin:0 auto;background:var(--green-light);border-radius:var(--radius);padding:2.5rem;text-align:center}.roi-box h3{color:var(--green);margin-bottom:1rem;font-size:1.4rem}.roi-box .big-number{font-size:2.2rem;font-weight:800;color:var(--green)}.roi-box p{color:var(--gray-600);margin-top:0.5rem}
+        .copilot-box{max-width:700px;margin:2rem auto 0;background:var(--blue-light);border-radius:var(--radius);padding:2rem;text-align:center}.copilot-box p{color:var(--gray-800);font-size:1.05rem;line-height:1.7}
+        .final-cta{background:linear-gradient(135deg,#004578 0%,#0078d4 100%);color:#fff;padding:4rem 1.5rem;text-align:center}.final-cta h2{font-size:2rem;margin-bottom:0.8rem}.final-cta p{opacity:0.9;margin-bottom:2rem;font-size:1.1rem}
+        footer{padding:2rem;text-align:center;color:#777;font-size:0.85rem;background:#fff;border-top:1px solid var(--gray-100)}footer a{color:var(--blue)}
+        .lang-nav{background:#16213e;padding:0.6rem 1.5rem;text-align:center;font-size:0.85rem}.lang-nav a{color:#90caf9;margin:0 0.8rem}
+        @media(max-width:768px){.hero h1{font-size:1.8rem}.live-stats .container{gap:1.2rem}.stat-value{font-size:1.2rem}.section-title{font-size:1.5rem}}
+    </style>
+</head>
+<body>
+    <nav class="lang-nav">
+        <a href="../">English</a>
+        <a href="../guides/sharepoint-version-management/">Guía de Versiones</a>
+        <a href="../guides/reduce-sharepoint-storage-costs/">Reducir Costos</a>
+        <a href="https://github.com/ivanoliv/SPOVersionManagement">GitHub</a>
+    </nav>
+
+    <div class="hero">
+        <div class="container">
+            <h1>Recupera el almacenamiento que SharePoint desperdicia</h1>
+            <p class="subtitle">Automatiza la limpieza de versiones innecesarias en SharePoint Online. Reduce costos de almacenamiento sin intervención manual, con APIs oficiales de Microsoft.</p>
+            <div class="cta-group">
+                <a href="https://github.com/ivanoliv/SPOVersionManagement/releases" class="btn btn-primary">Evalúa tu tenant gratis — Sin modificar datos</a>
+                <a href="https://github.com/ivanoliv/SPOVersionManagement" class="btn btn-secondary">Ver código en GitHub</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="live-stats" id="live-stats">
+        <div class="container">
+            <div class="stat"><div class="stat-value"><span class="pulse"></span><span id="ww-storage">—</span></div><div class="stat-label">Almacenamiento liberado</div></div>
+            <div class="stat"><div class="stat-value" id="ww-savings">—</div><div class="stat-label">Ahorro anual (USD)</div></div>
+            <div class="stat"><div class="stat-value" id="ww-versions">—</div><div class="stat-label">Versiones eliminadas</div></div>
+            <div class="stat"><div class="stat-value" id="ww-sites">—</div><div class="stat-label">Sitios procesados</div></div>
+            <div class="stat"><div class="stat-value" id="ww-tenants">—</div><div class="stat-label">Organizaciones</div></div>
+            <div class="stat"><div class="stat-value" id="ww-sessions">—</div><div class="stat-label">Sesiones</div></div>
+        </div>
+    </div>
+
+    <section>
+        <div class="container">
+            <h2 class="section-title">El problema oculto del almacenamiento en SharePoint</h2>
+            <p class="section-subtitle">Microsoft 365 guarda cada versión de cada archivo por defecto. Con el tiempo, el historial de versiones consume entre el 30% y 70% de la cuota de almacenamiento sin que nadie lo note.</p>
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <h3>Cuota agotada sin explicación</h3>
+                    <p>El admin center muestra almacenamiento lleno, pero los usuarios no saben por qué. La respuesta está en miles de versiones acumuladas de archivos que ya no se usan.</p>
+                </div>
+                <div class="problem-card">
+                    <h3>Costos crecientes mes a mes</h3>
+                    <p>Almacenamiento adicional cuesta $0.20 USD/GB/mes. 1TB de versiones innecesarias = $2,400 USD anuales completamente evitables.</p>
+                </div>
+                <div class="problem-card">
+                    <h3>Sin herramientas nativas a escala</h3>
+                    <p>Microsoft no ofrece una forma de limpiar versiones en lote a nivel de tenant. La limpieza manual sitio por sitio es inviable en organizaciones grandes.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section style="background:var(--gray-100)">
+        <div class="container">
+            <h2 class="section-title">¿Qué hace esta herramienta?</h2>
+            <p class="section-subtitle">Automatiza la gestión de versiones a escala de tenant, de forma segura y controlada.</p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon">🤖</div>
+                    <h3>Automatización completa</h3>
+                    <p>Ejecución desatendida con Task Scheduler. Configura una vez, ejecuta regularmente sin intervención humana.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🔒</div>
+                    <h3>Segura para producción</h3>
+                    <p>Utiliza exclusivamente cmdlets oficiales de SharePoint (Set-SPOSite). Versiones eliminadas van a la papelera de reciclaje con 93 días de recuperación.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📊</div>
+                    <h3>Escalable</h3>
+                    <p>Procesamiento paralelo de múltiples sitios. Sesiones reanudables. Probada en tenants con más de 10,000 sitios.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🏛️</div>
+                    <h3>Gobernanza integrada</h3>
+                    <p>Gestión automática de políticas de retención de Microsoft Purview. Respeta compliance y genera informes de auditoría.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="container">
+            <h2 class="section-title">Impacto real en organizaciones</h2>
+            <div class="roi-box">
+                <h3>Ahorro acumulado a nivel global</h3>
+                <div class="big-number" id="roi-savings">$1.8M USD/año</div>
+                <p>Ahorro agregado de todas las organizaciones que utilizan esta herramienta</p>
+            </div>
+            <div class="copilot-box">
+                <p>💡 <strong>Piénsalo así:</strong> Esos $1.8M en costos recuperados de almacenamiento podrían financiar <strong>~4,994 licencias de Microsoft 365 Copilot</strong> — potenciando a miles de empleados con IA para trabajar más rápido y con mayor calidad. El desperdicio de almacenamiento no es solo un problema técnico. Es presupuesto que podría estar impulsando la productividad de tu organización.</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="final-cta">
+        <h2>Descubre cuánto puedes ahorrar</h2>
+        <p>Ejecuta un análisis no destructivo en menos de 5 minutos. Modo SyncOnly aplica políticas sin eliminar ninguna versión.</p>
+        <a href="https://github.com/ivanoliv/SPOVersionManagement/releases" class="btn btn-primary">Descargar gratis — Identifica presupuesto recuperable</a>
+        <p style="margin-top:1.5rem;font-size:0.9rem;opacity:0.8;">APIs oficiales de Microsoft • Sin manipulación directa de datos • Papelera de reciclaje (93 días) • Licencia MIT</p>
+    </div>
+
+    <footer>
+        <p><a href="https://github.com/ivanoliv/SPOVersionManagement">Repositorio GitHub</a> &bull; <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Descargas</a> &bull; <a href="../">Documentación completa en inglés</a></p>
+        <p style="margin-top:0.5rem;">SPO Version Management — proyecto open-source de <a href="https://github.com/ivanoliv">ivanoliv</a></p>
+        <p style="margin-top:0.5rem;font-size:0.8rem;">SharePoint Online® y Microsoft 365® son marcas registradas de Microsoft Corporation. Herramienta independiente, sin afiliación con Microsoft.</p>
+    </footer>
+
+    <script>
+        function fmt(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return n.toLocaleString()}
+        function formatStorage(tb,gb){if(tb>=1)return tb.toFixed(2)+' TB';return gb.toFixed(2)+' GB'}
+        async function loadStats(){try{const r=await fetch('https://spo-telemetry-6406.azurewebsites.net/api/stats/detailed');if(!r.ok)return;const d=await r.json();document.getElementById('ww-storage').textContent=formatStorage(d.storageFreedTB,d.storageFreedGB);document.getElementById('ww-savings').textContent='$'+Math.round(d.estimatedCostSavingsUSD).toLocaleString();document.getElementById('ww-versions').textContent=fmt(d.totalVersionsDeleted);document.getElementById('ww-sites').textContent=fmt(d.totalSitesProcessed);document.getElementById('ww-tenants').textContent=d.totalTenants;document.getElementById('ww-sessions').textContent=fmt(d.totalSessions);document.getElementById('roi-savings').textContent='$'+Math.round(d.estimatedCostSavingsUSD).toLocaleString()+' USD/año'}catch(e){}}
+        loadStats();
+    </script>
+</body>
+</html>
