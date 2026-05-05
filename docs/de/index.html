@@ -6,8 +6,8 @@ layout: null
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SharePoint Online Speicheroptimierung — Kostenloses Versionsmanagement-Tool</title>
-    <meta name="description" content="Kostenloses Open-Source-Tool zur Reduzierung von SharePoint Online Speicherkosten. Entfernt unnötige Dateiversionen im Enterprise-Maßstab. Offizielle Microsoft-APIs, PowerShell-Automatisierung.">
+    <title>SharePoint Online Speicheroptimierung — Kostenloses Versionsverwaltungstool</title>
+    <meta name="description" content="Kostenloses Open-Source-Tool zur Reduzierung von SharePoint Online Speicherkosten. Entfernt überflüssige Dateiversionen im Unternehmensmaßstab mit offiziellen Microsoft-APIs. Gewinnen Sie Budget zurück und investieren Sie in Produktivität.">
     <link rel="canonical" href="https://ivanoliv.github.io/SPOVersionManagement/de/">
     <link rel="alternate" hreflang="en" href="https://ivanoliv.github.io/SPOVersionManagement/">
     <link rel="alternate" hreflang="es" href="https://ivanoliv.github.io/SPOVersionManagement/es/">
@@ -17,23 +17,21 @@ layout: null
     <link rel="alternate" hreflang="ja" href="https://ivanoliv.github.io/SPOVersionManagement/ja/">
     <link rel="alternate" hreflang="x-default" href="https://ivanoliv.github.io/SPOVersionManagement/">
     <meta property="og:title" content="SPO Version Management — SharePoint Speicheroptimierung">
-    <meta property="og:description" content="Reduzieren Sie SharePoint Online Speicherkosten durch Entfernung unnötiger Versionen. Kostenlos, Open-Source, produktionssicher.">
+    <meta property="og:description" content="Reduzieren Sie SharePoint Online Speicherkosten durch Entfernung überflüssiger Versionen. Kostenlos, Open-Source, produktionssicher. Offizielle Microsoft-APIs.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://ivanoliv.github.io/SPOVersionManagement/de/">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-PEQ56HRX67"></script>
     <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-PEQ56HRX67');</script>
     <style>
-        :root{--blue:#0078d4;--blue-dark:#005a9e;--blue-light:#e8f4fd;--green:#107c10;--green-light:#dff6dd;--gray-50:#f8f9fa;--gray-100:#f0f2f5;--gray-600:#555;--gray-800:#1a1a2e;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,0.06);--shadow-lg:0 8px 32px rgba(0,0,0,0.10)}
+        :root{--blue:#0078d4;--blue-dark:#005a9e;--blue-light:#e8f4fd;--green:#107c10;--green-light:#dff6dd;--orange:#d83b01;--gray-50:#f8f9fa;--gray-100:#f0f2f5;--gray-600:#555;--gray-800:#1a1a2e;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,0.06);--shadow-lg:0 8px 32px rgba(0,0,0,0.10)}
         *{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:var(--gray-800);background:var(--gray-50)}.container{max-width:1100px;margin:0 auto;padding:0 1.5rem}a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
-        .hero{background:linear-gradient(135deg,#0078d4 0%,#004578 100%);color:#fff;padding:4rem 1.5rem 3rem;text-align:center}.hero h1{font-size:2.4rem;margin-bottom:0.8rem;font-weight:800}.hero .subtitle{font-size:1.2rem;opacity:0.92;max-width:700px;margin:0 auto 2rem}
+        .hero{background:linear-gradient(135deg,#0078d4 0%,#004578 100%);color:#fff;padding:4rem 1.5rem 3rem;text-align:center}.hero h1{font-size:2.4rem;margin-bottom:0.8rem;font-weight:800}.hero .subtitle{font-size:1.15rem;opacity:0.92;max-width:700px;margin:0 auto 2rem}
         .btn{display:inline-block;padding:0.85rem 2rem;border-radius:8px;font-weight:600;font-size:1rem;transition:all 0.2s;border:2px solid transparent}.btn-primary{background:#fff;color:var(--blue)}.btn-primary:hover{background:var(--blue-light);text-decoration:none}.btn-secondary{border-color:rgba(255,255,255,0.6);color:#fff;background:transparent}.btn-secondary:hover{background:rgba(255,255,255,0.1);text-decoration:none}
         .cta-group{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
         .live-stats{background:var(--gray-800);color:#fff;padding:1.5rem}.live-stats .container{display:flex;justify-content:center;align-items:center;gap:2.5rem;flex-wrap:wrap}.stat{text-align:center}.stat-value{font-size:1.6rem;font-weight:700;color:#4fc3f7}.stat-label{font-size:0.8rem;text-transform:uppercase;letter-spacing:0.5px;color:#90a4ae}.pulse{display:inline-block;width:8px;height:8px;background:#4caf50;border-radius:50%;animation:pulse 2s infinite;margin-right:6px}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
         section{padding:3.5rem 0}.section-title{font-size:2rem;font-weight:700;text-align:center;margin-bottom:0.5rem}.section-subtitle{text-align:center;color:var(--gray-600);font-size:1.1rem;margin-bottom:2.5rem;max-width:650px;margin-left:auto;margin-right:auto}
         .problem-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem}.problem-card{background:#fff;padding:1.5rem;border-radius:var(--radius);box-shadow:var(--shadow);border-left:4px solid #e74c3c}.problem-card h3{color:#c0392b;margin-bottom:0.4rem;font-size:1rem}.problem-card p{color:var(--gray-600);font-size:0.95rem}
-        .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem}.feature-card{background:#fff;padding:2rem;border-radius:var(--radius);box-shadow:var(--shadow)}.feature-card .icon{font-size:2rem;margin-bottom:0.8rem}.feature-card h3{font-size:1.1rem;margin-bottom:0.5rem}.feature-card p{color:var(--gray-600);font-size:0.95rem}
-        .roi-box{max-width:700px;margin:0 auto;background:var(--green-light);border-radius:var(--radius);padding:2.5rem;text-align:center}.roi-box h3{color:var(--green);margin-bottom:1rem;font-size:1.4rem}.roi-box .big-number{font-size:2.2rem;font-weight:800;color:var(--green)}.roi-box p{color:var(--gray-600);margin-top:0.5rem}
-        .copilot-box{max-width:700px;margin:2rem auto 0;background:var(--blue-light);border-radius:var(--radius);padding:2rem;text-align:center}.copilot-box p{color:var(--gray-800);font-size:1.05rem;line-height:1.7}
+        .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.5rem}.feature-card{background:#fff;padding:1.8rem;border-radius:var(--radius);box-shadow:var(--shadow)}.feature-card .icon{font-size:2rem;margin-bottom:0.8rem}.feature-card h3{font-size:1.05rem;margin-bottom:0.5rem}.feature-card p{color:var(--gray-600);font-size:0.93rem}
         .final-cta{background:linear-gradient(135deg,#004578 0%,#0078d4 100%);color:#fff;padding:4rem 1.5rem;text-align:center}.final-cta h2{font-size:2rem;margin-bottom:0.8rem}.final-cta p{opacity:0.9;margin-bottom:2rem;font-size:1.1rem}
         footer{padding:2rem;text-align:center;color:#777;font-size:0.85rem;background:#fff;border-top:1px solid var(--gray-100)}footer a{color:var(--blue)}
         .lang-nav{background:#16213e;padding:0.6rem 1.5rem;text-align:center;font-size:0.85rem}.lang-nav a{color:#90caf9;margin:0 1rem}.lang-nav-sub{background:#0d1527;padding:0.4rem 1.5rem;text-align:center;font-size:0.8rem}.lang-nav-sub a{color:#90caf9;margin:0 0.5rem}
@@ -59,10 +57,16 @@ layout: null
 
     <div class="hero">
         <div class="container">
-            <h1>Gewinnen Sie den Speicher zurück, den SharePoint verschwendet</h1>
-            <p class="subtitle">Automatisierte Bereinigung unnötiger Dateiversionen in SharePoint Online. Speicherkosten reduzieren ohne manuelle Eingriffe — mit offiziellen Microsoft-APIs.</p>
+            <h1>SharePoint Online Speicheroptimierung<br><span style="font-size:0.6em;font-weight:400;opacity:0.92;">Budget zurückgewinnen. In Produktivität reinvestieren.</span></h1>
+            <p class="subtitle">Enterprise-Orchestrierung, die Speicherverschwendung durch übermäßige Versionierung eliminiert — tenant-weit, parallel, mit offiziellen Microsoft-APIs.</p>
+            <ul style="text-align:left;max-width:600px;margin:0 auto 2rem;font-size:1rem;opacity:0.95;line-height:2;">
+                <li><strong>Sofortige finanzielle Wirkung</strong> — Zwischen $2.400 und $14.400/Jahr pro Tenant an vermeidbaren Kosten zurückgewinnen</li>
+                <li><strong>Null Risiko in Produktion</strong> — Zerstörungsfreier Bewertungsmodus. Papierkorb (93 Tage)</li>
+                <li><strong>Keine Herstellerbindung</strong> — Kostenlos, Open-Source, MIT-Lizenz. Offizielle Microsoft-Cmdlets</li>
+                <li><strong>In 5 Minuten einsatzbereit</strong> — Herunterladen, verbinden, scannen. Keine Installation. Keine Abhängigkeiten</li>
+            </ul>
             <div class="cta-group">
-                <a href="https://github.com/ivanoliv/SPOVersionManagement/releases" class="btn btn-primary">Tenant kostenlos analysieren — Ohne Datenänderung</a>
+                <a href="https://github.com/ivanoliv/SPOVersionManagement/releases" class="btn btn-primary">Ihren Tenant Kostenlos Bewerten — Ohne Datenänderung</a>
                 <a href="https://github.com/ivanoliv/SPOVersionManagement" class="btn btn-secondary">Quellcode auf GitHub</a>
             </div>
         </div>
@@ -79,88 +83,209 @@ layout: null
         </div>
     </div>
 
+    <!-- Finanzielle Auswirkung -->
+    <section style="background:#fff;">
+        <div class="container">
+            <h2 class="section-title">Quantifizierbare Finanzielle Auswirkung</h2>
+            <p class="section-subtitle">Microsoft berechnet $0,20/GB/Monat für zusätzlichen SharePoint-Speicher. Übermäßige Dateiversionen sind der wichtigste versteckte Kostentreiber.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1.5rem;max-width:800px;margin:0 auto 2rem;">
+                <div style="background:var(--green-light);padding:1.5rem;border-radius:var(--radius);text-align:center;">
+                    <div style="font-size:2rem;font-weight:800;color:var(--green);">$2.400</div>
+                    <div style="font-size:0.85rem;color:#555;">Jährliche Einsparung pro 1TB zurückgewonnen</div>
+                </div>
+                <div style="background:var(--green-light);padding:1.5rem;border-radius:var(--radius);text-align:center;">
+                    <div style="font-size:2rem;font-weight:800;color:var(--green);">30–70%</div>
+                    <div style="font-size:0.85rem;color:#555;">Speicher durch Versionen belegt</div>
+                </div>
+                <div style="background:var(--green-light);padding:1.5rem;border-radius:var(--radius);text-align:center;">
+                    <div style="font-size:2rem;font-weight:800;color:var(--green);">5 Min</div>
+                    <div style="font-size:0.85rem;color:#555;">Zeit zur Identifikation des rückgewinnbaren Budgets</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Strategische Investition -->
+    <section style="padding:3.5rem 0;background:var(--gray-100);">
+        <div class="container" style="max-width:860px;margin:0 auto;">
+            <h2 class="section-title">Von Kostensenkung zu Strategischer Investition</h2>
+            <p class="section-subtitle">Speichereinsparungen sind nicht nur eine niedrigere Microsoft-Rechnung — es ist Budget, das Sie in Produktivität, Innovation und digitale Transformation umleiten können.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:2rem;margin-top:2rem;">
+                <div style="padding:1.5rem;background:#fff;border-radius:12px;border-left:4px solid #e74c3c;box-shadow:var(--shadow);">
+                    <h4 style="color:#c0392b;margin-bottom:0.5rem;">Vorher: Verschwendung</h4>
+                    <p style="color:#555;font-size:0.95rem;line-height:1.6;">$0,20/GB/Monat zahlen für Millionen von Versionen ohne Geschäftswert. Budget verschlungen von Daten, die niemand nutzt.</p>
+                </div>
+                <div style="padding:1.5rem;background:#fff;border-radius:12px;border-left:4px solid var(--green);box-shadow:var(--shadow);">
+                    <h4 style="color:var(--green);margin-bottom:0.5rem;">Nachher: Reinvestition</h4>
+                    <p style="color:#555;font-size:0.95rem;line-height:1.6;">Zurückgewonnenes Budget reinvestiert in Microsoft Copilot Lizenzen, Sicherheitstools oder Teamweiterbildung.</p>
+                </div>
+            </div>
+            <div style="margin-top:2rem;padding:1.8rem;background:linear-gradient(135deg,#fff,#e3f2fd);border-radius:12px;text-align:center;box-shadow:var(--shadow);">
+                <p style="font-size:1.1rem;color:#1a1a2e;margin-bottom:0.8rem;line-height:1.7;"><strong>Denken Sie darüber nach:</strong> $1,8M an zurückgewonnenen Speicherkosten könnten etwa <strong>4.900 Microsoft 365 Copilot-Lizenzen</strong> finanzieren — Tausende von Mitarbeitern mit KI ausstatten, um schneller und klüger zu arbeiten.</p>
+                <p style="font-size:0.88rem;color:#666;">Basierend auf aggregierten Community-Einsparungen vs. ~$30/Benutzer/Monat für Copilot. Preise variieren je nach Vertrag.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Das Problem -->
     <section>
         <div class="container">
-            <h2 class="section-title">Das versteckte Speicherproblem in SharePoint</h2>
-            <p class="section-subtitle">Microsoft 365 speichert standardmäßig jede Version jeder Datei. Im Laufe der Zeit belegt der Versionsverlauf 30–70 % des Speicherkontingents — unbemerkt von allen Beteiligten.</p>
+            <h2 class="section-title">Die Verborgene Speicherkrise in SharePoint</h2>
+            <p class="section-subtitle">Microsoft 365 speichert standardmäßig jede Version jeder Datei. Mit der Zeit verbraucht der Versionsverlauf 30% bis 70% des Kontingents — und es gibt kein natives Tool, um das im großen Maßstab zu lösen.</p>
             <div class="problem-grid">
                 <div class="problem-card">
-                    <h3>Kontingent ausgeschöpft — ohne ersichtlichen Grund</h3>
-                    <p>Das Admin Center zeigt vollen Speicher, aber niemand weiß warum. Die Ursache: Tausende angesammelte Versionen von Dateien, die längst nicht mehr aktiv genutzt werden.</p>
+                    <h3>Kontingent erschöpft ohne Erklärung</h3>
+                    <p>SharePoint zeigt Speicherplatzmeldungen. Benutzer können keine Dateien hochladen. Sie werden gezwungen, zusätzlichen Speicher für $0,20/GB/Monat zu kaufen — für Daten, die niemand braucht.</p>
                 </div>
                 <div class="problem-card">
-                    <h3>Steigende Kosten Monat für Monat</h3>
-                    <p>Zusätzlicher Speicher kostet 0,20 USD/GB/Monat. 1 TB unnötiger Versionen = 2.400 USD/Jahr — vollständig vermeidbar.</p>
+                    <h3>Unsichtbare Versionsaufblähung</h3>
+                    <p>Eine 10MB Excel-Datei mit 500 Versionen = 5GB versteckter Speicher. Multipliziert mit Tausenden von Dateien und Hunderten von Sites.</p>
                 </div>
                 <div class="problem-card">
-                    <h3>Keine nativen Tools im großen Maßstab</h3>
-                    <p>Microsoft bietet keine Möglichkeit, Versionen mandantenweit im Batch zu bereinigen. Manuelle Bereinigung Site für Site ist in großen Organisationen nicht praktikabel.</p>
+                    <h3>Keine native Lösung im großen Maßstab</h3>
+                    <p>Das Admin Center zeigt Metriken, bietet aber keine massenhafte Versionsbereinigung über Sites hinweg. Manuelle Bereinigung ist betrieblich unmöglich.</p>
+                </div>
+                <div class="problem-card">
+                    <h3>Monatlich steigende Kosten</h3>
+                    <p>1TB unnötige Versionen = $2.400/Jahr. 5TB = $12.000/Jahr. Ohne Eingreifen steigen die Kosten nur weiter.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <section style="background:var(--gray-100)">
+    <!-- Sicherheit -->
+    <section style="padding:3.5rem 0;background:#fff;">
         <div class="container">
-            <h2 class="section-title">Was dieses Tool leistet</h2>
-            <p class="section-subtitle">Automatisiertes Versionsmanagement auf Tenant-Ebene — sicher und kontrolliert.</p>
+            <h2 class="section-title">Warum Diese Lösung Produktionssicher Ist</h2>
+            <p class="section-subtitle">Kein improvisiertes Skript. Eine Enterprise-Orchestrierungsschicht, aufgebaut auf offiziellen Microsoft-APIs.</p>
             <div class="features-grid">
-                <div class="feature-card">
-                    <div class="icon">🤖</div>
-                    <h3>Vollständige Automatisierung</h3>
-                    <p>Unbeaufsichtigte Ausführung über Aufgabenplanung (Task Scheduler). Einmal konfigurieren, regelmäßig ausführen — ohne manuellen Eingriff.</p>
+                <div class="feature-card" style="border-top:3px solid var(--green);">
+                    <div class="icon">✅</div>
+                    <h3>Ausschließlich Offizielle Microsoft-APIs</h3>
+                    <p>Gebaut ausschließlich mit unterstützten Cmdlets: <a href="https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositemanageversionpolicyjob" target="_blank" rel="noopener">New-SPOSiteManageVersionPolicyJob</a> und <a href="https://learn.microsoft.com/powershell/module/sharepoint-online/new-spositefileversionbatchdeletejob" target="_blank" rel="noopener">New-SPOSiteFileVersionBatchDeleteJob</a>.</p>
                 </div>
-                <div class="feature-card">
-                    <div class="icon">🔒</div>
-                    <h3>Produktionssicher</h3>
-                    <p>Verwendet ausschließlich offizielle SharePoint-Cmdlets (Set-SPOSite). Gelöschte Versionen landen im Papierkorb mit 93 Tagen Wiederherstellungsfrist.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="icon">📊</div>
-                    <h3>Skalierbar</h3>
-                    <p>Parallele Verarbeitung mehrerer Sites. Fortsetzbare Sitzungen. Erprobt in Mandanten mit über 10.000 Sites.</p>
-                </div>
-                <div class="feature-card">
+                <div class="feature-card" style="border-top:3px solid var(--blue);">
                     <div class="icon">🏛️</div>
-                    <h3>Integrierte Governance</h3>
-                    <p>Automatische Verwaltung von Microsoft Purview Aufbewahrungsrichtlinien. Respektiert Compliance-Vorgaben und erstellt Audit-Berichte.</p>
+                    <h3>Reine Orchestrierungsschicht</h3>
+                    <p>Keine direkte Datenänderung. Kein Umgehen der Plattformsicherheit. Orchestriert native SharePoint-Operationen — skaliert, parallel, mit Überwachung.</p>
+                </div>
+                <div class="feature-card" style="border-top:3px solid var(--orange);">
+                    <div class="icon">🔄</div>
+                    <h3>Papierkorb (93 Tage)</h3>
+                    <p>Alle entfernten Versionen landen im Standard-SharePoint-Papierkorb. Vollständige Wiederherstellung 93 Tage lang möglich.</p>
+                </div>
+                <div class="feature-card" style="border-top:3px solid #6a1b9a;">
+                    <div class="icon">🔓</div>
+                    <h3>Kostenlos, Open Source, Überprüfbar</h3>
+                    <p>MIT-Lizenz. Jede Codezeile auf GitHub einsehbar. Keine Black Boxes. Kein Vendor Lock-in. Kein Abonnement.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <section>
+    <!-- Vergleich -->
+    <section style="padding:3.5rem 0;background:var(--gray-100);">
         <div class="container">
-            <h2 class="section-title">Reale Auswirkung in Organisationen</h2>
-            <div class="roi-box">
-                <h3>Kumulierte weltweite Einsparungen</h3>
-                <div class="big-number" id="roi-savings">$1,8 Mio. USD/Jahr</div>
-                <p>Aggregierte Einsparungen aller Organisationen, die dieses Tool nutzen</p>
+            <h2 class="section-title">Warum Nicht Einfach Ein Skript Schreiben?</h2>
+            <p class="section-subtitle">Benutzerdefinierte Skripte funktionieren für 5 Sites. Bei 5.000 scheitern sie.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:2rem;max-width:900px;margin:0 auto;">
+                <div style="background:#fff;padding:1.8rem;border-radius:12px;box-shadow:var(--shadow);border-top:3px solid #e74c3c;">
+                    <h3 style="color:#c0392b;margin-bottom:0.8rem;font-size:1.1rem;">❌ Manuelle Skripte</h3>
+                    <ul style="color:#555;font-size:0.95rem;line-height:1.8;padding-left:1.2rem;">
+                        <li>Manuelles Scripting pro Site</li>
+                        <li>Keine parallele Ausführung</li>
+                        <li>Kein zentrales Monitoring</li>
+                        <li>Keine Aufbewahrungsrichtlinien-Verwaltung</li>
+                        <li>Kein Fortsetzen nach Unterbrechungen</li>
+                        <li>Keine USD-Einsparungsberechnung</li>
+                    </ul>
+                </div>
+                <div style="background:#fff;padding:1.8rem;border-radius:12px;box-shadow:var(--shadow);border-top:3px solid var(--green);">
+                    <h3 style="color:var(--green);margin-bottom:0.8rem;font-size:1.1rem;">✅ SPO Version Management</h3>
+                    <ul style="color:#555;font-size:0.95rem;line-height:1.8;padding-left:1.2rem;">
+                        <li>Vollständige Tenant-Automatisierung</li>
+                        <li>Parallele Ausführung mit Throttle-aware Queue-Management</li>
+                        <li>Echtzeit-HTML-Dashboard + Desktop-App</li>
+                        <li>Automatische Retention-Pause/Wiederaufnahme</li>
+                        <li>Wiederaufnehmbare Sitzungen</li>
+                        <li>Einsparung pro Sitzung berechnet</li>
+                    </ul>
+                </div>
             </div>
-            <div class="copilot-box">
-                <p>💡 <strong>So betrachtet:</strong> Diese 1,8 Mio. USD an eingesparten Speicherkosten könnten <strong>~4.994 Microsoft 365 Copilot-Lizenzen</strong> finanzieren — und Tausende von Mitarbeitenden mit KI-Unterstützung für produktiveres Arbeiten ausstatten. Speicherverschwendung ist nicht nur ein technisches Problem. Es ist Budget, das die Produktivität Ihrer Organisation steigern könnte.</p>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section style="padding:3.5rem 0;background:#fff;">
+        <div class="container" style="max-width:860px;margin:0 auto;">
+            <h2 class="section-title">Häufig Gestellte Fragen</h2>
+            <div style="margin-top:2rem;">
+                <div style="margin-bottom:1.5rem;padding:1.5rem;background:var(--gray-50);border-radius:var(--radius);box-shadow:var(--shadow);">
+                    <h3 style="font-size:1rem;color:var(--gray-800);margin-bottom:0.5rem;">Ist es sicher für Produktionsumgebungen?</h3>
+                    <p style="color:#555;font-size:0.95rem;line-height:1.7;">Ja. Verwendet ausschließlich offizielle Cmdlets der SharePoint Online Management Shell. Arbeitet als reine Orchestrierungsschicht. Der zerstörungsfreie Bewertungsmodus (SyncOnly) ermöglicht die Quantifizierung von Einsparungen ohne jegliche Änderung.</p>
+                </div>
+                <div style="margin-bottom:1.5rem;padding:1.5rem;background:var(--gray-50);border-radius:var(--radius);box-shadow:var(--shadow);">
+                    <h3 style="font-size:1rem;color:var(--gray-800);margin-bottom:0.5rem;">Wird der Dokumentinhalt geändert oder eingesehen?</h3>
+                    <p style="color:#555;font-size:0.95rem;line-height:1.7;">Nein. Das Tool liest, ändert oder greift niemals auf den Inhalt von Dateien zu. Es verwendet Versionsverwaltungs-APIs, die auf Plattform-Metadatenebene arbeiten.</p>
+                </div>
+                <div style="margin-bottom:1.5rem;padding:1.5rem;background:var(--gray-50);border-radius:var(--radius);box-shadow:var(--shadow);">
+                    <h3 style="font-size:1rem;color:var(--gray-800);margin-bottom:0.5rem;">Kann ich ohne Risiko von Datenverlust testen?</h3>
+                    <p style="color:#555;font-size:0.95rem;line-height:1.7;">Absolut. Führen Sie im SyncOnly-Modus aus, um Ihre Umgebung ohne Änderungen zu bewerten. Bei der Bereinigung landen alle entfernten Versionen im Papierkorb mit 93 Tagen vollständiger Wiederherstellung.</p>
+                </div>
+                <div style="margin-bottom:1.5rem;padding:1.5rem;background:var(--gray-50);border-radius:var(--radius);box-shadow:var(--shadow);">
+                    <h3 style="font-size:1rem;color:var(--gray-800);margin-bottom:0.5rem;">Wie lange dauert eine vollständige Tenant-Bewertung?</h3>
+                    <p style="color:#555;font-size:0.95rem;line-height:1.7;">Die erste Erkennung dauert 2–5 Minuten abhängig von der Größe. Bietet vollständige Sichtbarkeit über Verbrauch, Versionen pro Site und geschätzte USD-Einsparungen.</p>
+                </div>
+                <div style="margin-bottom:0;padding:1.5rem;background:var(--gray-50);border-radius:var(--radius);box-shadow:var(--shadow);">
+                    <h3 style="font-size:1rem;color:var(--gray-800);margin-bottom:0.5rem;">Was ist mit Aufbewahrungsrichtlinien und Compliance?</h3>
+                    <p style="color:#555;font-size:0.95rem;line-height:1.7;">Erkennt automatisch Microsoft Purview Aufbewahrungsrichtlinien. Kann diese pausieren, die Bereinigung durchführen und automatisch wieder aktivieren — mit einem vollständigen Audit-Protokoll.</p>
+                </div>
             </div>
+        </div>
+    </section>
+
+    <!-- SEO / LLM -->
+    <section style="padding:3.5rem 0;background:var(--gray-100);">
+        <div class="container" style="max-width:860px;margin:0 auto;">
+            <h2 class="section-title" style="text-align:left;margin-bottom:1.5rem;">Was Ist Versionsverwaltung in SharePoint?</h2>
+            <p style="color:#444;line-height:1.8;margin-bottom:1.5rem;">Versionsverwaltung in SharePoint ist die Praxis, zu kontrollieren, wie viele historische Versionen in SharePoint Online-Bibliotheken aufbewahrt werden. SharePoint speichert automatisch jede Version (bis zu 500 Hauptversionen), was ein verstecktes Speicherproblem erzeugt. Ohne aktive Verwaltung verbraucht der Versionsverlauf stillschweigend 30% bis 70% des Tenant-Kontingents und verursacht erhebliche Kosten bei $0,20/GB/Monat.</p>
+
+            <h3 style="font-size:1.15rem;font-weight:600;margin-bottom:0.8rem;color:#1a1a2e;">Warum wächst der Speicher so schnell?</h3>
+            <ul style="color:#444;line-height:1.8;margin-bottom:1.5rem;padding-left:1.5rem;">
+                <li><strong>Keine Standardlimits</strong> — SharePoint behält bis zu 500 Versionen ohne automatisches Ablaufen</li>
+                <li><strong>Häufige kollaborative Bearbeitung</strong> — AutoSave und Co-Authoring erzeugen bei jeder Änderung Versionen</li>
+                <li><strong>Aufbewahrungsrichtlinien bewahren alles</strong> — Compliance-Holds verhindern die Löschung</li>
+                <li><strong>Inaktive Sites akkumulieren Verlauf</strong> — Aufgegebene Sites verbrauchen weiterhin Kontingent</li>
+            </ul>
+
+            <h3 style="font-size:1.15rem;font-weight:600;margin-bottom:0.8rem;color:#1a1a2e;">Weiterführende Informationen</h3>
+            <ul style="color:#444;line-height:1.8;padding-left:1.5rem;">
+                <li><a href="../guides/sharepoint-version-management/">Vollständiger Leitfaden zur SharePoint-Versionsverwaltung</a></li>
+                <li><a href="../guides/reduce-sharepoint-storage-costs/">Speicherkosten reduzieren</a></li>
+                <li><a href="../guides/powershell-sharepoint-version-cleanup/">PowerShell-Automatisierung für Versionsbereinigung</a></li>
+                <li><a href="../guides/sharepoint-governance-best-practices/">Best Practices für SharePoint-Governance</a></li>
+            </ul>
         </div>
     </section>
 
     <div class="final-cta">
-        <h2>Ermitteln Sie Ihr Einsparpotenzial</h2>
-        <p>Führen Sie in unter 5 Minuten eine zerstörungsfreie Analyse durch. Der SyncOnly-Modus wendet Richtlinien an, ohne eine einzige Version zu löschen.</p>
-        <a href="https://github.com/ivanoliv/SPOVersionManagement/releases" class="btn btn-primary">Kostenlos herunterladen — Einsparpotenzial identifizieren</a>
-        <p style="margin-top:1.5rem;font-size:0.9rem;opacity:0.8;">Offizielle Microsoft-APIs • Keine direkte Datenmanipulation • Papierkorb (93 Tage) • MIT-Lizenz</p>
+        <h2>Erfahren Sie, Wie Viel Budget Sie Zurückgewinnen Können — Ohne Änderungen</h2>
+        <p>Führen Sie eine zerstörungsfreie Bewertung in unter 5 Minuten durch. Der SyncOnly-Modus wendet Richtlinien an, ohne Versionen zu löschen. Prüfen Sie das Dashboard, quantifizieren Sie Einsparungen in USD, und entscheiden Sie dann.</p>
+        <a href="https://github.com/ivanoliv/SPOVersionManagement/releases" class="btn btn-primary">Kostenlos Herunterladen — Rückgewinnbares Budget Identifizieren</a>
+        <p style="margin-top:1.5rem;font-size:0.9rem;opacity:0.8;">Offizielle Microsoft-APIs • Reine Orchestrierung (keine Datenmanipulation) • Papierkorb (93 Tage) • MIT-Lizenz • Kein Vendor Lock-in</p>
     </div>
 
     <footer>
-        <p><a href="https://github.com/ivanoliv/SPOVersionManagement">GitHub Repository</a> &bull; <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Downloads</a> &bull; <a href="../">Vollständige Dokumentation (Englisch)</a></p>
+        <p><a href="https://github.com/ivanoliv/SPOVersionManagement">GitHub Repository</a> &bull; <a href="https://github.com/ivanoliv/SPOVersionManagement/releases">Downloads</a> &bull; <a href="../">Vollständige Dokumentation auf Englisch</a></p>
         <p style="margin-top:0.5rem;">SPO Version Management — Open-Source-Projekt von <a href="https://github.com/ivanoliv">ivanoliv</a></p>
-        <p style="margin-top:0.5rem;font-size:0.8rem;">SharePoint Online® und Microsoft 365® sind Marken der Microsoft Corporation. Dies ist ein unabhängiges Community-Tool ohne Verbindung zu Microsoft.</p>
+        <p style="margin-top:0.5rem;font-size:0.8rem;">SharePoint Online® und Microsoft 365® sind eingetragene Marken der Microsoft Corporation. Unabhängiges Tool, ohne Zugehörigkeit zu Microsoft.</p>
     </footer>
 
     <script>
         function fmt(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return n.toLocaleString()}
         function formatStorage(tb,gb){if(tb>=1)return tb.toFixed(2)+' TB';return gb.toFixed(2)+' GB'}
-        async function loadStats(){try{const r=await fetch('https://spo-telemetry-6406.azurewebsites.net/api/stats/detailed');if(!r.ok)return;const d=await r.json();document.getElementById('ww-storage').textContent=formatStorage(d.storageFreedTB,d.storageFreedGB);document.getElementById('ww-savings').textContent='$'+Math.round(d.estimatedCostSavingsUSD).toLocaleString();document.getElementById('ww-versions').textContent=fmt(d.totalVersionsDeleted);document.getElementById('ww-sites').textContent=fmt(d.totalSitesProcessed);document.getElementById('ww-tenants').textContent=d.totalTenants;document.getElementById('ww-sessions').textContent=fmt(d.totalSessions);document.getElementById('roi-savings').textContent='$'+Math.round(d.estimatedCostSavingsUSD).toLocaleString()+' USD/Jahr'}catch(e){}}
-        loadStats();
+        async function loadStats(){try{const r=await fetch('https://spo-telemetry-6406.azurewebsites.net/api/stats/detailed');if(!r.ok)return;const d=await r.json();document.getElementById('ww-storage').textContent=formatStorage(d.storageFreedTB,d.storageFreedGB);document.getElementById('ww-savings').textContent='$'+Math.round(d.estimatedCostSavingsUSD).toLocaleString();document.getElementById('ww-versions').textContent=fmt(d.totalVersionsDeleted);document.getElementById('ww-sites').textContent=fmt(d.totalSitesProcessed);document.getElementById('ww-tenants').textContent=d.totalTenants;document.getElementById('ww-sessions').textContent=fmt(d.totalSessions)}catch(e){}}
+        loadStats();setInterval(loadStats,60000);
     </script>
 </body>
 </html>
