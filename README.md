@@ -101,6 +101,8 @@ The tool handles the full lifecycle: discovery → policy enforcement → versio
 
 ## Quick Start
 
+> 📖 **Full step-by-step guide with screenshots:** [QUICK_START.md](QUICK_START.md) | [Online version](https://ivanoliv.github.io/SPOVersionManagement/guides/quick-start/)
+
 ```powershell
 # 1. Install (Option A: PowerShell script)
 .\Install-SPOVersionManagement.ps1
@@ -159,7 +161,7 @@ The tool handles the full lifecycle: discovery → policy enforcement → versio
 - [New in v2.0](#-new-in-v20)
 - [Requirements](#-requirements)
 - [Installation](#-installation)
-- [Quick Start](#-quick-start)
+- [Quick Start](#quick-start) | [Full Guide](QUICK_START.md)
 - [Configuration](#-configuration)
 - [Dashboard](#-html-dashboard)
 - [Advanced Features](#-advanced-features)
