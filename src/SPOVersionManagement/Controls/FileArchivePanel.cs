@@ -39,7 +39,6 @@ namespace SPOVersionManagement.Controls
         private FlatButton _btnSearch, _btnAbort;
         private Label _lblSearchStatus;
         private DataGridView _resultsGrid;
-        private Label _lblResultsSummary;
 
         public event EventHandler OpenQueueRequested;
 
@@ -273,10 +272,6 @@ namespace SPOVersionManagement.Controls
             _resultsGrid.Columns["Duration"].Width = 70;
             resultsCard.Controls.Add(_resultsGrid);
 
-            _lblResultsSummary = new Label { Text = "No search results yet.", Font = AppTheme.FontSmall, ForeColor = AppTheme.TextMuted, AutoSize = false, Height = 18, Padding = new Padding(2, 2, 0, 0), BackColor = Color.Transparent, Dock = DockStyle.Top };
-            resultsCard.Controls.Add(_lblResultsSummary);
-            _lblResultsSummary.BringToFront();
-
             // Console output
             var consoleCard = new GlassPanel
             {
@@ -458,11 +453,18 @@ namespace SPOVersionManagement.Controls
                 bool summaryOnly = _chkSummaryOnly.Checked;
                 string region = _cmbRegion.SelectedItem?.ToString() ?? "NAM";
 
-                string clientId = null, certThumb = null, tenantId = null;
+                string clientId = null, certThumb = null, tenantId = null, pnpClientId = null;
+
+                // Always resolve PnP ClientId (needed for interactive mode too)
+                var pnp = _config.AppConfig.PnPApp;
+                var entra = _config.AppConfig.EntraIdApp;
+                if (pnp != null && !string.IsNullOrWhiteSpace(pnp.ClientId))
+                    pnpClientId = pnp.ClientId;
+                else if (entra != null && !string.IsNullOrWhiteSpace(entra.ClientId))
+                    pnpClientId = entra.ClientId;
+
                 if (!useInteractive)
                 {
-                    var pnp = _config.AppConfig.PnPApp;
-                    var entra = _config.AppConfig.EntraIdApp;
                     if (pnp != null && !string.IsNullOrWhiteSpace(pnp.ClientId))
                     {
                         clientId = pnp.ClientId;
@@ -478,7 +480,7 @@ namespace SPOVersionManagement.Controls
                 }
 
                 await _psHost.StartFileArchiveSearchAsync(siteUrl, useInteractive, summaryOnly, _searchCts.Token,
-                    clientId, certThumb, tenantId, region);
+                    clientId, certThumb, tenantId, region, pnpClientId);
 
                 _lblSearchStatus.Text = "Search completed";
                 _lblSearchStatus.ForeColor = AppTheme.AccentGreen;
@@ -536,11 +538,13 @@ namespace SPOVersionManagement.Controls
                     totalFiles += files;
                 }
 
-                _lblResultsSummary.Text = $"{sites.Count} site(s) scanned, {totalFiles:N0} total files found.";
+                _lblSearchStatus.Text = $"{sites.Count} site(s) scanned, {totalFiles:N0} total files found.";
+                _lblSearchStatus.ForeColor = AppTheme.AccentGreen;
             }
             catch (Exception ex)
             {
-                _lblResultsSummary.Text = $"Error loading results: {ex.Message}";
+                _lblSearchStatus.Text = $"Error loading results: {ex.Message}";
+                _lblSearchStatus.ForeColor = AppTheme.AccentRed;
             }
         }
 

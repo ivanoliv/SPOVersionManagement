@@ -517,7 +517,8 @@ namespace SPOVersionManagement.Services
         /// </summary>
         public async Task StartFileArchiveSearchAsync(string siteUrl, bool useInteractiveLogin,
             bool summaryOnly, CancellationToken cancellationToken = default,
-            string clientId = null, string certThumbprint = null, string tenantId = null, string region = "NAM")
+            string clientId = null, string certThumbprint = null, string tenantId = null, string region = "NAM",
+            string pnpClientId = null)
         {
             string script = System.IO.Path.Combine(_rootPath, "Start-FileArchiveSearch.ps1");
             string cmd = $"& '{script}' -SiteUrl '{siteUrl}'";
@@ -534,6 +535,8 @@ namespace SPOVersionManagement.Services
                 cmd += $" -TenantId '{tenantId}'";
             if (!string.IsNullOrEmpty(region))
                 cmd += $" -Region '{region}'";
+            if (!string.IsNullOrEmpty(pnpClientId))
+                cmd += $" -PnpClientId '{pnpClientId}'";
 
             // PnP.PowerShell requires PS 7 — always run via external process
             await RunScriptExternalAsync(cmd, cancellationToken);

@@ -114,27 +114,48 @@ Write-Host ""
 
 # ── Connect to site ───────────────────────────────────────────────
 Write-Host "  Connecting to SharePoint..." -ForegroundColor Cyan
+
+# ── Auto-load credentials from AppPaths.json if not passed ────────
+$appPathsFile = Join-Path $scriptRoot "config\AppPaths.json"
+if (Test-Path $appPathsFile) {
+    $appPaths = Get-Content $appPathsFile -Raw | ConvertFrom-Json
+
+    # PnpClientId: prefer PnPApp.ClientId, then EntraIdApp.ClientId
+    if (-not $PnpClientId) {
+        if ($appPaths.PnPApp -and $appPaths.PnPApp.ClientId) { $PnpClientId = $appPaths.PnPApp.ClientId }
+        elseif ($appPaths.EntraIdApp -and $appPaths.EntraIdApp.ClientId) { $PnpClientId = $appPaths.EntraIdApp.ClientId }
+    }
+
+    # Certificate auth creds: prefer PnPApp, then EntraIdApp
+    if (-not $ClientId) {
+        if ($appPaths.PnPApp -and $appPaths.PnPApp.ClientId) { $ClientId = $appPaths.PnPApp.ClientId }
+        elseif ($appPaths.EntraIdApp -and $appPaths.EntraIdApp.ClientId) { $ClientId = $appPaths.EntraIdApp.ClientId }
+    }
+    if (-not $CertificateThumbprint) {
+        if ($appPaths.PnPApp -and $appPaths.PnPApp.CertificateThumbprint) { $CertificateThumbprint = $appPaths.PnPApp.CertificateThumbprint }
+        elseif ($appPaths.EntraIdApp -and $appPaths.EntraIdApp.CertificateThumbprint) { $CertificateThumbprint = $appPaths.EntraIdApp.CertificateThumbprint }
+    }
+    if (-not $TenantId -and $appPaths.EntraIdApp -and $appPaths.EntraIdApp.TenantId) {
+        $TenantId = $appPaths.EntraIdApp.TenantId
+    }
+}
+
 try {
     if ($UseInteractiveLogin) {
+        if (-not $PnpClientId) {
+            Write-Host "  [ERROR] Interactive login requires a PnP App ClientId." -ForegroundColor Red
+            Write-Host "  Configure in AppPaths.json PnPApp.ClientId or EntraIdApp.ClientId, or pass -PnpClientId." -ForegroundColor Yellow
+            exit 1
+        }
+        Write-Host "  Using interactive login (PnpClientId: $($PnpClientId.Substring(0,8))...)" -ForegroundColor Gray
         Connect-PnPOnline -Url $rootUrl -Interactive -ClientId $PnpClientId
     } else {
         if (-not $ClientId -or -not $CertificateThumbprint -or -not $TenantId) {
-            # Try loading from AppPaths.json
-            $appPathsFile = Join-Path $scriptRoot "config\AppPaths.json"
-            if (Test-Path $appPathsFile) {
-                $appPaths = Get-Content $appPathsFile -Raw | ConvertFrom-Json
-                if ($appPaths.EntraIdApp) {
-                    if (-not $ClientId) { $ClientId = $appPaths.EntraIdApp.ClientId }
-                    if (-not $CertificateThumbprint) { $CertificateThumbprint = $appPaths.EntraIdApp.CertificateThumbprint }
-                    if (-not $TenantId) { $TenantId = $appPaths.EntraIdApp.TenantId }
-                }
-            }
-        }
-        if (-not $ClientId -or -not $CertificateThumbprint -or -not $TenantId) {
             Write-Host "  [ERROR] Certificate auth requires ClientId, CertificateThumbprint, and TenantId." -ForegroundColor Red
-            Write-Host "  Configure in AppPaths.json EntraIdApp section, or use -UseInteractiveLogin." -ForegroundColor Yellow
+            Write-Host "  Configure in AppPaths.json PnPApp or EntraIdApp section, or use -UseInteractiveLogin." -ForegroundColor Yellow
             exit 1
         }
+        Write-Host "  Using certificate auth (ClientId: $($ClientId.Substring(0,8))...)" -ForegroundColor Gray
         Connect-PnPOnline -Url $rootUrl -ClientId $ClientId -Thumbprint $CertificateThumbprint -Tenant $TenantId
     }
     Write-Host "  Connected [OK]" -ForegroundColor Green
