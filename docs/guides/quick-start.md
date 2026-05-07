@@ -132,12 +132,13 @@ On the top-right corner, choose what to execute:
 - ☐ **Sync Version Policy** — Pushes your tenant's version policy to each site (including existing document libraries). Good for enforcing consistent version limits.
 - ☑️ **Delete Excess Versions** — Deletes file versions that exceed your configured limit. **This is the main cleanup operation.**
 - ☐ **Manage Retention Policies** — If sites are under retention hold, this temporarily suspends policies during cleanup (requires Purview app registration).
-- ☐ **Skip Graph** — Check this if you don't have Microsoft Graph permissions. You can provide the Graph report CSV manually instead.
+- ☐ **Skip Graph** — Check this if you don't have Microsoft Graph permissions. You can provide the Graph report CSV manually instead (see [How to Export the Graph Report](#how-to-export-the-graph-report-manually) below).
 
 ### Input Files (Optional)
 
 - **Include Sites (CSV)** — Process only these sites (leave empty to process all)
 - **Exclude Sites (CSV)** — Skip these sites during processing
+- **Graph Report (CSV)** — SharePoint Site Usage Storage report (only needed if you checked "Skip Graph")
 
 ### Execute
 
@@ -170,6 +171,49 @@ After execution completes:
 - **Monitor regrowth** — The Tenant Storage Timeline chart shows storage trends over time
 - **Archive inactive sites** — Use the **Archive Sites** feature to archive sites that are no longer active
 - **Set up retention handling** — If you use Microsoft Purview, configure the [Purview app registration](https://github.com/ivanoliv/SPOVersionManagement/blob/main/ENTRA_ID_APP_SETUP.md#app-2-purview-app-retention-policy-management) for automated retention policy management
+
+---
+
+## How to Export the Graph Report Manually
+
+If you don't have Microsoft Graph API permissions configured (or prefer not to grant them), you can export the SharePoint usage report directly from the Microsoft 365 Admin Center and provide it to the tool as a CSV file.
+
+### Step-by-step
+
+1. Go to [**Microsoft 365 Admin Center**](https://admin.cloud.microsoft) (`admin.cloud.microsoft`)
+
+2. In the left navigation, expand **Reports** and click **Use**
+
+3. In the left panel under Reports, scroll down and click **SharePoint**
+
+4. Click the **"Use of websites"** tab at the top
+
+5. In the top-right corner, change the time period to **Last 180 days** (maximum available)
+
+6. Find the **third box** labeled **"Storage"** (Amount of storage used)
+
+7. Click the **Export** button (↓ icon) on that Storage box
+
+8. Save the downloaded CSV file
+
+### Using the exported report
+
+**In the GUI:**
+- Go to **Execution → Clean Versions**
+- Check **☑️ Skip Graph** in the Operation Mode panel (top-right)
+- In the **Input Files** section, set the **Graph Report (CSV)** field to the path of your downloaded CSV file
+- Click the **...** button to browse for it
+
+**In PowerShell:**
+
+```powershell
+.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" `
+    -MajorVersionLimit 5 `
+    -SkipGraph `
+    -GraphReportCSV "C:\path\to\SharePointSiteUsageStorage.csv"
+```
+
+> **Why is this needed?** The Graph report provides site-level storage metrics (total storage, file count, activity dates) that the tool uses for prioritization and dashboard statistics. Without Microsoft Graph permissions, the tool can't pull this data automatically — but the same data is available as a manual export from the Admin Center.
 
 ---
 
