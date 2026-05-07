@@ -181,6 +181,16 @@ namespace SPOVersionManagement.Controls
 
             y += 126;
 
+            // ═══ PnP WARNING BANNER ═══
+            var warnBanner = new Panel { Location = new Point(0, y), Size = new Size(panelW, 28), BackColor = Color.FromArgb(40, AppTheme.AccentGold) };
+            warnBanner.Controls.Add(new Label
+            {
+                Text = "\u26A0  App credentials mode requires a PnP App (EntraID) with ClientId configured in Config \u2192 PnP APP section.",
+                Font = AppTheme.FontSmall, ForeColor = AppTheme.AccentGold, AutoSize = true, BackColor = Color.Transparent, Location = new Point(8, 6)
+            });
+            topHost.Controls.Add(warnBanner);
+            y += 32;
+
             topHost.Controls.Add(new Panel { Location = new Point(0, y), Size = new Size(panelW, 1), BackColor = Color.FromArgb(34, AppTheme.Border) });
             y += 8;
 
@@ -235,13 +245,10 @@ namespace SPOVersionManagement.Controls
             {
                 Dock = DockStyle.Top,
                 Height = 140,
-                AccentLeft = AppTheme.AccentGold,
+                AccentLeft = AppTheme.AccentCyan,
                 Padding = new Padding(6, 4, 6, 6)
             };
             bottomHost.Controls.Add(resultsCard);
-
-            _lblResultsSummary = new Label { Text = "No search results yet.", Font = AppTheme.FontSmall, ForeColor = AppTheme.TextMuted, AutoSize = false, Height = 18, Padding = new Padding(2, 2, 0, 0), BackColor = Color.Transparent, Dock = DockStyle.Top };
-            resultsCard.Controls.Add(_lblResultsSummary);
 
             // Results grid (scanned sites index)
             _resultsGrid = new DataGridView
@@ -266,7 +273,19 @@ namespace SPOVersionManagement.Controls
             _resultsGrid.Columns["Duration"].Width = 70;
             resultsCard.Controls.Add(_resultsGrid);
 
+            _lblResultsSummary = new Label { Text = "No search results yet.", Font = AppTheme.FontSmall, ForeColor = AppTheme.TextMuted, AutoSize = false, Height = 18, Padding = new Padding(2, 2, 0, 0), BackColor = Color.Transparent, Dock = DockStyle.Top };
+            resultsCard.Controls.Add(_lblResultsSummary);
+            _lblResultsSummary.BringToFront();
+
             // Console output
+            var consoleCard = new GlassPanel
+            {
+                Dock = DockStyle.Fill,
+                AccentLeft = AppTheme.AccentGold,
+                Padding = new Padding(6, 4, 6, 6)
+            };
+            bottomHost.Controls.Add(consoleCard);
+
             _searchConsole = new TextBox
             {
                 Dock = DockStyle.Fill,
@@ -274,10 +293,10 @@ namespace SPOVersionManagement.Controls
                 Font = AppTheme.FontMono, BackColor = AppTheme.BgInput, ForeColor = AppTheme.AccentGreen,
                 BorderStyle = BorderStyle.FixedSingle, WordWrap = false
             };
-            bottomHost.Controls.Add(_searchConsole);
+            consoleCard.Controls.Add(_searchConsole);
 
-            // Z-order: console fills behind the grid and label
-            _searchConsole.SendToBack();
+            // Z-order: console card fills behind the results card
+            consoleCard.SendToBack();
 
             LoadFileArchiveSettings();
             WireFileArchiveAutoSave();
@@ -442,13 +461,20 @@ namespace SPOVersionManagement.Controls
                 string clientId = null, certThumb = null, tenantId = null;
                 if (!useInteractive)
                 {
+                    var pnp = _config.AppConfig.PnPApp;
                     var entra = _config.AppConfig.EntraIdApp;
-                    if (entra != null)
+                    if (pnp != null && !string.IsNullOrWhiteSpace(pnp.ClientId))
+                    {
+                        clientId = pnp.ClientId;
+                        certThumb = pnp.CertificateThumbprint;
+                    }
+                    else if (entra != null)
                     {
                         clientId = entra.ClientId;
                         certThumb = entra.CertificateThumbprint;
-                        tenantId = entra.TenantId;
                     }
+                    if (entra != null)
+                        tenantId = entra.TenantId;
                 }
 
                 await _psHost.StartFileArchiveSearchAsync(siteUrl, useInteractive, summaryOnly, _searchCts.Token,

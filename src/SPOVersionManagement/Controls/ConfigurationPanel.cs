@@ -14,6 +14,7 @@ namespace SPOVersionManagement.Controls
         private ConfigurationService _config;
         private TextBox _txtAdminUrl;
         private TextBox _txtTenantId, _txtClientId, _txtCertThumb;
+        private TextBox _txtPnpClientId, _txtPnpCertThumb;
         private TextBox _txtPurviewClientId, _txtPurviewCertThumb, _txtPurviewOrg;
         private TextBox _txtCurrencySymbol, _txtCurrencyCode, _txtCostTBYear, _txtPort, _txtReexecutionDays;
         private TextBox _txtRootPath, _txtApplicationFolder, _txtLogsFolder, _txtBackupFolder;
@@ -126,6 +127,24 @@ namespace SPOVersionManagement.Controls
             int ey = 14;
             AddFieldInCard(entraCard, "Client ID:", ref _txtClientId, lblW, inW, ey); ey += rowH + 4;
             AddFieldInCard(entraCard, "Certificate Thumbprint:", ref _txtCertThumb, lblW, inW, ey);
+            y += 96 + sectionGap;
+
+            // ═══ PnP APP (File Archive Explorer) ═══
+            y = AddSection("PnP APP (File Archive Explorer)", AppTheme.AccentGold, y);
+            var pnpCard = new GlassPanel { Location = new Point(0, y), Size = new Size(880, 96), AccentLeft = AppTheme.AccentGold };
+            Controls.Add(pnpCard);
+            int ppy = 14;
+            AddFieldInCard(pnpCard, "Client ID:", ref _txtPnpClientId, lblW, inW, ppy); ppy += rowH + 4;
+            AddFieldInCard(pnpCard, "Certificate Thumbprint:", ref _txtPnpCertThumb, lblW, inW, ppy);
+            pnpCard.Controls.Add(new Label
+            {
+                Text = "Separate app for PnP.PowerShell (File Archive search). Needs Sites.Read.All.",
+                Font = new Font("Cascadia Code", 6.5f),
+                ForeColor = AppTheme.TextMuted,
+                AutoSize = true,
+                BackColor = Color.Transparent,
+                Location = new Point(lblW + inW + 22, 14 + 2)
+            });
             y += 96 + sectionGap;
 
             // ═══ PURVIEW ═══
@@ -348,6 +367,8 @@ namespace SPOVersionManagement.Controls
             _txtTenantId.Text = ac.EntraIdApp?.TenantId ?? "";
             _txtClientId.Text = ac.EntraIdApp?.ClientId ?? "";
             _txtCertThumb.Text = ac.EntraIdApp?.CertificateThumbprint ?? "";
+            _txtPnpClientId.Text = ac.PnPApp?.ClientId ?? "";
+            _txtPnpCertThumb.Text = ac.PnPApp?.CertificateThumbprint ?? "";
             _txtPurviewClientId.Text = ac.PurviewApp?.ClientId ?? "";
             _txtPurviewCertThumb.Text = ac.PurviewApp?.CertificateThumbprint ?? "";
             _txtPurviewOrg.Text = ac.PurviewApp?.Organization ?? "";
@@ -387,6 +408,10 @@ namespace SPOVersionManagement.Controls
                 _config.AppConfig.EntraIdApp.TenantId = _txtTenantId.Text.Trim();
                 _config.AppConfig.EntraIdApp.ClientId = _txtClientId.Text.Trim();
                 _config.AppConfig.EntraIdApp.CertificateThumbprint = _txtCertThumb.Text.Trim();
+
+                if (_config.AppConfig.PnPApp == null) _config.AppConfig.PnPApp = new PnPAppConfig();
+                _config.AppConfig.PnPApp.ClientId = _txtPnpClientId.Text.Trim();
+                _config.AppConfig.PnPApp.CertificateThumbprint = _txtPnpCertThumb.Text.Trim();
 
                 // Auto-resolve TenantId and Purview Org from AdminUrl if empty
                 AutoResolveFromAdminUrl();

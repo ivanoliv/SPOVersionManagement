@@ -37,6 +37,9 @@ namespace SPOVersionManagement.Models
         [JsonProperty("EntraIdApp")]
         public EntraIdAppConfig EntraIdApp { get; set; }
 
+        [JsonProperty("PnPApp")]
+        public PnPAppConfig PnPApp { get; set; }
+
         [JsonProperty("PurviewApp")]
         public PurviewAppConfig PurviewApp { get; set; }
 
@@ -132,6 +135,14 @@ namespace SPOVersionManagement.Models
     {
         [JsonProperty("TenantId")]
         public string TenantId { get; set; }
+        [JsonProperty("ClientId")]
+        public string ClientId { get; set; }
+        [JsonProperty("CertificateThumbprint")]
+        public string CertificateThumbprint { get; set; }
+    }
+
+    public class PnPAppConfig
+    {
         [JsonProperty("ClientId")]
         public string ClientId { get; set; }
         [JsonProperty("CertificateThumbprint")]
