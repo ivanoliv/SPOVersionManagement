@@ -15,6 +15,9 @@ Comprehensive documentation for managing SharePoint Online storage at enterprise
 ### [Quick Start Guide]({{ '/guides/quick-start/' | relative_url }})
 **New to SPO Version Management?** Step-by-step walkthrough from download to your first storage cleanup — with screenshots of every step.
 
+### [Complete Tool Manual]({{ '/guides/tool-manual/' | relative_url }})
+**Full reference for every screen and feature.** All options explained, with PowerShell equivalents for every GUI action.
+
 ### [Complete Guide to SharePoint Version Management]({{ '/guides/sharepoint-version-management/' | relative_url }})
 Everything about how SharePoint version history works, why it causes storage problems, and how to implement version management policies at tenant scale.
 
