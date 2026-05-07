@@ -110,8 +110,7 @@ Combine version limits with expiration:
 .\Start-SPOVersionManagement.ps1 `
     -AdminUrl "https://contoso-admin.sharepoint.com" `
     -MajorVersionLimit 20 `
-    -SyncOnly `
-    -OpenDashboard
+    -SyncOnly
 ```
 
 This sets the version policy on all site libraries (telling SharePoint what the limit should be) without actually deleting any versions. You can review the Dashboard to see how much storage is flagged for cleanup.
@@ -123,8 +122,7 @@ This sets the version policy on all site libraries (telling SharePoint what the 
 .\Start-SPOVersionManagement.ps1 `
     -AdminUrl "https://contoso-admin.sharepoint.com" `
     -MajorVersionLimit 20 `
-    -MaxConcurrentJobs 10 `
-    -OpenDashboard
+    -MaxConcurrentJobs 10
 ```
 
 The tool orchestrates:

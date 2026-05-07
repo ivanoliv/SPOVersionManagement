@@ -65,8 +65,10 @@ This means:
 .\Start-SPOVersionManagement.ps1 `
     -AdminUrl "https://contoso-admin.sharepoint.com" `
     -MajorVersionLimit 20 `
-    -SyncOnly `
-    -OpenDashboard
+    -SyncOnly
+
+# Then start the dashboard to review results
+.\Start-Dashboard.ps1
 ```
 
 The Dashboard shows:

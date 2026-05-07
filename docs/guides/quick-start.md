@@ -26,7 +26,15 @@ Before you start, make sure you have:
 | **.NET 10 Desktop Runtime** | [Download here](https://dotnet.microsoft.com/download/dotnet/10.0) (required for the GUI app) |
 | **PowerShell 7** | [Download here](https://github.com/PowerShell/PowerShell/releases) (required for script execution) |
 | **SharePoint Admin** | You need SharePoint Administrator or Global Administrator role |
-| **Entra ID App Registration** | Required for app-only (unattended) authentication — [Setup Guide](https://github.com/ivanoliv/SPOVersionManagement/blob/main/ENTRA_ID_APP_SETUP.md) |
+| **Entra ID App Registration** | **Recommended.** Enables app-only (unattended) authentication — [Setup Guide](https://github.com/ivanoliv/SPOVersionManagement/blob/main/ENTRA_ID_APP_SETUP.md) |
+
+> **Authentication: Entra ID App vs. Interactive Login**
+>
+> **Recommended:** Configure an Entra ID app registration with a certificate. This allows the tool to authenticate silently (app-only) — no browser prompts, no MFA popups, and it works for scheduled/unattended runs.
+>
+> **Without an app registration:** The tool falls back to interactive login. You will be prompted to sign in with your SharePoint Admin account **every time you run the tool** (every sync, every execution). This works for testing but is impractical for regular use.
+>
+> Follow the [Entra ID App Setup Guide](https://github.com/ivanoliv/SPOVersionManagement/blob/main/ENTRA_ID_APP_SETUP.md) to configure app-only authentication (takes ~10 minutes).
 
 ---
 
@@ -225,10 +233,11 @@ If you prefer the command line over the GUI:
 # 1. Navigate to the tool folder
 cd C:\Tools\SPOVersionManagement
 
-# 2. Run a non-destructive assessment (sync data + open dashboard)
-.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -SyncOnly -OpenDashboard
+# 2. Run a non-destructive assessment (sync data only)
+.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -SyncOnly
 
-# 3. Review the dashboard at http://localhost:8080
+# 3. Start the HTTP server and open http://localhost:8080 to view the dashboard
+.\Start-Dashboard.ps1
 
 # 4. Run cleanup — keep 5 major versions, delete the rest
 .\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -MajorVersionLimit 5

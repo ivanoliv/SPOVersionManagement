@@ -40,9 +40,12 @@ Leverage SAM's inactive sites policy and site ownership policy for data-driven g
 ```powershell
 # 1. Download from GitHub Releases
 # 2. Run non-destructive assessment
-.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -SyncOnly -OpenDashboard
+.\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -SyncOnly
 
-# 3. Review Dashboard results, then execute cleanup
+# 3. Start the dashboard HTTP server, then open http://localhost:8080
+.\Start-Dashboard.ps1
+
+# 4. Review Dashboard results, then execute cleanup
 .\Start-SPOVersionManagement.ps1 -AdminUrl "https://contoso-admin.sharepoint.com" -MajorVersionLimit 20
 ```
 

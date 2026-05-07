@@ -215,8 +215,7 @@ Import-Module .\SPOVersionManagement.psm1
 .\Start-SPOVersionManagement.ps1 `
     -AdminUrl "https://contoso-admin.sharepoint.com" `
     -MajorVersionLimit 20 `
-    -MaxConcurrentJobs 10 `
-    -OpenDashboard
+    -MaxConcurrentJobs 10
 ```
 
 ### Pattern 3: Targeted Cleanup (Specific Sites)
