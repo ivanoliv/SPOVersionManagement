@@ -597,7 +597,14 @@ namespace SPOVersionManagement.Controls
                 // Draw background
                 bool isSelected = (e.State & DataGridViewElementStates.Selected) != 0;
                 bool isAlt = e.RowIndex % 2 == 1;
-                Color bg = isSelected ? AppTheme.BgCard : (isAlt ? AppTheme.BgMedium : AppTheme.BgDark);
+                bool isSamFlagged = site.IsInactive || site.IsOwnerless;
+                Color bg;
+                if (isSelected)
+                    bg = isSamFlagged ? Color.FromArgb(40, 60, 50) : AppTheme.BgCard;
+                else if (isSamFlagged)
+                    bg = isAlt ? Color.FromArgb(25, 45, 35) : Color.FromArgb(20, 40, 30);
+                else
+                    bg = isAlt ? AppTheme.BgMedium : AppTheme.BgDark;
                 using (var brush = new SolidBrush(bg))
                     g.FillRectangle(brush, e.CellBounds);
 
@@ -1131,97 +1138,150 @@ namespace SPOVersionManagement.Controls
                 ? _activeColumnFilters[columnIndex]
                 : null;
 
-            // Build a popup Form instead of ContextMenuStrip (avoids WinForms menu disposal issues)
+            string colName = columnIndex < Columns.Count ? Columns[columnIndex].HeaderText : "";
+            bool hasActiveFilter = currentFilter != null;
+
+            // Build a popup Form — Excel-style filter dropdown
+            int popupWidth = 280;
             var popup = new Form
             {
-                FormBorderStyle = FormBorderStyle.FixedToolWindow,
+                FormBorderStyle = FormBorderStyle.None,
                 ShowInTaskbar = false,
                 StartPosition = FormStartPosition.Manual,
                 BackColor = AppTheme.BgCard,
                 ForeColor = AppTheme.TextPrimary,
-                Size = new Size(260, Math.Min(400, 120 + allValues.Count * 20)),
+                Size = new Size(popupWidth, 100), // height adjusted later
                 Location = screenPoint,
                 TopMost = true
             };
 
-            int y = 8;
-
-            // Sort A→Z button
-            var btnSortAsc = new Button
+            // Add a 1px border panel as the root container
+            var borderPanel = new Panel
             {
-                Text = "\u25B2  Sort A to Z",
-                FlatStyle = FlatStyle.Flat,
-                BackColor = AppTheme.BgCard,
-                ForeColor = AppTheme.TextPrimary,
-                Font = new Font("Segoe UI", 8.5f),
-                Size = new Size(240, 26),
-                Location = new Point(6, y),
-                TextAlign = ContentAlignment.MiddleLeft,
-                Cursor = Cursors.Hand
+                Dock = DockStyle.Fill,
+                BackColor = AppTheme.Border,
+                Padding = new Padding(1)
             };
-            btnSortAsc.FlatAppearance.BorderSize = 0;
-            btnSortAsc.Click += (s, ev) =>
+            var innerPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = AppTheme.BgCard,
+                AutoScroll = false
+            };
+            borderPanel.Controls.Add(innerPanel);
+            popup.Controls.Add(borderPanel);
+
+            int pad = 8;
+            int innerWidth = popupWidth - 2 - pad * 2; // subtract border + padding
+            int y = pad;
+
+            // Helper: create a sort/action button with hover effect
+            Func<string, string, EventHandler, Button> makeActionBtn = (icon, text, handler) =>
+            {
+                var btn = new Button
+                {
+                    Text = $"  {icon}  {text}",
+                    FlatStyle = FlatStyle.Flat,
+                    BackColor = AppTheme.BgCard,
+                    ForeColor = AppTheme.TextPrimary,
+                    Font = new Font("Segoe UI", 9f),
+                    Size = new Size(innerWidth, 28),
+                    Location = new Point(pad, y),
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    Cursor = Cursors.Hand
+                };
+                btn.FlatAppearance.BorderSize = 0;
+                btn.FlatAppearance.MouseOverBackColor = AppTheme.BgMedium;
+                btn.Click += handler;
+                return btn;
+            };
+
+            // Sort A→Z
+            var btnSortAsc = makeActionBtn("\u25B2", "Sort A \u2192 Z", (s, ev) =>
             {
                 _sortColumnIndex = columnIndex;
                 _sortDirection = SortOrder.Ascending;
                 ApplyFiltersAndSort();
                 popup.Close();
-            };
-            popup.Controls.Add(btnSortAsc);
+            });
+            innerPanel.Controls.Add(btnSortAsc);
             y += 28;
 
-            // Sort Z→A button
-            var btnSortDesc = new Button
-            {
-                Text = "\u25BC  Sort Z to A",
-                FlatStyle = FlatStyle.Flat,
-                BackColor = AppTheme.BgCard,
-                ForeColor = AppTheme.TextPrimary,
-                Font = new Font("Segoe UI", 8.5f),
-                Size = new Size(240, 26),
-                Location = new Point(6, y),
-                TextAlign = ContentAlignment.MiddleLeft,
-                Cursor = Cursors.Hand
-            };
-            btnSortDesc.FlatAppearance.BorderSize = 0;
-            btnSortDesc.Click += (s, ev) =>
+            // Sort Z→A
+            var btnSortDesc = makeActionBtn("\u25BC", "Sort Z \u2192 A", (s, ev) =>
             {
                 _sortColumnIndex = columnIndex;
                 _sortDirection = SortOrder.Descending;
                 ApplyFiltersAndSort();
                 popup.Close();
-            };
-            popup.Controls.Add(btnSortDesc);
-            y += 34;
+            });
+            btnSortDesc.Location = new Point(pad, y);
+            innerPanel.Controls.Add(btnSortDesc);
+            y += 30;
 
-            // Separator line
-            var sep = new Panel { BackColor = AppTheme.Border, Size = new Size(240, 1), Location = new Point(6, y) };
-            popup.Controls.Add(sep);
+            // Separator
+            var sep1 = new Panel { BackColor = AppTheme.Border, Size = new Size(innerWidth, 1), Location = new Point(pad, y) };
+            innerPanel.Controls.Add(sep1);
             y += 6;
+
+            // Clear Filter (only shown when a filter is active)
+            if (hasActiveFilter)
+            {
+                var btnClear = makeActionBtn("\u2715", $"Clear Filter from \"{colName}\"", (s, ev) =>
+                {
+                    _activeColumnFilters.Remove(columnIndex);
+                    ApplyFiltersAndSort();
+                    popup.Close();
+                });
+                btnClear.Location = new Point(pad, y);
+                btnClear.ForeColor = AppTheme.AccentGold;
+                innerPanel.Controls.Add(btnClear);
+                y += 30;
+
+                var sep2 = new Panel { BackColor = AppTheme.Border, Size = new Size(innerWidth, 1), Location = new Point(pad, y) };
+                innerPanel.Controls.Add(sep2);
+                y += 6;
+            }
+
+            // "Filter by value" label
+            var lblFilter = new Label
+            {
+                Text = "Filter by value",
+                Font = new Font("Segoe UI Semibold", 8.5f),
+                ForeColor = AppTheme.TextMuted,
+                AutoSize = false,
+                Size = new Size(innerWidth, 18),
+                Location = new Point(pad, y),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            innerPanel.Controls.Add(lblFilter);
+            y += 20;
 
             // Search textbox
             var txtSearch = new TextBox
             {
-                Size = new Size(240, 22),
-                Location = new Point(6, y),
+                Size = new Size(innerWidth, 24),
+                Location = new Point(pad, y),
                 BackColor = AppTheme.BgInput,
                 ForeColor = AppTheme.TextPrimary,
-                Font = new Font("Segoe UI", 8.5f),
+                Font = new Font("Segoe UI", 9f),
                 BorderStyle = BorderStyle.FixedSingle
             };
-            txtSearch.PlaceholderText = "Search";
-            popup.Controls.Add(txtSearch);
-            y += 28;
+            txtSearch.PlaceholderText = "\uD83D\uDD0D Search...";
+            innerPanel.Controls.Add(txtSearch);
+            y += 30;
 
             // CheckedListBox with values
-            int listHeight = Math.Min(220, 20 + allValues.Count * 18);
+            int maxListHeight = 240;
+            int itemHeight = 20;
+            int listHeight = Math.Min(maxListHeight, 6 + (allValues.Count + 1) * itemHeight);
             var clb = new CheckedListBox
             {
-                Size = new Size(240, listHeight),
-                Location = new Point(6, y),
+                Size = new Size(innerWidth, listHeight),
+                Location = new Point(pad, y),
                 BackColor = AppTheme.BgInput,
                 ForeColor = AppTheme.TextPrimary,
-                Font = new Font("Segoe UI", 8.5f),
+                Font = new Font("Segoe UI", 9f),
                 BorderStyle = BorderStyle.FixedSingle,
                 CheckOnClick = true,
                 IntegralHeight = false
@@ -1250,14 +1310,12 @@ namespace SPOVersionManagement.Controls
                 {
                     if (ev.Index == 0)
                     {
-                        // "(Select All)" toggled — set all items to same state
                         bool newState = ev.NewValue == CheckState.Checked;
                         for (int i = 1; i < clb.Items.Count; i++)
                             clb.SetItemChecked(i, newState);
                     }
                     else
                     {
-                        // Individual item toggled — update "(Select All)" state
                         int checkedCount = clb.CheckedIndices.Cast<int>().Count(idx => idx > 0);
                         if (ev.NewValue == CheckState.Checked) checkedCount++;
                         else checkedCount--;
@@ -1267,8 +1325,8 @@ namespace SPOVersionManagement.Controls
                 finally { _updatingChecks = false; }
             };
 
-            popup.Controls.Add(clb);
-            y += listHeight + 8;
+            innerPanel.Controls.Add(clb);
+            y += listHeight + 10;
 
             // Search filtering
             txtSearch.TextChanged += (s, ev) =>
@@ -1282,79 +1340,95 @@ namespace SPOVersionManagement.Controls
                     : allValues.Where(v => v.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
                 foreach (string val in filtered)
                     clb.Items.Add(string.IsNullOrWhiteSpace(val) ? "(Blanks)" : val);
-                // Check all visible items
                 for (int i = 0; i < clb.Items.Count; i++)
                     clb.SetItemChecked(i, true);
                 _updatingChecks = false;
             };
 
-            // OK / Cancel buttons
+            // Separator before buttons
+            var sepBottom = new Panel { BackColor = AppTheme.Border, Size = new Size(innerWidth, 1), Location = new Point(pad, y) };
+            innerPanel.Controls.Add(sepBottom);
+            y += 8;
+
+            // OK / Cancel buttons — right-aligned like Excel
+            int btnWidth = 80;
+            int btnHeight = 28;
+            int btnGap = 8;
+
             var btnOk = new Button
             {
                 Text = "OK",
-                Size = new Size(70, 26),
-                Location = new Point(100, y),
+                Size = new Size(btnWidth, btnHeight),
+                Location = new Point(popupWidth - 2 - pad - btnWidth * 2 - btnGap, y),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = AppTheme.AccentCyan,
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI Semibold", 8.5f)
+                ForeColor = Color.Black,
+                Font = new Font("Segoe UI Semibold", 9f),
+                Cursor = Cursors.Hand
             };
             btnOk.FlatAppearance.BorderSize = 0;
+            btnOk.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 200, 220);
+
             var btnCancel = new Button
             {
                 Text = "Cancel",
-                Size = new Size(70, 26),
-                Location = new Point(176, y),
+                Size = new Size(btnWidth, btnHeight),
+                Location = new Point(popupWidth - 2 - pad - btnWidth, y),
                 FlatStyle = FlatStyle.Flat,
-                BackColor = AppTheme.BgCard,
-                ForeColor = AppTheme.TextSecondary,
-                Font = new Font("Segoe UI", 8.5f)
+                BackColor = AppTheme.BgMedium,
+                ForeColor = AppTheme.TextPrimary,
+                Font = new Font("Segoe UI", 9f),
+                Cursor = Cursors.Hand
             };
             btnCancel.FlatAppearance.BorderSize = 1;
             btnCancel.FlatAppearance.BorderColor = AppTheme.Border;
+            btnCancel.FlatAppearance.MouseOverBackColor = AppTheme.BgCard;
 
             btnOk.Click += (s, ev) =>
             {
-                // Collect checked values (skip index 0 which is "Select All")
                 var selected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 for (int i = 1; i < clb.Items.Count; i++)
                 {
                     if (clb.GetItemChecked(i))
                     {
                         string display = clb.Items[i].ToString();
-                        string actual = display == "(Blanks)" ? string.Empty : display;
-                        // Map display back to original value
                         int idx = i - 1;
                         if (idx < allValues.Count)
                             selected.Add(allValues[idx]);
                         else
+                        {
+                            string actual = display == "(Blanks)" ? string.Empty : display;
                             selected.Add(actual);
+                        }
                     }
                 }
 
                 if (selected.Count == 0 || selected.Count == allValues.Count)
-                {
-                    // All or none selected → remove filter
                     _activeColumnFilters.Remove(columnIndex);
-                }
                 else
-                {
                     _activeColumnFilters[columnIndex] = selected;
-                }
+
                 ApplyFiltersAndSort();
                 popup.Close();
             };
 
             btnCancel.Click += (s, ev) => popup.Close();
 
-            popup.Controls.Add(btnOk);
-            popup.Controls.Add(btnCancel);
+            innerPanel.Controls.Add(btnOk);
+            innerPanel.Controls.Add(btnCancel);
 
             // Adjust popup height
-            popup.Height = y + 40;
+            popup.Height = y + btnHeight + pad + 2;
 
             // Close on deactivate
             popup.Deactivate += (s, ev) => { try { popup.Close(); } catch { } };
+
+            // Ensure popup doesn't go off screen
+            var screen = Screen.FromPoint(screenPoint);
+            if (popup.Right > screen.WorkingArea.Right)
+                popup.Left = screen.WorkingArea.Right - popup.Width;
+            if (popup.Bottom > screen.WorkingArea.Bottom)
+                popup.Top = screen.WorkingArea.Bottom - popup.Height;
 
             popup.Show();
             txtSearch.Focus();

@@ -84,6 +84,9 @@ namespace SPOVersionManagement.Controls
         private ProgressBar _loadingBar;
         private Panel _summaryBar;
         private RowStyle _queueFooterRowStyle;
+        private Panel _periodFilterPanel;
+        private Label _lblSamLegend;
+        private int _periodFilterDays;
 
         private List<SiteCatalogEntry> _catalogSites = new List<SiteCatalogEntry>();
         private List<SiteCatalogEntry> _archiveCandidates = new List<SiteCatalogEntry>();
@@ -189,12 +192,13 @@ namespace SPOVersionManagement.Controls
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 ColumnCount = 1,
-                RowCount = 3,
+                RowCount = 4,
                 BackColor = Color.Transparent,
                 Margin = Padding.Empty,
                 Padding = Padding.Empty
             };
             topHost.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            topHost.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             topHost.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             topHost.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             topHost.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -296,6 +300,40 @@ namespace SPOVersionManagement.Controls
             _btnRunQueue.Click += async (s, e) => await RunArchiveQueueAsync();
             _toolbar.Controls.Add(_btnRunQueue);
             _toolbar.Resize += (s, e) => LayoutToolbarControls();
+
+            // Period filter buttons + SAM legend (candidates view only)
+            _periodFilterPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 32,
+                BackColor = Color.Transparent,
+                Margin = new Padding(0, 0, 0, 4),
+                Visible = false
+            };
+
+            int pfx = 0;
+            var periodLabel = MakeLabel("Period:", AppTheme.FontBody, AppTheme.TextSecondary, pfx, 6);
+            _periodFilterPanel.Controls.Add(periodLabel);
+            pfx += 52;
+
+            foreach (var pd in new[] { ("All", 0), ("7D", 7), ("30D", 30), ("60D", 60), ("90D", 90), ("180D", 180) })
+            {
+                var btn = new FlatButton { Text = pd.Item1, Size = new Size(48, 24), Location = new Point(pfx, 4), Tag = pd.Item2 };
+                btn.SetGhostStyle();
+                if (pd.Item2 == 0) btn.SetAccentColor(AppTheme.AccentGold);
+                btn.Click += PeriodFilterButton_Click;
+                _periodFilterPanel.Controls.Add(btn);
+                pfx += 52;
+            }
+
+            // SAM legend
+            var samSwatch = new Panel { Size = new Size(14, 14), Location = new Point(pfx + 16, 9), BackColor = Color.FromArgb(25, 45, 35) };
+            _periodFilterPanel.Controls.Add(samSwatch);
+            _lblSamLegend = MakeLabel("SAM Inactive / Ownerless", AppTheme.FontSmall, AppTheme.TextSecondary, pfx + 34, 7);
+            _lblSamLegend.AutoSize = true;
+            _periodFilterPanel.Controls.Add(_lblSamLegend);
+
+            topHost.Controls.Add(_periodFilterPanel, 0, 3);
 
             // Summary stats bar (dashboard-style chips)
             _summaryBar = new Panel
@@ -971,6 +1009,25 @@ namespace SPOVersionManagement.Controls
             _btnRemoveFromQueue.Visible = _currentView == "queue";
             _btnRunQueue.Visible = _currentView == "queue";
             _txtArchiveAdminUrl.Visible = _currentView == "queue";
+            _periodFilterPanel.Visible = _currentView == "candidates";
+            if (_currentView != "candidates")
+            {
+                _periodFilterDays = 0;
+            }
+            else
+            {
+                // Reset period button highlights
+                foreach (Control c in _periodFilterPanel.Controls)
+                {
+                    if (c is FlatButton fb && fb.Tag is int d)
+                    {
+                        if (d == _periodFilterDays)
+                            fb.SetAccentColor(AppTheme.AccentGold);
+                        else
+                            fb.SetGhostStyle();
+                    }
+                }
+            }
             bool isQueueView = _currentView == "queue";
             _queueFooterHost.Visible = isQueueView;
             _queueFooterHost.Height = isQueueView ? 72 : 0;
@@ -1138,6 +1195,26 @@ namespace SPOVersionManagement.Controls
                 _chkStatus.SetItemChecked(defaultIndex, true);
         }
 
+        private void PeriodFilterButton_Click(object sender, EventArgs e)
+        {
+            if (sender is FlatButton btn && btn.Tag is int days)
+            {
+                _periodFilterDays = days;
+                // Highlight only the active button
+                foreach (Control c in _periodFilterPanel.Controls)
+                {
+                    if (c is FlatButton fb && fb.Tag is int)
+                    {
+                        if ((int)fb.Tag == days)
+                            fb.SetAccentColor(AppTheme.AccentGold);
+                        else
+                            fb.SetGhostStyle();
+                    }
+                }
+                ApplyFilterAsync();
+            }
+        }
+
         private void ToggleFilterDropDown(Control anchor, ToolStripDropDown dropDown)
         {
             // Close the other dropdown
@@ -1267,6 +1344,19 @@ namespace SPOVersionManagement.Controls
                                     break;
                             }
                         }
+                        return true;
+                    });
+                }
+
+                // Period filter for candidates view
+                if (_currentView == "candidates" && _periodFilterDays > 0)
+                {
+                    var cutoff = DateTime.UtcNow.AddDays(-_periodFilterDays);
+                    filtered = filtered.Where(s =>
+                    {
+                        if (string.IsNullOrWhiteSpace(s.EffectiveDate)) return true;
+                        if (DateTime.TryParse(s.EffectiveDate, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ed))
+                            return ed >= cutoff;
                         return true;
                     });
                 }

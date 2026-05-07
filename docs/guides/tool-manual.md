@@ -731,7 +731,7 @@ The main execution screen for version cleanup operations. This is where you conf
 
 ### Data Sync
 
-![Data Synchronization]({{ '/screenshots/gui-execution-data-sync-only.png' | relative_url }})
+![Data Synchronization]({{ '/screenshots/gui-data-sync.png' | relative_url }})
 
 Synchronize tenant data for the dashboard, analytics, and execution history.
 
@@ -743,6 +743,17 @@ Synchronize tenant data for the dashboard, analytics, and execution history.
 | ☑️ **Graph API Report (usage/activity)** | Site usage storage report via Microsoft Graph → usage metrics for dashboard |
 | ☑️ **Archive Analysis (pre-process)** | Builds lightweight `ArchiveAnalysis.json` for dashboard archive views |
 | ☑️ **Tenant Storage Timeline** | Updates `TenantStorageTimeline.json` for trend charts |
+
+#### Input Files (optional)
+
+Load data from local CSV files instead of calling APIs. Useful when you already have reports downloaded or when running offline.
+
+| Field | Description |
+|-------|-------------|
+| **Graph Report (CSV)** | SharePoint Site Usage Storage report — skips the Graph API call and imports directly |
+| **SAM Report (CSV)** | Content Management Assessment or Inactive Site Policy export from SharePoint Admin Center — used by Archive Analysis |
+
+Leave empty to use the default API-based data retrieval.
 
 Click **▶ Run Sync** to execute all checked options. Click **■ Abort** to stop.
 
