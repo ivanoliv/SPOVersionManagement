@@ -600,9 +600,9 @@ namespace SPOVersionManagement.Controls
                 bool isSamFlagged = site.IsInactive || site.IsOwnerless;
                 Color bg;
                 if (isSelected)
-                    bg = isSamFlagged ? Color.FromArgb(40, 60, 50) : AppTheme.BgCard;
+                    bg = isSamFlagged ? Color.FromArgb(20, 70, 50) : AppTheme.BgCard;
                 else if (isSamFlagged)
-                    bg = isAlt ? Color.FromArgb(25, 45, 35) : Color.FromArgb(20, 40, 30);
+                    bg = isAlt ? Color.FromArgb(18, 55, 40) : Color.FromArgb(14, 48, 34);
                 else
                     bg = isAlt ? AppTheme.BgMedium : AppTheme.BgDark;
                 using (var brush = new SolidBrush(bg))

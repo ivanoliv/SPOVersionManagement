@@ -97,9 +97,9 @@ namespace SPOVersionManagement.Controls
             _chkExportGraphReport.Checked = true;
             syncCard.Controls.Add(new Label { Text = "Site usage storage report via Microsoft Graph", Font = new Font("Cascadia Code", 6.5f), ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(34, 78) });
 
-            _chkExportArchiveAnalysis = MkChk(syncCard, "Archive Analysis (pre-process)", 14, 94);
+            _chkExportArchiveAnalysis = MkChk(syncCard, "SAM Archive Analysis (pre-process)", 14, 94);
             _chkExportArchiveAnalysis.Checked = true;
-            syncCard.Controls.Add(new Label { Text = "Builds lightweight ArchiveAnalysis.json for Dashboard", Font = new Font("Cascadia Code", 6.5f), ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(34, 112) });
+            syncCard.Controls.Add(new Label { Text = "Builds ArchiveAnalysis.json with SAM inactive/ownerless flags", Font = new Font("Cascadia Code", 6.5f), ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(34, 112) });
 
             _chkExportTenantStorage = MkChk(syncCard, "Tenant Storage Timeline", 14, 128);
             _chkExportTenantStorage.Checked = true;

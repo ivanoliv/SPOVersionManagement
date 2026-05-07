@@ -197,11 +197,6 @@ foreach ($site in $allSites) {
         $siteObj.AB = if ($site.ArchivedBy) { $site.ArchivedBy } else { "" }
         $siteObj.AT = $site.ArchivedTime
         $null = $archivedSites.Add([PSCustomObject]$siteObj)
-    } elseif ($samData.Count -gt 0) {
-        # When SAM data is available, only include SAM-flagged sites as candidates
-        if ($sam -and ($sam.IsInactive -or $sam.IsOwnerless)) {
-            $null = $candidates.Add([PSCustomObject]$siteObj)
-        }
     } else {
         $null = $candidates.Add([PSCustomObject]$siteObj)
     }

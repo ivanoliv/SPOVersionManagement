@@ -244,7 +244,7 @@ namespace SPOVersionManagement.Controls
             _toolbar.Controls.Add(_btnFilterArchive);
 
             // Status filter popup — ToolStripDropDown floats above all controls
-            _chkStatusDropDown = CreateFilterDropDown(out _chkStatus, new[] { "Active only", "Active (unlocked)", "All except Archived", "Archived", "Locked", "Inactive only", "Ownerless only", "Versions > 0" });
+            _chkStatusDropDown = CreateFilterDropDown(out _chkStatus, new[] { "Active only", "Active (unlocked)", "All except Archived", "Archived", "Locked", "Inactive only", "Ownerless only", "SAM flagged", "Versions > 0" });
             ApplyDefaultStatusFilterSelection();
 
             // Archive filter popup
@@ -327,7 +327,7 @@ namespace SPOVersionManagement.Controls
             }
 
             // SAM legend
-            var samSwatch = new Panel { Size = new Size(14, 14), Location = new Point(pfx + 16, 9), BackColor = Color.FromArgb(25, 45, 35) };
+            var samSwatch = new Panel { Size = new Size(14, 14), Location = new Point(pfx + 16, 9), BackColor = Color.FromArgb(14, 48, 34) };
             _periodFilterPanel.Controls.Add(samSwatch);
             _lblSamLegend = MakeLabel("SAM Inactive / Ownerless", AppTheme.FontSmall, AppTheme.TextSecondary, pfx + 34, 7);
             _lblSamLegend.AutoSize = true;
@@ -1315,6 +1315,9 @@ namespace SPOVersionManagement.Controls
                                     break;
                                 case "Ownerless only":
                                     if (!(s.IsOwnerless || string.IsNullOrWhiteSpace(s.Owner))) return false;
+                                    break;
+                                case "SAM flagged":
+                                    if (!s.IsInactive && !s.IsOwnerless) return false;
                                     break;
                                 case "Versions > 0":
                                     if (s.VersionCount <= 0) return false;
