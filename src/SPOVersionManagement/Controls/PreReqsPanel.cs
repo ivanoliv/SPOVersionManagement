@@ -250,6 +250,14 @@ namespace SPOVersionManagement.Controls
                     "Auth");
                 if (hasEntra) pass++; else fail++;
 
+                bool hasPnpApp = _config.AppConfig.PnPApp != null
+                    && !string.IsNullOrWhiteSpace(_config.AppConfig.PnPApp.ClientId);
+                AddCheckRow("PnP App config (File Archive)", hasPnpApp,
+                    hasPnpApp ? "ClientId found. Requires Sites.Read.All (SharePoint Application permission)"
+                              : "Missing PnPApp.ClientId \u2014 needed for File Archive Explorer",
+                    "Auth (PnP)");
+                if (hasPnpApp) pass++; else fail++;
+
                 // Check modules
                 AppendDebug("\nChecking PowerShell versions and modules...\n");
                 var result = await _psHost.CheckPrerequisitesAsync();

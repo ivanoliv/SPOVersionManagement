@@ -273,14 +273,6 @@ namespace SPOVersionManagement.Controls
             resultsCard.Controls.Add(_resultsGrid);
 
             // Console output
-            var consoleCard = new GlassPanel
-            {
-                Dock = DockStyle.Fill,
-                AccentLeft = AppTheme.AccentGold,
-                Padding = new Padding(6, 4, 6, 6)
-            };
-            bottomHost.Controls.Add(consoleCard);
-
             _searchConsole = new TextBox
             {
                 Dock = DockStyle.Fill,
@@ -288,10 +280,10 @@ namespace SPOVersionManagement.Controls
                 Font = AppTheme.FontMono, BackColor = AppTheme.BgInput, ForeColor = AppTheme.AccentGreen,
                 BorderStyle = BorderStyle.FixedSingle, WordWrap = false
             };
-            consoleCard.Controls.Add(_searchConsole);
+            bottomHost.Controls.Add(_searchConsole);
 
-            // Z-order: console card fills behind the results card
-            consoleCard.SendToBack();
+            // Z-order: console fills behind the results card
+            _searchConsole.SendToBack();
 
             LoadFileArchiveSettings();
             WireFileArchiveAutoSave();
