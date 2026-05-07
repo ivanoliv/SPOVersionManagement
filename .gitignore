@@ -57,3 +57,6 @@ _analyze.ps1
 # OS
 Thumbs.db
 Desktop.ini
+
+# Obsidian
+.obsidian/
