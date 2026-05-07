@@ -919,6 +919,8 @@ This is useful for auditing and understanding what parameters were used in each 
 
 ## Task Scheduler
 
+![Task Scheduler]({{ '/screenshots/gui-task-scheduler.png' | relative_url }})
+
 Schedule unattended executions via **Windows Task Scheduler**.
 
 > ⚠️ **Administrator privileges required.** Click **Run as Admin** to elevate the application.
