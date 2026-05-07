@@ -27,6 +27,9 @@ namespace SPOVersionManagement.Controls
         // Sync options
         private CheckBox _chkExportAllSites, _chkExportGraphReport, _chkExportArchiveAnalysis, _chkExportTenantStorage;
 
+        // Input files
+        private TextBox _txtGraphReportCsv, _txtSamReportCsv;
+
         // Execution
         private FlatButton _btnSync, _btnAbort;
         private TextBox _console;
@@ -103,6 +106,25 @@ namespace SPOVersionManagement.Controls
             syncCard.Controls.Add(new Label { Text = "Updates TenantStorageTimeline.json for trend charts", Font = new Font("Cascadia Code", 6.5f), ForeColor = AppTheme.TextMuted, AutoSize = true, BackColor = Color.Transparent, Location = new Point(34, 146) });
 
             y += 180 + cardGap;
+
+            // ═══ INPUT FILES ═══
+            var filesCard = new GlassPanel { Location = new Point(0, y), Size = new Size(W, 78), AccentLeft = AppTheme.AccentCyan, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+            Controls.Add(filesCard);
+            CL(filesCard, "INPUT FILES (optional — load from local CSV instead of API)", AppTheme.AccentCyan, 14, 2);
+            int fIn = Math.Max(220, W - 440);
+            int fLbl = 162;
+            int fy = 24;
+
+            PL(filesCard, "Graph Report (CSV):", 14, fy, fLbl);
+            _txtGraphReportCsv = FileRow(filesCard, fLbl + 14, fy, fIn, "CSV|*.csv", null);
+            CL(filesCard, "SharePoint Site Usage Storage report", AppTheme.TextMuted, fLbl + fIn + 50, fy + 2);
+            fy += 26;
+
+            PL(filesCard, "SAM Report (CSV):", 14, fy, fLbl);
+            _txtSamReportCsv = FileRow(filesCard, fLbl + 14, fy, fIn, "CSV|*.csv", null);
+            CL(filesCard, "Content Management Assessment (for Archive Analysis)", AppTheme.TextMuted, fLbl + fIn + 50, fy + 2);
+
+            y += 78 + cardGap;
 
             // ═══ SYNC BUTTONS ═══
             var actionBar = new Panel { Location = new Point(0, y), Size = new Size(W, 36), BackColor = Color.Transparent, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
@@ -314,10 +336,20 @@ namespace SPOVersionManagement.Controls
                 if (_chkExportGraphReport.Checked)
                 {
                     step++;
-                    sb.AppendLine($"Write-Host ''; Write-Host '=== Step {step}/{total}: Graph API Report ===' -ForegroundColor Cyan");
-                    // Run Graph script in a CLEAN PS 5.1 process (no SPO module loaded) — avoids assembly conflicts
-                    // NOTE: No -NoProfile here — profile sets PSModulePath needed for Microsoft.Graph.Reports
-                    sb.AppendLine($"powershell.exe -ExecutionPolicy Bypass -File '{Path.Combine(rootPath, "Test-GraphReport.ps1")}'");
+                    string graphCsv = _txtGraphReportCsv.Text?.Trim();
+                    if (!string.IsNullOrEmpty(graphCsv) && File.Exists(graphCsv))
+                    {
+                        // Use local CSV file — skip Graph API call entirely
+                        sb.AppendLine($"Write-Host ''; Write-Host '=== Step {step}/{total}: Graph Report (from local CSV) ===' -ForegroundColor Cyan");
+                        sb.AppendLine($"Import-Module '{Path.Combine(rootPath, "SPOVersionManagement.psm1").Replace("'", "''")}' -Force -DisableNameChecking -WarningAction SilentlyContinue");
+                        sb.AppendLine($"Import-GraphReportCSV -CsvPath '{graphCsv.Replace("'", "''")}'" );
+                    }
+                    else
+                    {
+                        // Download from Graph API
+                        sb.AppendLine($"Write-Host ''; Write-Host '=== Step {step}/{total}: Graph API Report ===' -ForegroundColor Cyan");
+                        sb.AppendLine($"powershell.exe -ExecutionPolicy Bypass -File '{Path.Combine(rootPath, "Test-GraphReport.ps1")}'");
+                    }
                     sb.AppendLine("if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { exit $LASTEXITCODE }");
                 }
 
@@ -325,7 +357,11 @@ namespace SPOVersionManagement.Controls
                 {
                     step++;
                     sb.AppendLine($"Write-Host ''; Write-Host '=== Step {step}/{total}: Import SAM Inactive Sites ===' -ForegroundColor Cyan");
-                    sb.AppendLine($"& '{Path.Combine(rootPath, "Import-SamInactiveSites.ps1")}'");
+                    string samCsv = _txtSamReportCsv.Text?.Trim();
+                    string samParam = (!string.IsNullOrEmpty(samCsv) && File.Exists(samCsv))
+                        ? $" -SAMReportPath '{samCsv.Replace("'", "''")}'"
+                        : "";
+                    sb.AppendLine($"& '{Path.Combine(rootPath, "Import-SamInactiveSites.ps1")}'{samParam}");
                     sb.AppendLine("if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { exit $LASTEXITCODE }");
                 }
 
@@ -746,6 +782,27 @@ namespace SPOVersionManagement.Controls
             var c = new CheckBox { Text = "  " + t, Font = AppTheme.FontSmall, ForeColor = AppTheme.TextPrimary, BackColor = Color.Transparent, AutoSize = true, Location = new Point(x, y) };
             p.Controls.Add(c);
             return c;
+        }
+
+        private TextBox FileRow(Control p, int x, int y, int w, string filter, string def)
+        {
+            var t = new TextBox { Location = new Point(x, y), Size = new Size(w, 20) };
+            AppTheme.StyleTextBox(t);
+            t.Text = def ?? "";
+            p.Controls.Add(t);
+            var b = new FlatButton { Text = "...", Size = new Size(26, 20), Location = new Point(x + w + 2, y) };
+            b.SetGhostStyle();
+            b.Click += (s, e) =>
+            {
+                using (var d = new OpenFileDialog { Filter = filter })
+                {
+                    if (!string.IsNullOrEmpty(t.Text) && File.Exists(t.Text)) d.InitialDirectory = Path.GetDirectoryName(t.Text);
+                    else d.InitialDirectory = _config.RootPath;
+                    if (d.ShowDialog(ParentForm) == DialogResult.OK) t.Text = d.FileName;
+                }
+            };
+            p.Controls.Add(b);
+            return t;
         }
         #endregion
     }
