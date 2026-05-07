@@ -84,8 +84,11 @@ if (Test-Path $previousAnalysisPath) {
 # ── 2. Load SAM Report (optional) ───────────────────────────────
 $samData = @{}
 if (-not $SAMReportPath) {
-    # Auto-detect SAM report in Logs folder
+    # Auto-detect SAM report in Logs folder (Content Management Assessment or Inactive Policy)
     $samFiles = @(Get-ChildItem -Path $LogPath -Filter "Report created by Content Management*" -ErrorAction SilentlyContinue)
+    if ($samFiles.Count -eq 0) {
+        $samFiles = @(Get-ChildItem -Path $LogPath -Filter "inactive policy*" -ErrorAction SilentlyContinue)
+    }
     if ($samFiles.Count -gt 0) {
         $SAMReportPath = ($samFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
         Write-Host "  [SAM] Auto-detected report: $(Split-Path $SAMReportPath -Leaf)" -ForegroundColor Cyan
@@ -97,14 +100,23 @@ if ($SAMReportPath -and (Test-Path $SAMReportPath)) {
     Write-Host "  [SAM] Loading SAM report..." -ForegroundColor Gray
     $samCsv = Import-Csv $SAMReportPath
     $samStats.Total = $samCsv.Count
+
+    # Detect CSV format: Content Management Assessment has "Is inactive" column;
+    # Inactive Site Policy CSV has "Site name" + "Last activity date (UTC)" but no "Is inactive"
+    $firstRow = $samCsv | Select-Object -First 1
+    $isInactivePolicy = ($null -ne $firstRow.'Site name') -and ($null -eq $firstRow.'Is inactive')
+    if ($isInactivePolicy) {
+        Write-Host "  [SAM] Detected format: Inactive Site Policy (all sites are inactive)" -ForegroundColor Cyan
+    }
     
     foreach ($row in $samCsv) {
         $url = $row.URL
         if (-not $url) { continue }
         $urlNorm = $url.TrimEnd("/").ToLower()
         
-        $isInactive = $row.'Is inactive' -eq 'True'
-        $isOwnerless = $row.'Is ownerless' -eq 'True'
+        # Inactive Policy CSV: all listed sites are inactive by definition
+        $isInactive = if ($isInactivePolicy) { $true } else { $row.'Is inactive' -eq 'True' }
+        $isOwnerless = if ($isInactivePolicy) { $false } else { $row.'Is ownerless' -eq 'True' }
         
         if ($isInactive) { $samStats.Inactive++ }
         if ($isOwnerless) { $samStats.Ownerless++ }
@@ -185,6 +197,11 @@ foreach ($site in $allSites) {
         $siteObj.AB = if ($site.ArchivedBy) { $site.ArchivedBy } else { "" }
         $siteObj.AT = $site.ArchivedTime
         $null = $archivedSites.Add([PSCustomObject]$siteObj)
+    } elseif ($samData.Count -gt 0) {
+        # When SAM data is available, only include SAM-flagged sites as candidates
+        if ($sam -and ($sam.IsInactive -or $sam.IsOwnerless)) {
+            $null = $candidates.Add([PSCustomObject]$siteObj)
+        }
     } else {
         $null = $candidates.Add([PSCustomObject]$siteObj)
     }

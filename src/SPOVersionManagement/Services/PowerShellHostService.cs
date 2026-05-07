@@ -189,6 +189,7 @@ namespace SPOVersionManagement.Services
             try
             {
                 var iss = InitialSessionState.CreateDefault();
+                iss.ExecutionPolicy = Microsoft.PowerShell.ExecutionPolicy.Bypass;
                 string mainModule = System.IO.Path.Combine(_rootPath, "SPOVersionManagement.psm1");
                 string filtersModule = System.IO.Path.Combine(_rootPath, "SPOSiteFilters.psm1");
                 string retentionModule = System.IO.Path.Combine(_rootPath, "SPORetentionPolicyManager.psm1");
@@ -215,6 +216,7 @@ namespace SPOVersionManagement.Services
             try
             {
                 var fallbackIss = InitialSessionState.CreateDefault();
+                fallbackIss.ExecutionPolicy = Microsoft.PowerShell.ExecutionPolicy.Bypass;
                 _pool = RunspaceFactory.CreateRunspacePool(1, 6, fallbackIss, _guiHost);
                 _pool.Open();
                 return; // Success
@@ -230,6 +232,7 @@ namespace SPOVersionManagement.Services
             try
             {
                 var minIss = InitialSessionState.CreateDefault();
+                minIss.ExecutionPolicy = Microsoft.PowerShell.ExecutionPolicy.Bypass;
                 _pool = RunspaceFactory.CreateRunspacePool(minIss);
                 _pool.Open();
             }
@@ -912,7 +915,7 @@ namespace SPOVersionManagement.Services
                 var psi = new ProcessStartInfo
                 {
                     FileName = psPath,
-                    Arguments = $"-NoProfile -Command \"{script}\"",
+                    Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script}\"",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,

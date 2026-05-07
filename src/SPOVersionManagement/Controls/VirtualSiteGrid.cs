@@ -550,6 +550,30 @@ namespace SPOVersionManagement.Controls
         {
             if (e.RowIndex < 0)
             {
+                // Paint header with filter dropdown indicator
+                if (e.ColumnIndex >= ColTitle && e.ColumnIndex <= ColOwner)
+                {
+                    e.PaintBackground(e.CellBounds, false);
+                    e.PaintContent(e.CellBounds);
+
+                    // Draw small dropdown triangle on the right edge
+                    int triSize = 6;
+                    int triX = e.CellBounds.Right - triSize - 8;
+                    int triY = e.CellBounds.Top + (e.CellBounds.Height - triSize) / 2;
+                    bool hasFilter = _activeColumnFilters.ContainsKey(e.ColumnIndex);
+                    var triColor = hasFilter ? AppTheme.AccentGold : Color.FromArgb(100, AppTheme.TextMuted);
+                    var triPoints = new Point[]
+                    {
+                        new Point(triX, triY),
+                        new Point(triX + triSize, triY),
+                        new Point(triX + triSize / 2, triY + triSize)
+                    };
+                    using (var brush = new SolidBrush(triColor))
+                        e.Graphics.FillPolygon(brush, triPoints);
+
+                    e.Handled = true;
+                    return;
+                }
                 e.Handled = false;
                 return;
             }
