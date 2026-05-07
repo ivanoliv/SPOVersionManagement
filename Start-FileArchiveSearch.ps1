@@ -224,7 +224,9 @@ function Search-FilesByExtensionLocal {
                 $retryCount++
                 $errMsg = $_.Exception.Message
                 if ($errMsg -match 'Forbidden|Access to ListItem.*requires the following permissions') {
-                    Write-Host "    [PERMISSION ERROR] Graph Search requires Sites.Read.All" -ForegroundColor Red
+                    Write-Host "    [PERMISSION ERROR] Graph Search denied: $errMsg" -ForegroundColor Red
+                    Write-Host "    For interactive login: ensure the app has Sites.Read.All as DELEGATED permission" -ForegroundColor Yellow
+                    Write-Host "    For app-only (certificate): ensure Sites.Read.All as APPLICATION permission" -ForegroundColor Yellow
                     break
                 }
                 Write-Warning "  Search retry $retryCount/3: $errMsg"
@@ -328,7 +330,8 @@ function Search-FileCountLocal {
     } catch {
         $errMsg = $_.Exception.Message
         if ($errMsg -match 'Forbidden|Access to ListItem.*requires the following permissions') {
-            Write-Host "    [PERMISSION ERROR] Graph Search requires Sites.Read.All" -ForegroundColor Red
+            Write-Host "    [PERMISSION ERROR] Graph Search denied: $errMsg" -ForegroundColor Red
+            Write-Host "    For interactive login: ensure the app has Sites.Read.All as DELEGATED permission" -ForegroundColor Yellow
         }
         Write-Warning "  Count search failed for $Category : $errMsg"
         return 0
