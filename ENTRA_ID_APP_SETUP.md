@@ -381,17 +381,34 @@ Copy the **Thumbprint** → put in `AppPaths.json` → `PnPApp.CertificateThumbp
 
 ### 3.4 Add API Permissions
 
-Go to **API permissions** → **Add a permission**:
+Go to **API permissions** → **Add a permission**.
 
-#### SharePoint (Application permissions)
-| Permission | Required | Purpose |
-|------------|----------|---------|
-| `Sites.Read.All` | **Yes** | Read files and list items across all sites |
+The permissions you need depend on which authentication mode you use in File Archive Explorer:
 
-#### Microsoft Graph (Application permissions)
-| Permission | Required | Purpose |
-|------------|----------|---------|
-| `Sites.Read.All` | Optional | Alternative site enumeration via Graph |
+#### Option A: Interactive (browser login) — uses **Delegated** permissions
+
+The user signs in via browser. The search runs with the user's identity.
+
+| API | Permission | Type | Required | Purpose |
+|-----|------------|------|----------|---------|
+| Microsoft Graph | `Sites.Read.All` | **Delegated** | **Yes** | Search files across all sites via Graph Search API |
+
+> **Tip:** Select **Microsoft Graph** → **Delegated permissions** → search for `Sites.Read.All`.
+
+#### Option B: App credentials (certificate) — uses **Application** permissions
+
+The app authenticates with a certificate. No user interaction required (unattended mode).
+
+| API | Permission | Type | Required | Purpose |
+|-----|------------|------|----------|---------|
+| SharePoint | `Sites.Read.All` | **Application** | **Yes** | Read files and list items across all sites |
+| Microsoft Graph | `Sites.Read.All` | **Application** | Optional | Alternative site enumeration via Graph |
+
+> **Tip:** Select **SharePoint** → **Application permissions** → search for `Sites.Read.All`.
+
+#### Both modes
+
+You can add **both** Delegated and Application permissions to the same app registration. This allows switching between Interactive and App credentials modes without reconfiguring permissions.
 
 ### 3.5 Grant Admin Consent
 
@@ -427,7 +444,8 @@ Go to **API permissions** → **Add a permission**:
 ### 3.8 Limitations
 
 - **Read-only access**: this app only needs `Sites.Read.All` — it cannot modify or delete files
-- **Certificate auth only in unattended mode**: interactive mode uses browser-based login (no PnP app needed)
+- **Interactive mode**: uses Delegated permissions — requires `Sites.Read.All` (Delegated) on Microsoft Graph
+- **App credentials mode**: uses Application permissions — requires `Sites.Read.All` (Application) on SharePoint
 - **One site at a time**: `Connect-PnPOnline` connects to a single site per session
 - **PowerShell 7+ only**: PnP.PowerShell is not compatible with Windows PowerShell 5.1
 - **No secret-based auth**: only certificate-based authentication is supported for app-only scenarios
@@ -534,7 +552,8 @@ Install-Module ExchangeOnlineManagement -Scope CurrentUser -Force
 - Or switch to **Interactive (browser)** auth mode in File Archive Explorer
 
 ### "Connect-PnPOnline: The remote server returned an error: (403) Forbidden"
-- Verify the PnP App has `Sites.Read.All` SharePoint Application permission
+- **Interactive mode**: verify the PnP App has `Sites.Read.All` as a **Delegated** permission on Microsoft Graph
+- **App credentials mode**: verify the PnP App has `Sites.Read.All` as an **Application** permission on SharePoint
 - Verify admin consent was granted for the PnP app
 - Verify the certificate thumbprint matches the one uploaded to the PnP app registration
 
