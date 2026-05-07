@@ -38,6 +38,11 @@ param(
 $ErrorActionPreference = "Stop"
 $sourcePath = Split-Path -Parent $MyInvocation.MyCommand.Path
 
+# --- Detect same-directory install ---
+$resolvedSrc  = (Resolve-Path $sourcePath).Path.TrimEnd('\')
+$resolvedDest = if (Test-Path $DestinationPath) { (Resolve-Path $DestinationPath).Path.TrimEnd('\') } else { $DestinationPath.TrimEnd('\') }
+$isSameDir = $resolvedSrc -eq $resolvedDest
+
 # --- Read version ---
 $appPathsFile = Join-Path $sourcePath "config\AppPaths.json"
 $version = "unknown"
@@ -127,6 +132,11 @@ foreach ($file in $alwaysUpdate) {
     $src = Join-Path $sourcePath $file
     $dst = Join-Path $DestinationPath $file
     if (Test-Path $src) {
+        # Skip if source and destination are the same file
+        if ($isSameDir) {
+            Write-Host "  [Skipped] $file (in-place install)" -ForegroundColor DarkGray
+            continue
+        }
         # Ensure target directory exists
         $dstDir = Split-Path -Parent $dst
         if (-not (Test-Path $dstDir)) {
@@ -149,6 +159,10 @@ foreach ($file in $preserveFiles) {
         $preservedCount++
         Write-Host "  [Kept] $file (user config preserved)" -ForegroundColor Cyan
     } elseif (Test-Path $src) {
+        if ($isSameDir) {
+            Write-Host "  [Skipped] $file (in-place install)" -ForegroundColor DarkGray
+            continue
+        }
         if ((Test-Path $dst) -and $Force) {
             # Backup existing before overwriting
             $backupName = [System.IO.Path]::GetFileNameWithoutExtension($file) + "_backup_$timestamp" + [System.IO.Path]::GetExtension($file)
@@ -213,18 +227,22 @@ if ((Test-Path $dstAppPaths) -and -not $Force) {
     $dstConfig | ConvertTo-Json -Depth 10 | Set-Content -Path $dstAppPaths -Encoding UTF8
     Write-Host "  [Merged] AppPaths.json (v$version, user paths preserved)" -ForegroundColor Green
 } else {
-    if ((Test-Path $dstAppPaths) -and $Force) {
-        $backupName = "AppPaths_backup_$timestamp.json"
-        Copy-Item -Path $dstAppPaths -Destination (Join-Path $DestinationPath "Logs\Backup\$backupName") -Force
-        Write-Host "  [Backup] AppPaths.json -> Logs\Backup\$backupName" -ForegroundColor DarkYellow
+    if ($isSameDir) {
+        Write-Host "  [Skipped] AppPaths.json (in-place install)" -ForegroundColor DarkGray
+    } else {
+        if ((Test-Path $dstAppPaths) -and $Force) {
+            $backupName = "AppPaths_backup_$timestamp.json"
+            Copy-Item -Path $dstAppPaths -Destination (Join-Path $DestinationPath "Logs\Backup\$backupName") -Force
+            Write-Host "  [Backup] AppPaths.json -> Logs\Backup\$backupName" -ForegroundColor DarkYellow
+        }
+        Copy-Item -Path $srcAppPaths -Destination $dstAppPaths -Force
+        # Set RootPath to actual install location
+        $freshConfig = Get-Content $dstAppPaths -Raw | ConvertFrom-Json
+        $freshConfig | Add-Member -NotePropertyName 'RootPath' -NotePropertyValue $DestinationPath -Force
+        $freshConfig | ConvertTo-Json -Depth 10 | Set-Content -Path $dstAppPaths -Encoding UTF8
+        $updatedCount++
+        Write-Host "  [Installed] AppPaths.json" -ForegroundColor Green
     }
-    Copy-Item -Path $srcAppPaths -Destination $dstAppPaths -Force
-    # Set RootPath to actual install location
-    $freshConfig = Get-Content $dstAppPaths -Raw | ConvertFrom-Json
-    $freshConfig | Add-Member -NotePropertyName 'RootPath' -NotePropertyValue $DestinationPath -Force
-    $freshConfig | ConvertTo-Json -Depth 10 | Set-Content -Path $dstAppPaths -Encoding UTF8
-    $updatedCount++
-    Write-Host "  [Installed] AppPaths.json" -ForegroundColor Green
 }
 
 # --- Handle DashboardConfig.json (merge new keys) ---
@@ -267,14 +285,18 @@ if ((Test-Path $dstDashConfig) -and -not $Force) {
     $dstDC | ConvertTo-Json -Depth 10 | Set-Content -Path $dstDashConfig -Encoding UTF8
     Write-Host "  [Merged] DashboardConfig.json (user preferences preserved)" -ForegroundColor Green
 } else {
-    if ((Test-Path $dstDashConfig) -and $Force) {
-        $backupName = "DashboardConfig_backup_$timestamp.json"
-        Copy-Item -Path $dstDashConfig -Destination (Join-Path $DestinationPath "Logs\Backup\$backupName") -Force
-        Write-Host "  [Backup] DashboardConfig.json -> Logs\Backup\$backupName" -ForegroundColor DarkYellow
+    if ($isSameDir) {
+        Write-Host "  [Skipped] DashboardConfig.json (in-place install)" -ForegroundColor DarkGray
+    } else {
+        if ((Test-Path $dstDashConfig) -and $Force) {
+            $backupName = "DashboardConfig_backup_$timestamp.json"
+            Copy-Item -Path $dstDashConfig -Destination (Join-Path $DestinationPath "Logs\Backup\$backupName") -Force
+            Write-Host "  [Backup] DashboardConfig.json -> Logs\Backup\$backupName" -ForegroundColor DarkYellow
+        }
+        Copy-Item -Path $srcDashConfig -Destination $dstDashConfig -Force
+        $updatedCount++
+        Write-Host "  [Installed] DashboardConfig.json" -ForegroundColor Green
     }
-    Copy-Item -Path $srcDashConfig -Destination $dstDashConfig -Force
-    $updatedCount++
-    Write-Host "  [Installed] DashboardConfig.json" -ForegroundColor Green
 }
 
 # --- Update folders ---
@@ -283,6 +305,10 @@ foreach ($folder in $updateFolders) {
     $src = Join-Path $sourcePath $folder
     $dst = Join-Path $DestinationPath $folder
     if (Test-Path $src) {
+        if ($isSameDir) {
+            Write-Host "  [Skipped] $folder\ (in-place install)" -ForegroundColor DarkGray
+            continue
+        }
         if (Test-Path $dst) { Remove-Item -Path $dst -Recurse -Force }
         Copy-Item -Path $src -Destination $dst -Recurse -Force
         $count = (Get-ChildItem -Path $dst -Recurse -File).Count
