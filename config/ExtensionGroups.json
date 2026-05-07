@@ -121,7 +121,7 @@
     {
       "Name": "Development",
       "Color": "#9e9e9e",
-      "Enabled": false,
+      "Enabled": true,
       "Extensions": [
         ".ps1",
         ".bat",
@@ -157,7 +157,8 @@
         ".yml",
         ".toml",
         ".ini",
-        ".conf"
+        ".conf",
+        ".txt"
       ]
     }
   ]

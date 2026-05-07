@@ -118,7 +118,7 @@ namespace SPOVersionManagement.Controls
             {
                 Dock = DockStyle.Fill,
                 BackColor = Color.Transparent,
-                AutoScroll = true,
+                AutoScroll = false,
                 Padding = new Padding(0, 0, 10, 14)
             };
             splitter.Panel1.Controls.Add(topHost);
@@ -210,14 +210,13 @@ namespace SPOVersionManagement.Controls
             _groupsPanel = new Panel
             {
                 Location = new Point(0, y),
-                Size = new Size(panelW, 400),
+                Size = new Size(panelW, Math.Max(200, splitter.Panel1.Height - y - 10)),
                 BackColor = Color.Transparent,
                 AutoScroll = true,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
                 Padding = new Padding(0, 0, 8, 8)
             };
             topHost.Controls.Add(_groupsPanel);
-
-            topHost.AutoScrollMinSize = new Size(0, y + 400 + 20);
 
             RebuildGroups();
 

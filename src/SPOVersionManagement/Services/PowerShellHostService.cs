@@ -535,7 +535,8 @@ namespace SPOVersionManagement.Services
             if (!string.IsNullOrEmpty(region))
                 cmd += $" -Region '{region}'";
 
-            await RunScriptAsync(cmd, cancellationToken: cancellationToken);
+            // PnP.PowerShell requires PS 7 — always run via external process
+            await RunScriptExternalAsync(cmd, cancellationToken);
         }
 
         /// <summary>
