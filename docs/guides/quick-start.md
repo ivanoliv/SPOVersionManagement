@@ -175,6 +175,7 @@ After execution completes:
 
 ## What's Next?
 
+- **Read the full manual** — The [Complete Tool Manual]({{ '/guides/tool-manual/' | relative_url }}) explains every screen, option, and feature with PowerShell equivalents
 - **Schedule regular runs** — Use **Task Scheduler** in the left menu to automate cleanup on a schedule
 - **Monitor regrowth** — The Tenant Storage Timeline chart shows storage trends over time
 - **Archive inactive sites** — Use the **Archive Sites** feature to archive sites that are no longer active
