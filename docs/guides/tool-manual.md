@@ -37,6 +37,8 @@ The application is organized into these main sections:
 
 ## Home
 
+![Home screen]({{ '/screenshots/gui-home.png' | relative_url }})
+
 The Home screen shows a summary of your tenant state: total sites, storage consumed, version percentage, and last sync timestamp. This is your at-a-glance operational view.
 
 The top status bar shows: **Version Size** (total version storage), **Versions %** (percentage of total storage consumed by versions), and **Last Updated** timestamp.
@@ -44,6 +46,8 @@ The top status bar shows: **Version Size** (total version storage), **Versions %
 ---
 
 ## Pre reqs
+
+![Prerequisites screen]({{ '/screenshots/gui-prereqs.png' | relative_url }})
 
 The Prerequisites screen validates your environment:
 
@@ -70,6 +74,8 @@ Get-Module -ListAvailable Microsoft.Graph.Reports
 ---
 
 ## Config
+
+![Configuration screen]({{ '/screenshots/gui-configuration.png' | relative_url }})
 
 Configuration is split into two areas:
 
@@ -136,6 +142,8 @@ Telemetry is **opt-in** and collects only aggregate, non-identifying metrics:
 
 ## HTTP Server
 
+![HTTP Server screen]({{ '/screenshots/gui-httpserver.png' | relative_url }})
+
 Starts a local web server to host the interactive HTML Dashboard.
 
 - Click **Start** to launch the server
@@ -153,6 +161,8 @@ The dashboard reads from the JSON files in your `config/` folder (populated by D
 ---
 
 ## Retention
+
+![Retention Policy Management]({{ '/screenshots/gui-retention-policy-management.png' | relative_url }})
 
 Manage Microsoft Purview retention policies that may block version deletion.
 
@@ -175,6 +185,8 @@ When a site is under a retention hold, SharePoint prevents version deletion. Thi
 ## Sites
 
 ### Site Catalog
+
+![Site Catalog]({{ '/screenshots/gui-site-catalog.png' | relative_url }})
 
 The full inventory of all SharePoint sites in your tenant. Shows:
 
@@ -216,6 +228,8 @@ Get-SPOSite -Identity "https://contoso.sharepoint.com/sites/teamsite1" -Detailed
 
 ### Execution Scope
 
+![Execution Scope]({{ '/screenshots/gui-execution-scope.png' | relative_url }})
+
 Define exactly which sites to process:
 
 | Panel | Purpose |
@@ -244,6 +258,8 @@ Define exactly which sites to process:
 ---
 
 ### Archive Candidates
+
+![Archive Candidates]({{ '/screenshots/gui-archive-candidates-sam.png' | relative_url }})
 
 Sites identified as candidates for archiving. These come from **SharePoint Advanced Management (SAM)** inactive site reports.
 
@@ -274,6 +290,8 @@ Sites identified as candidates for archiving. These come from **SharePoint Advan
 
 ### Archived Sites
 
+![Archived Sites]({{ '/screenshots/gui-archived-sites.png' | relative_url }})
+
 Sites that have already been archived via the tool. Shows the same grid columns as Site Catalog with archive state confirmed.
 
 **PowerShell equivalent:**
@@ -285,6 +303,8 @@ Get-SPOSite -Identity "https://contoso.sharepoint.com/sites/oldsite" | Select-Ob
 ---
 
 ### Archive Queue
+
+![Archive Queue]({{ '/screenshots/gui-archive-queue.png' | relative_url }})
 
 Sites queued for archiving. You can:
 
@@ -307,6 +327,8 @@ Set-SPOSiteArchiveState -Identity "https://contoso.sharepoint.com/sites/oldsite"
 ## Execution
 
 ### Clean Versions
+
+![Clean Versions]({{ '/screenshots/gui-execution-execute-clean-versions.png' | relative_url }})
 
 The main execution screen for version cleanup operations.
 
@@ -379,6 +401,8 @@ Sessions auto-save on interruption. You can resume exactly where you left off.
 
 ### Data Sync
 
+![Data Sync]({{ '/screenshots/gui-execution-data-sync-only.png' | relative_url }})
+
 Synchronize tenant data for the dashboard and analytics.
 
 #### Sync Options
@@ -414,6 +438,8 @@ Checks SharePoint for version management jobs completed **outside** this tool (b
 
 ### Archive Sites
 
+![Archive Sites]({{ '/screenshots/gui-execution-archive-sites.png' | relative_url }})
+
 Execute the archive operation for sites in the Archive Queue. Opens a PowerShell window to process each queued site.
 
 **PowerShell equivalent:**
@@ -424,6 +450,8 @@ Execute the archive operation for sites in the Archive Queue. Opens a PowerShell
 ---
 
 ### File Archive Explorer
+
+![File Archive Explorer]({{ '/screenshots/gui-execution-file-archive-explorer.png' | relative_url }})
 
 Search for files by extension across a specific SharePoint site using the Graph Search API.
 
