@@ -3,8 +3,6 @@ name: Build and Release
 on:
   push:
     branches: [main]
-    tags:
-      - 'v*'
 
 permissions:
   contents: write
@@ -51,31 +49,5 @@ jobs:
         path: ${{ steps.package.outputs.PACKAGE_PATH }}
         retention-days: 30
 
-    - name: Create GitHub Release
-      if: startsWith(github.ref, 'refs/tags/v')
-      uses: softprops/action-gh-release@v2
-      with:
-        name: "v${{ steps.version.outputs.APP_VERSION }}"
-        body: |
-          ## SPO Version Management v${{ steps.version.outputs.APP_VERSION }}
-          
-          ### Installation
-          1. Download the ZIP below
-          2. Extract to your desired folder
-          3. Run `Install-SPOVersionManagement.ps1` (preserves existing configs)
-          
-          ### What's included
-          - PowerShell modules and scripts
-          - Windows GUI application (compiled)
-          - HTML Dashboard
-          - Configuration templates
-          
-          ---
-          
-          > ⚠️ This tool is not affiliated with or supported by Microsoft Corporation. Use at your own risk.
-        files: |
-          ${{ steps.package.outputs.PACKAGE_PATH }}
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # Release creation is handled locally (build + upload + release notes)
+    # This workflow only builds and uploads artifacts for CI validation
