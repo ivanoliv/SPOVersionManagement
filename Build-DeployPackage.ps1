@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Builds a deploy package (ZIP) for SPO Version Management.
 
@@ -231,7 +231,7 @@ function Build-Package {
     # Report
     $zipSize = (Get-Item $zipPath).Length
     $zipSizeMB = [math]::Round($zipSize / 1MB, 2)
-    Write-Host "  Done: $zipSizeMB MB ($copiedCount files)" -ForegroundColor Green
+    Write-Host ('  Done: {0} MB ({1} files)' -f $zipSizeMB, $copiedCount) -ForegroundColor Green
 
     return $zipPath
 }
@@ -252,7 +252,7 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "  Build Complete!" -ForegroundColor Green
 Write-Host "  Version: v$version" -ForegroundColor Green
-Write-Host "  Package: deploy\$zipName ($sizeMB MB)" -ForegroundColor Green
+Write-Host ('  Package: deploy\{0} ({1} MB)' -f $zipName, $sizeMB) -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "To deploy:" -ForegroundColor Cyan

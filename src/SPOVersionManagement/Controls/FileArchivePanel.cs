@@ -240,6 +240,16 @@ namespace SPOVersionManagement.Controls
             };
             splitter.Panel2.Controls.Add(bottomHost);
 
+            // Console output (add FIRST so Dock=Fill takes remaining space after Top)
+            _searchConsole = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both,
+                Font = AppTheme.FontMono, BackColor = AppTheme.BgInput, ForeColor = AppTheme.AccentGreen,
+                BorderStyle = BorderStyle.FixedSingle, WordWrap = false
+            };
+            bottomHost.Controls.Add(_searchConsole);
+
             var resultsCard = new GlassPanel
             {
                 Dock = DockStyle.Top,
@@ -270,23 +280,45 @@ namespace SPOVersionManagement.Controls
             _resultsGrid.Columns["Files"].Width = 60;
             _resultsGrid.Columns["Scanned"].Width = 120;
             _resultsGrid.Columns["Duration"].Width = 70;
+            _resultsGrid.CellDoubleClick += (s, e) =>
+            {
+                if (e.RowIndex < 0) return;
+                string url = _resultsGrid.Rows[e.RowIndex].Cells["SiteUrl"].Value?.ToString();
+                if (!string.IsNullOrWhiteSpace(url))
+                    ShowQueueSelectionModal(url);
+            };
+
+            // Add grid first (Fill), then header (Top) for proper dock order
             resultsCard.Controls.Add(_resultsGrid);
 
-            // Console output
-            _searchConsole = new TextBox
+            var resultsHeader = new Panel { Dock = DockStyle.Top, Height = 26, BackColor = Color.Transparent };
+            resultsHeader.Controls.Add(new Label
             {
-                Dock = DockStyle.Fill,
-                Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both,
-                Font = AppTheme.FontMono, BackColor = AppTheme.BgInput, ForeColor = AppTheme.AccentGreen,
-                BorderStyle = BorderStyle.FixedSingle, WordWrap = false
-            };
-            bottomHost.Controls.Add(_searchConsole);
-
-            // Z-order: console fills behind the results card
-            _searchConsole.SendToBack();
+                Text = "SCAN HISTORY",
+                Font = new Font("Segoe UI", 7f, FontStyle.Bold),
+                ForeColor = AppTheme.AccentCyan,
+                AutoSize = true,
+                BackColor = Color.Transparent,
+                Location = new Point(0, 5)
+            });
+            var btnRefreshHistory = new FlatButton { Text = "\u21BB Refresh", Size = new Size(76, 20), Location = new Point(104, 3) };
+            btnRefreshHistory.SetGhostStyle();
+            btnRefreshHistory.Click += (s, e) => LoadSearchResults();
+            resultsHeader.Controls.Add(btnRefreshHistory);
+            resultsHeader.Controls.Add(new Label
+            {
+                Text = "Double-click a site to browse files",
+                Font = new Font("Cascadia Code", 6.5f),
+                ForeColor = AppTheme.TextMuted,
+                AutoSize = true,
+                BackColor = Color.Transparent,
+                Location = new Point(190, 6)
+            });
+            resultsCard.Controls.Add(resultsHeader);
 
             LoadFileArchiveSettings();
             WireFileArchiveAutoSave();
+            LoadSearchResults();
         }
 
         private void LoadFileArchiveSettings()
@@ -502,7 +534,7 @@ namespace SPOVersionManagement.Controls
             }
         }
 
-        private void LoadSearchResults(string siteUrl)
+        private void LoadSearchResults(string siteUrl = null)
         {
             try
             {
@@ -549,6 +581,16 @@ namespace SPOVersionManagement.Controls
                 if (!File.Exists(resultPath))
                     return;
 
+                var resultFileInfo = new FileInfo(resultPath);
+                if (resultFileInfo.Length > 100 * 1024 * 1024)
+                {
+                    long sizeMB = resultFileInfo.Length / (1024 * 1024);
+                    if (MessageBox.Show(
+                        string.Format("The results file is {0:N0} MB. Loading may take a moment and use significant memory.\n\nContinue?", sizeMB),
+                        "Large Results File", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                        return;
+                }
+
                 var root = JObject.Parse(File.ReadAllText(resultPath));
                 var files = root["Files"] as JArray;
                 if (files == null || files.Count == 0)
@@ -566,8 +608,7 @@ namespace SPOVersionManagement.Controls
                     dlg.BackColor = AppTheme.BgDark;
                     dlg.ForeColor = AppTheme.TextPrimary;
 
-                    var topHost = new Panel { Dock = DockStyle.Top, Height = 74, BackColor = Color.Transparent, Padding = new Padding(12, 8, 12, 8) };
-                    dlg.Controls.Add(topHost);
+                    var topHost = new Panel { Dock = DockStyle.Top, Height = 102, BackColor = Color.Transparent, Padding = new Padding(12, 8, 12, 8) };
 
                     var lblTitle = new Label
                     {
@@ -580,15 +621,15 @@ namespace SPOVersionManagement.Controls
                     };
                     topHost.Controls.Add(lblTitle);
 
-                    var txtFilter = new TextBox { Location = new Point(0, 24), Size = new Size(720, 24), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+                    var txtFilter = new TextBox { Location = new Point(0, 44), Size = new Size(720, 24), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
                     AppTheme.StyleTextBox(txtFilter);
                     topHost.Controls.Add(txtFilter);
 
-                    var btnSelectAll = new FlatButton { Text = "Select All", Size = new Size(90, 24), Location = new Point(730, 24), Anchor = AnchorStyles.Top | AnchorStyles.Right };
+                    var btnSelectAll = new FlatButton { Text = "Select All", Size = new Size(90, 24), Location = new Point(730, 44), Anchor = AnchorStyles.Top | AnchorStyles.Right };
                     btnSelectAll.SetGhostStyle();
                     topHost.Controls.Add(btnSelectAll);
 
-                    var btnClearSel = new FlatButton { Text = "Clear", Size = new Size(70, 24), Location = new Point(826, 24), Anchor = AnchorStyles.Top | AnchorStyles.Right };
+                    var btnClearSel = new FlatButton { Text = "Clear", Size = new Size(70, 24), Location = new Point(826, 44), Anchor = AnchorStyles.Top | AnchorStyles.Right };
                     btnClearSel.SetGhostStyle();
                     topHost.Controls.Add(btnClearSel);
 
@@ -599,14 +640,13 @@ namespace SPOVersionManagement.Controls
                         ForeColor = AppTheme.TextMuted,
                         AutoSize = true,
                         BackColor = Color.Transparent,
-                        Location = new Point(0, 52)
+                        Location = new Point(0, 72)
                     };
                     topHost.Controls.Add(lblInfo);
 
                     var grid = new DataGridView
                     {
                         Dock = DockStyle.Fill,
-                        ReadOnly = true,
                         AllowUserToAddRows = false,
                         AllowUserToDeleteRows = false,
                         AllowUserToResizeRows = false,
@@ -618,23 +658,104 @@ namespace SPOVersionManagement.Controls
                         GridColor = AppTheme.Border,
                         BorderStyle = BorderStyle.FixedSingle,
                         ScrollBars = ScrollBars.Both,
-                        AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None
+                        AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,
+                        ColumnHeadersVisible = true,
+                        ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
                     };
                     AppTheme.StyleDataGrid(grid);
+
+                    // Override Fill mode set by StyleDataGrid — use fixed widths with horizontal scroll
+                    grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+
+                    var chkCol = new DataGridViewCheckBoxColumn
+                    {
+                        Name = "Select",
+                        HeaderText = "",
+                        Width = 36,
+                        MinimumWidth = 36,
+                        ReadOnly = false,
+                        FalseValue = false,
+                        TrueValue = true
+                    };
+                    grid.Columns.Add(chkCol);
                     grid.Columns.Add("Category", "CATEGORY");
                     grid.Columns.Add("Title", "TITLE");
                     grid.Columns.Add("FileUrl", "FILE URL");
                     grid.Columns.Add("Ext", "EXT");
-                    grid.Columns.Add("SizeMB", "SIZE MB");
+                    grid.Columns.Add("SizeMB", "SIZE (MB)");
+                    grid.Columns.Add("Created", "CREATED");
                     grid.Columns.Add("LastModified", "LAST MODIFIED");
+                    grid.Columns.Add("LastModifiedRetention", "MODIFIED (RETENTION)");
+                    grid.Columns.Add("ViewsLifeTime", "VIEWS");
+                    grid.Columns.Add("ViewsLifeTimeUnique", "VIEWS UNIQUE");
+                    grid.Columns.Add("ViewsRecent", "RECENT");
+                    grid.Columns.Add("ViewsRecentUnique", "RECENT UNIQUE");
+                    grid.Columns.Add("ViewsMonth1", "MONTH 1");
+                    grid.Columns.Add("ViewsMonth1Unique", "M1 UNIQUE");
+                    grid.Columns.Add("ViewsMonth2", "MONTH 2");
+                    grid.Columns.Add("ViewsMonth2Unique", "M2 UNIQUE");
+                    grid.Columns.Add("ViewsMonth3", "MONTH 3");
+                    grid.Columns.Add("ViewsMonth3Unique", "M3 UNIQUE");
+                    grid.Columns.Add("Views1Day", "1 DAY");
+                    grid.Columns.Add("Views1DayUnique", "1D UNIQUE");
+                    grid.Columns.Add("Views7Days", "7 DAYS");
+                    grid.Columns.Add("Views7DaysUnique", "7D UNIQUE");
+                    grid.Columns.Add("SnapshotDate", "SNAPSHOT");
 
-                    grid.Columns["Category"].Width = 120;
+                    grid.Columns["Category"].Width = 130;
+                    grid.Columns["Category"].MinimumWidth = 90;
                     grid.Columns["Title"].Width = 220;
-                    grid.Columns["FileUrl"].Width = 640;
-                    grid.Columns["Ext"].Width = 90;
-                    grid.Columns["SizeMB"].Width = 90;
-                    grid.Columns["LastModified"].Width = 140;
-                    dlg.Controls.Add(grid);
+                    grid.Columns["Title"].MinimumWidth = 120;
+                    grid.Columns["FileUrl"].Width = 420;
+                    grid.Columns["FileUrl"].MinimumWidth = 200;
+                    grid.Columns["Ext"].Width = 55;
+                    grid.Columns["Ext"].MinimumWidth = 45;
+                    grid.Columns["SizeMB"].Width = 80;
+                    grid.Columns["SizeMB"].MinimumWidth = 60;
+                    grid.Columns["Created"].Width = 100;
+                    grid.Columns["Created"].MinimumWidth = 80;
+                    grid.Columns["LastModified"].Width = 100;
+                    grid.Columns["LastModified"].MinimumWidth = 80;
+                    grid.Columns["LastModifiedRetention"].Width = 100;
+                    grid.Columns["LastModifiedRetention"].MinimumWidth = 80;
+                    grid.Columns["ViewsLifeTime"].Width = 60;
+                    grid.Columns["ViewsLifeTime"].MinimumWidth = 50;
+                    grid.Columns["ViewsLifeTimeUnique"].Width = 75;
+                    grid.Columns["ViewsLifeTimeUnique"].MinimumWidth = 60;
+                    grid.Columns["ViewsRecent"].Width = 60;
+                    grid.Columns["ViewsRecent"].MinimumWidth = 50;
+                    grid.Columns["ViewsRecentUnique"].Width = 75;
+                    grid.Columns["ViewsRecentUnique"].MinimumWidth = 60;
+                    grid.Columns["ViewsMonth1"].Width = 60;
+                    grid.Columns["ViewsMonth1"].MinimumWidth = 50;
+                    grid.Columns["ViewsMonth1Unique"].Width = 70;
+                    grid.Columns["ViewsMonth1Unique"].MinimumWidth = 55;
+                    grid.Columns["ViewsMonth2"].Width = 60;
+                    grid.Columns["ViewsMonth2"].MinimumWidth = 50;
+                    grid.Columns["ViewsMonth2Unique"].Width = 70;
+                    grid.Columns["ViewsMonth2Unique"].MinimumWidth = 55;
+                    grid.Columns["ViewsMonth3"].Width = 60;
+                    grid.Columns["ViewsMonth3"].MinimumWidth = 50;
+                    grid.Columns["ViewsMonth3Unique"].Width = 70;
+                    grid.Columns["ViewsMonth3Unique"].MinimumWidth = 55;
+                    grid.Columns["Views1Day"].Width = 55;
+                    grid.Columns["Views1Day"].MinimumWidth = 45;
+                    grid.Columns["Views1DayUnique"].Width = 70;
+                    grid.Columns["Views1DayUnique"].MinimumWidth = 55;
+                    grid.Columns["Views7Days"].Width = 55;
+                    grid.Columns["Views7Days"].MinimumWidth = 45;
+                    grid.Columns["Views7DaysUnique"].Width = 70;
+                    grid.Columns["Views7DaysUnique"].MinimumWidth = 55;
+                    grid.Columns["SnapshotDate"].Width = 90;
+                    grid.Columns["SnapshotDate"].MinimumWidth = 80;
+
+                    // Make only checkbox column editable
+                    grid.ReadOnly = false;
+                    foreach (DataGridViewColumn col in grid.Columns)
+                    {
+                        if (col.Name != "Select") col.ReadOnly = true;
+                    }
+                    grid.EditMode = DataGridViewEditMode.EditOnKeystrokeOrF2;
 
                     var footer = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = Color.Transparent };
                     var btnQueue = new FlatButton { Text = "Queue Selected", Size = new Size(132, 28), Location = new Point(12, 8) };
@@ -645,6 +766,10 @@ namespace SPOVersionManagement.Controls
                     btnQueueCancel.SetGhostStyle();
                     footer.Controls.Add(btnQueueCancel);
 
+                    var btnLoadMore = new FlatButton { Text = "Load More", Size = new Size(130, 28), Location = new Point(244, 8), Visible = false };
+                    btnLoadMore.SetAccentColor(AppTheme.AccentCyan);
+                    footer.Controls.Add(btnLoadMore);
+
                     var lblSelected = new Label
                     {
                         Text = "Selected: 0",
@@ -652,13 +777,31 @@ namespace SPOVersionManagement.Controls
                         ForeColor = AppTheme.TextSecondary,
                         AutoSize = true,
                         BackColor = Color.Transparent,
-                        Location = new Point(244, 13)
+                        Location = new Point(386, 13)
                     };
                     footer.Controls.Add(lblSelected);
-                    dlg.Controls.Add(footer);
 
+                    var lblSummary = new Label
+                    {
+                        Font = new Font("Cascadia Code", 7.5f),
+                        ForeColor = AppTheme.AccentCyan,
+                        AutoSize = true,
+                        BackColor = Color.Transparent,
+                        Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                        Location = new Point(500, 13)
+                    };
+                    footer.Controls.Add(lblSummary);
+
+                    // Dock order: add Fill first, then Top/Bottom (last added docks first)
+                    dlg.Controls.Add(grid);
+                    dlg.Controls.Add(footer);
+                    dlg.Controls.Add(topHost);
+
+                    // Deduplicate by FileUrl (handles legacy cached data with duplicates)
+                    var seenUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     var rows = files
                         .OfType<JObject>()
+                        .Where(f => seenUrls.Add((f["FileUrl"]?.ToString() ?? string.Empty).TrimEnd('/')))
                         .Select(f => new
                         {
                             Category = f["Category"]?.ToString() ?? string.Empty,
@@ -666,13 +809,50 @@ namespace SPOVersionManagement.Controls
                             FileUrl = f["FileUrl"]?.ToString() ?? string.Empty,
                             Ext = f["FileExtension"]?.ToString() ?? string.Empty,
                             SizeMB = f["FileSizeMB"]?.Value<double?>() ?? 0d,
-                            LastModified = f["LastModified"]?.ToString() ?? string.Empty
+                            Created = f["Created"]?.ToString() ?? string.Empty,
+                            LastModified = f["LastModified"]?.ToString() ?? string.Empty,
+                            LastModifiedRetention = f["LastModifiedForRetention"]?.ToString() ?? string.Empty,
+                            ViewsLifeTime = f["ViewsLifeTime"]?.Value<int?>() ?? 0,
+                            ViewsLifeTimeUnique = f["ViewsLifeTimeUniqueUsers"]?.Value<int?>() ?? 0,
+                            ViewsRecent = f["ViewsRecent"]?.Value<int?>() ?? 0,
+                            ViewsRecentUnique = f["ViewsRecentUniqueUsers"]?.Value<int?>() ?? 0,
+                            ViewsMonth1 = f["ViewsLastMonths1"]?.Value<int?>() ?? 0,
+                            ViewsMonth1Unique = f["ViewsLastMonths1Unique"]?.Value<int?>() ?? 0,
+                            ViewsMonth2 = f["ViewsLastMonths2"]?.Value<int?>() ?? 0,
+                            ViewsMonth2Unique = f["ViewsLastMonths2Unique"]?.Value<int?>() ?? 0,
+                            ViewsMonth3 = f["ViewsLastMonths3"]?.Value<int?>() ?? 0,
+                            ViewsMonth3Unique = f["ViewsLastMonths3Unique"]?.Value<int?>() ?? 0,
+                            Views1Day = f["ViewsLast1Days"]?.Value<int?>() ?? 0,
+                            Views1DayUnique = f["ViewsLast1DaysUniqueUsers"]?.Value<int?>() ?? 0,
+                            Views7Days = f["ViewsLast7Days"]?.Value<int?>() ?? 0,
+                            Views7DaysUnique = f["ViewsLast7DaysUniqueUsers"]?.Value<int?>() ?? 0,
+                            SnapshotDate = f["SnapshotDate"]?.ToString() ?? string.Empty
                         })
                         .ToList();
 
-                    Action<string> bind = filter =>
+                    // Compute totals
+                    double totalSizeMB = rows.Sum(r => r.SizeMB);
+                    int totalCategories = rows.Select(r => r.Category).Distinct().Count();
+
+                    Action<string> updateSummary = filter =>
                     {
                         string q = (filter ?? string.Empty).Trim().ToLowerInvariant();
+                        var visible = string.IsNullOrWhiteSpace(q) ? rows : rows.Where(r =>
+                            (r.Title ?? string.Empty).ToLowerInvariant().Contains(q) ||
+                            (r.FileUrl ?? string.Empty).ToLowerInvariant().Contains(q) ||
+                            (r.Category ?? string.Empty).ToLowerInvariant().Contains(q)).ToList();
+                        double visSizeMB = visible.Sum(r => r.SizeMB);
+                        int visCats = visible.Select(r => r.Category).Distinct().Count();
+                        string sizeStr = visSizeMB >= 1024 ? string.Format("{0:0.##} GB", visSizeMB / 1024) : string.Format("{0:0.##} MB", visSizeMB);
+                        lblSummary.Text = string.Format("Files: {0:N0}  |  Size: {1}  |  Categories: {2}", visible.Count, sizeStr, visCats);
+                    };
+
+                    const int PAGE_SIZE = 5000;
+                    string currentFilterText = "";
+
+                    Action loadNextPage = () =>
+                    {
+                        string q = currentFilterText.Trim().ToLowerInvariant();
                         var filtered = rows.Where(r =>
                                 string.IsNullOrWhiteSpace(q) ||
                                 (r.Title ?? string.Empty).ToLowerInvariant().Contains(q) ||
@@ -680,31 +860,89 @@ namespace SPOVersionManagement.Controls
                                 (r.Category ?? string.Empty).ToLowerInvariant().Contains(q))
                             .ToList();
 
-                        grid.Rows.Clear();
-                        foreach (var r in filtered)
-                            grid.Rows.Add(r.Category, r.Title, r.FileUrl, r.Ext, r.SizeMB.ToString("0.##"), r.LastModified);
+                        int loaded = grid.Rows.Count;
+                        var page = filtered.Skip(loaded).Take(PAGE_SIZE).ToList();
+                        foreach (var r in page)
+                            grid.Rows.Add(false, r.Category, r.Title, r.FileUrl, r.Ext, r.SizeMB.ToString("0.##"),
+                                r.Created, r.LastModified, r.LastModifiedRetention,
+                                r.ViewsLifeTime, r.ViewsLifeTimeUnique, r.ViewsRecent, r.ViewsRecentUnique,
+                                r.ViewsMonth1, r.ViewsMonth1Unique, r.ViewsMonth2, r.ViewsMonth2Unique,
+                                r.ViewsMonth3, r.ViewsMonth3Unique, r.Views1Day, r.Views1DayUnique,
+                                r.Views7Days, r.Views7DaysUnique, r.SnapshotDate);
 
-                        lblTitle.Text = string.Format("Select files to add into File Archive Queue - {0:N0} visible", filtered.Count);
+                        int totalLoaded = loaded + page.Count;
+                        int remaining = filtered.Count - totalLoaded;
+                        btnLoadMore.Visible = remaining > 0;
+                        btnLoadMore.Text = string.Format("Load More ({0:N0})", remaining);
+                        lblTitle.Text = totalLoaded < filtered.Count
+                            ? string.Format("Select files to add into File Archive Queue - {0:N0} of {1:N0} shown", totalLoaded, filtered.Count)
+                            : string.Format("Select files to add into File Archive Queue - {0:N0} files", filtered.Count);
+                    };
+
+                    Action<string> bind = filter =>
+                    {
+                        currentFilterText = filter ?? string.Empty;
+                        grid.Rows.Clear();
+                        loadNextPage();
+                        updateSummary(filter);
                         lblSelected.Text = "Selected: 0";
                     };
 
                     bind(string.Empty);
                     txtFilter.TextChanged += (s, e) => bind(txtFilter.Text);
+                    btnLoadMore.Click += (s, e) => loadNextPage();
+                    Action updateSelectedSummary = () =>
+                    {
+                        int checkedCount = 0;
+                        double checkedSizeMB = 0;
+                        foreach (DataGridViewRow row in grid.Rows)
+                        {
+                            if (row.Cells["Select"].Value is true)
+                            {
+                                checkedCount++;
+                                double sz;
+                                if (double.TryParse(row.Cells["SizeMB"].Value?.ToString() ?? "0", out sz))
+                                    checkedSizeMB += sz;
+                            }
+                        }
+                        string selSize = checkedSizeMB >= 1024 ? string.Format("{0:0.##} GB", checkedSizeMB / 1024) : string.Format("{0:0.##} MB", checkedSizeMB);
+                        lblSelected.Text = string.Format("Selected: {0}  ({1})", checkedCount, selSize);
+                    };
+
                     btnSelectAll.Click += (s, e) =>
                     {
-                        grid.SelectAll();
-                        lblSelected.Text = "Selected: " + grid.SelectedRows.Count;
+                        foreach (DataGridViewRow row in grid.Rows)
+                            row.Cells["Select"].Value = true;
+                        grid.RefreshEdit();
+                        updateSelectedSummary();
                     };
                     btnClearSel.Click += (s, e) =>
                     {
-                        grid.ClearSelection();
+                        foreach (DataGridViewRow row in grid.Rows)
+                            row.Cells["Select"].Value = false;
+                        grid.RefreshEdit();
                         lblSelected.Text = "Selected: 0";
                     };
-                    grid.SelectionChanged += (s, e) => lblSelected.Text = "Selected: " + grid.SelectedRows.Count;
+                    grid.CellValueChanged += (s, e) =>
+                    {
+                        if (e.ColumnIndex == grid.Columns["Select"].Index)
+                            updateSelectedSummary();
+                    };
+                    grid.CurrentCellDirtyStateChanged += (s, e) =>
+                    {
+                        if (grid.IsCurrentCellDirty)
+                            grid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+                    };
 
                     btnQueue.Click += (s, e) =>
                     {
-                        if (grid.SelectedRows.Count == 0)
+                        var checkedRows = new List<DataGridViewRow>();
+                        foreach (DataGridViewRow row in grid.Rows)
+                        {
+                            if (row.Cells["Select"].Value is true) checkedRows.Add(row);
+                        }
+
+                        if (checkedRows.Count == 0)
                         {
                             MessageBox.Show("Select at least one file to queue.", "File Archive Queue", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             return;
@@ -714,7 +952,7 @@ namespace SPOVersionManagement.Controls
                         int added = 0;
                         int skipped = 0;
 
-                        foreach (DataGridViewRow row in grid.SelectedRows)
+                        foreach (DataGridViewRow row in checkedRows)
                         {
                             string fileUrl = row.Cells["FileUrl"].Value?.ToString() ?? string.Empty;
                             if (string.IsNullOrWhiteSpace(fileUrl))

@@ -25,7 +25,6 @@ namespace SPOVersionManagement.Controls
         private FlatButton _btnRemove;
         private FlatButton _btnClear;
         private FlatButton _btnSelectAll;
-        private FlatButton _btnArchiveSelected;
         private FlatButton _btnStart;
 
         private FileArchiveQueueData _queue = new FileArchiveQueueData();
@@ -144,17 +143,20 @@ namespace SPOVersionManagement.Controls
 
             _btnSelectAll = new FlatButton { Text = "Select All", Size = new Size(98, 28), Margin = new Padding(0, 0, 8, 0) };
             _btnSelectAll.SetGhostStyle();
-            _btnSelectAll.Click += (s, e) => _grid.SelectAll();
+            _btnSelectAll.Click += (s, e) => { foreach (DataGridViewRow row in _grid.Rows) row.Cells["Select"].Value = true; _grid.RefreshEdit(); };
             actionLeft.Controls.Add(_btnSelectAll);
 
-            _btnArchiveSelected = new FlatButton { Text = "Archive Selected", Size = new Size(132, 28), Margin = new Padding(0, 0, 8, 0) };
-            _btnArchiveSelected.SetAccentColor(AppTheme.AccentGold);
-            _btnArchiveSelected.Click += (s, e) => MarkSelectedForArchive();
-            actionLeft.Controls.Add(_btnArchiveSelected);
+            var btnSelectNone = new FlatButton { Text = "Select None", Size = new Size(98, 28), Margin = new Padding(0, 0, 8, 0) };
+            btnSelectNone.SetGhostStyle();
+            btnSelectNone.Click += (s, e) => { foreach (DataGridViewRow row in _grid.Rows) row.Cells["Select"].Value = false; _grid.RefreshEdit(); };
+            actionLeft.Controls.Add(btnSelectNone);
 
             _btnStart = new FlatButton { Text = "Start", Size = new Size(80, 28), Margin = new Padding(0, 0, 8, 0) };
             _btnStart.SetAccentColor(AppTheme.AccentGreen);
-            _btnStart.Click += async (s, e) => await StartArchiveForSelectedAsync();
+            _btnStart.Enabled = false;
+            var archiveTooltip = new ToolTip();
+            archiveTooltip.SetToolTip(_btnStart, "File-level archiving is temporarily disabled. The Microsoft Graph beta archive API is not yet available on most tenants (MethodNotAllowed). Site-level archiving via SharePoint Admin Center works. This will be re-enabled once Microsoft rolls out file-level archiving to GA.");
+            // _btnStart.Click += async (s, e) => await StartArchiveForSelectedAsync(); // Disabled — file-level archive not GA yet
             actionLeft.Controls.Add(_btnStart);
 
             _lblSummary = new Label
@@ -213,8 +215,8 @@ namespace SPOVersionManagement.Controls
                 Dock = DockStyle.Fill,
                 Orientation = Orientation.Horizontal,
                 SplitterWidth = 6,
-                Panel1MinSize = 220,
-                Panel2MinSize = 110,
+                Panel1MinSize = 180,
+                Panel2MinSize = 150,
                 BackColor = Color.Transparent,
                 Margin = Padding.Empty
             };
@@ -230,13 +232,13 @@ namespace SPOVersionManagement.Controls
                     if (!splitterInitialized && split.Height > split.Panel1MinSize + split.Panel2MinSize)
                     {
                         splitterInitialized = true;
-                        int initial = Math.Max(split.Panel1MinSize, split.Height - 130);
+                        int initial = Math.Max(split.Panel1MinSize, split.Height - 170);
                         if (initial >= split.Panel1MinSize && initial <= split.Height - split.Panel2MinSize)
                             split.SplitterDistance = initial;
                     }
                     else if (splitterInitialized)
                     {
-                        int desired = Math.Max(split.Panel1MinSize, split.Height - 130);
+                        int desired = Math.Max(split.Panel1MinSize, split.Height - 170);
                         if (desired >= split.Panel1MinSize && desired <= split.Height - split.Panel2MinSize)
                             split.SplitterDistance = desired;
                     }
@@ -255,7 +257,6 @@ namespace SPOVersionManagement.Controls
             _grid = new DataGridView
             {
                 Dock = DockStyle.Fill,
-                ReadOnly = true,
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 AllowUserToResizeRows = false,
@@ -270,7 +271,21 @@ namespace SPOVersionManagement.Controls
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None
             };
             AppTheme.StyleDataGrid(_grid);
+            _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+            _grid.ReadOnly = false;
+            _grid.EditMode = DataGridViewEditMode.EditOnKeystrokeOrF2;
 
+            var chkCol = new DataGridViewCheckBoxColumn
+            {
+                Name = "Select",
+                HeaderText = "",
+                Width = 36,
+                MinimumWidth = 36,
+                ReadOnly = false,
+                FalseValue = false,
+                TrueValue = true
+            };
+            _grid.Columns.Add(chkCol);
             _grid.Columns.Add("SiteUrl", "SITE URL");
             _grid.Columns.Add("FileUrl", "FILE URL");
             _grid.Columns.Add("Category", "CATEGORY");
@@ -279,13 +294,32 @@ namespace SPOVersionManagement.Controls
             _grid.Columns.Add("QueuedAt", "QUEUED AT");
             _grid.Columns.Add("Status", "STATUS");
 
+            // Make only checkbox column editable
+            foreach (DataGridViewColumn col in _grid.Columns)
+            {
+                if (col.Name != "Select") col.ReadOnly = true;
+            }
+
             _grid.Columns["SiteUrl"].Width = 260;
-            _grid.Columns["FileUrl"].Width = 460;
+            _grid.Columns["SiteUrl"].MinimumWidth = 150;
+            _grid.Columns["FileUrl"].Width = 420;
+            _grid.Columns["FileUrl"].MinimumWidth = 200;
             _grid.Columns["Category"].Width = 120;
+            _grid.Columns["Category"].MinimumWidth = 80;
             _grid.Columns["Ext"].Width = 70;
+            _grid.Columns["Ext"].MinimumWidth = 45;
             _grid.Columns["SizeMB"].Width = 82;
+            _grid.Columns["SizeMB"].MinimumWidth = 60;
             _grid.Columns["QueuedAt"].Width = 130;
+            _grid.Columns["QueuedAt"].MinimumWidth = 90;
             _grid.Columns["Status"].Width = 100;
+            _grid.Columns["Status"].MinimumWidth = 70;
+
+            _grid.CurrentCellDirtyStateChanged += (s, e) =>
+            {
+                if (_grid.IsCurrentCellDirty)
+                    _grid.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            };
 
             gridCard.Controls.Add(_grid);
 
@@ -364,6 +398,7 @@ namespace SPOVersionManagement.Controls
                     queuedAt = dt.ToString("dd/MM/yyyy HH:mm");
 
                 _grid.Rows.Add(
+                    false,
                     item.SiteUrl ?? string.Empty,
                     item.FileUrl ?? string.Empty,
                     item.Category ?? string.Empty,
@@ -382,14 +417,19 @@ namespace SPOVersionManagement.Controls
 
         private void RemoveSelected()
         {
-            if (_grid.SelectedRows.Count == 0)
+            var checkedRows = new List<DataGridViewRow>();
+            foreach (DataGridViewRow row in _grid.Rows)
             {
-                MessageBox.Show("Select at least one row to remove.", "File Archive Queue", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                if (row.Cells["Select"].Value is true) checkedRows.Add(row);
+            }
+
+            if (checkedRows.Count == 0)
+            {
+                MessageBox.Show("Check at least one row to remove.", "File Archive Queue", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            var selectedFileUrls = _grid.SelectedRows
-                .Cast<DataGridViewRow>()
+            var selectedFileUrls = checkedRows
                 .Select(r => r.Cells["FileUrl"].Value?.ToString() ?? string.Empty)
                 .Where(v => !string.IsNullOrWhiteSpace(v))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -419,51 +459,31 @@ namespace SPOVersionManagement.Controls
             LoadQueue();
         }
 
-        private void MarkSelectedForArchive()
-        {
-            if (_grid.SelectedRows.Count == 0)
-            {
-                MessageBox.Show("Select one or more rows to mark for archive.", "File Archive Queue", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            var selectedUrls = _grid.SelectedRows
-                .Cast<DataGridViewRow>()
-                .Select(r => r.Cells["FileUrl"].Value?.ToString() ?? string.Empty)
-                .Where(v => !string.IsNullOrWhiteSpace(v))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            int marked = 0;
-            foreach (var item in _queue.Items)
-            {
-                if (string.IsNullOrWhiteSpace(item.FileUrl) || !selectedUrls.Contains(item.FileUrl))
-                    continue;
-
-                item.Status = "Selected";
-                item.Error = null;
-                marked++;
-            }
-
-            _siteData.SaveFileArchiveQueue(_queue);
-            LoadQueue();
-            AppendConsole($"Marked {marked} file(s) for archive.");
-        }
-
         private async Task StartArchiveForSelectedAsync()
         {
-            var selectedItems = _queue.Items
-                .Where(i => string.Equals(i.Status, "Selected", StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            if (selectedItems.Count == 0)
+            // Get checked rows directly from checkboxes
+            var checkedUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (DataGridViewRow row in _grid.Rows)
             {
-                MessageBox.Show("No files marked as Selected. Use 'Archive Selected' first.", "File Archive Queue", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                if (row.Cells["Select"].Value is true)
+                {
+                    string url = row.Cells["FileUrl"].Value?.ToString() ?? string.Empty;
+                    if (!string.IsNullOrWhiteSpace(url))
+                        checkedUrls.Add(url);
+                }
+            }
+
+            if (checkedUrls.Count == 0)
+            {
+                MessageBox.Show("Check at least one file to archive.", "File Archive Queue", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
+            var selectedItems = _queue.Items
+                .Where(i => !string.IsNullOrWhiteSpace(i.FileUrl) && checkedUrls.Contains(i.FileUrl))
+                .ToList();
+
             _btnStart.Enabled = false;
-            _btnArchiveSelected.Enabled = false;
             AppendConsole($"Starting archive for {selectedItems.Count} file(s)...");
 
             Action<string> outHandler = msg => AppendConsole(msg);
@@ -476,29 +496,61 @@ namespace SPOVersionManagement.Controls
 
             try
             {
+                // Determine auth mode from config
+                var pnp = _config.AppConfig.PnPApp;
+                var entra = _config.AppConfig.EntraIdApp;
+                bool useInteractive = pnp == null
+                    || string.IsNullOrWhiteSpace(pnp.ClientId)
+                    || string.IsNullOrWhiteSpace(pnp.CertificateThumbprint);
+
+                string clientId = null, certThumb = null, tenantId = null, pnpClientId = null;
+
+                if (pnp != null && !string.IsNullOrWhiteSpace(pnp.ClientId))
+                    pnpClientId = pnp.ClientId;
+                else if (entra != null && !string.IsNullOrWhiteSpace(entra.ClientId))
+                    pnpClientId = entra.ClientId;
+
+                if (!useInteractive)
+                {
+                    clientId = pnp.ClientId;
+                    certThumb = pnp.CertificateThumbprint;
+                    if (entra != null)
+                        tenantId = entra.TenantId;
+                }
+
+                // Build file list for the PS7 archive method
+                var files = selectedItems
+                    .Select(i => (SiteUrl: i.SiteUrl ?? string.Empty, FileUrl: i.FileUrl))
+                    .ToList();
+
+                string adminUrl = _config?.AppConfig?.AdminUrl?.Trim();
+
+                var results = await _psHost.RunArchiveFilesAsync(
+                    files, useInteractive, clientId, certThumb, tenantId, pnpClientId, adminUrl);
+
+                // Apply results back to queue items
                 foreach (var item in selectedItems)
                 {
-                    string fileUrl = (item.FileUrl ?? string.Empty).Replace("'", "''");
-                    if (string.IsNullOrWhiteSpace(fileUrl))
-                        continue;
-
-                    try
+                    if (results.TryGetValue(item.FileUrl, out string error))
                     {
-                        string script =
-                            "$cmd = Get-Command Set-PnPFileArchiveState -ErrorAction SilentlyContinue; " +
-                            "if(-not $cmd){ throw 'Set-PnPFileArchiveState cmdlet not found. Install PnP.PowerShell nightly.' }; " +
-                            "Set-PnPFileArchiveState -Url '" + fileUrl + "' -ArchiveState Archived -ErrorAction Stop; " +
-                            "Write-Output ('Archived: ' + '" + fileUrl + "')";
-
-                        await _psHost.RunScriptAsync(script);
-                        item.Status = "Archived";
-                        item.Error = null;
+                        if (error == null)
+                        {
+                            item.Status = "Archived";
+                            item.Error = null;
+                            AppendConsole($"Archived: {item.FileUrl}");
+                        }
+                        else
+                        {
+                            item.Status = "Failed";
+                            item.Error = error;
+                            AppendConsole($"[ERROR] {item.FileUrl} :: {error}");
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
                         item.Status = "Failed";
-                        item.Error = ex.Message;
-                        AppendConsole("[ERROR] " + fileUrl + " :: " + ex.Message);
+                        item.Error = "No response from archive command.";
+                        AppendConsole($"[ERROR] {item.FileUrl} :: No response");
                     }
                 }
 
@@ -512,7 +564,6 @@ namespace SPOVersionManagement.Controls
                 _psHost.OnWarning -= warnHandler;
                 _psHost.OnError -= errHandler;
                 _btnStart.Enabled = true;
-                _btnArchiveSelected.Enabled = true;
             }
         }
 

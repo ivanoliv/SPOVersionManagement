@@ -171,7 +171,8 @@ namespace SPOVersionManagement.Controls
             _grid.Columns["Version"].MinimumWidth = 120;
             _grid.Columns["Required"].Width = 200;
             _grid.Columns["Required"].MinimumWidth = 200;
-            _grid.Columns["Action"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            _grid.Columns["Required"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            _grid.Columns["Action"].Width = 80;
             _grid.Columns["Action"].MinimumWidth = 80;
             _grid.CellClick += Grid_CellClick;
             gridCard.Controls.Add(_grid);
@@ -253,10 +254,16 @@ namespace SPOVersionManagement.Controls
                 bool hasPnpApp = _config.AppConfig.PnPApp != null
                     && !string.IsNullOrWhiteSpace(_config.AppConfig.PnPApp.ClientId);
                 AddCheckRow("PnP App config (File Archive)", hasPnpApp,
-                    hasPnpApp ? "ClientId found. Requires Sites.Read.All (SharePoint Application permission)"
+                    hasPnpApp ? "ClientId found. Requires Sites.Read.All + Files.ReadWrite.All"
                               : "Missing PnPApp.ClientId \u2014 needed for File Archive Explorer",
                     "Auth (PnP)");
                 if (hasPnpApp) pass++; else fail++;
+
+                // M365 Archive — file-level archiving is disabled (Graph beta API not GA)
+                AddCheckRow("File Archive (execution)", false,
+                    "Disabled \u2014 Graph beta /archive API returns MethodNotAllowed on most tenants. File-level archiving is not yet GA. Site-level archiving works via SharePoint Admin Center.",
+                    "File Archive Queue");
+                fail++;
 
                 // Check modules
                 AppendDebug("\nChecking PowerShell versions and modules...\n");
@@ -353,15 +360,15 @@ try {{
             }
         }
 
-        private void AddCheckRow(string name, bool ok, string details, string requiredFor)
+        private void AddCheckRow(string name, bool ok, string details, string requiredFor, string actionOverride = null)
         {
-            string action = !ok && ShouldAllowInstall(name) ? "Install" : "";
+            string action = actionOverride ?? (!ok && ShouldAllowInstall(name) ? "Install" : "");
             _grid.Rows.Add(name, ok ? "OK" : "FAIL", details ?? string.Empty, requiredFor, action);
             var row = _grid.Rows[_grid.Rows.Count - 1];
             row.Cells["Status"].Style.ForeColor = ok ? AppTheme.AccentGreen : AppTheme.AccentRed;
             row.Tag = name; // Store module name for install action
             
-            if (!ok && !string.IsNullOrEmpty(action))
+            if (!string.IsNullOrEmpty(action))
             {
                 // Style the action cell as a button
                 row.Cells["Action"].Style.BackColor = AppTheme.AccentGold;
@@ -383,6 +390,8 @@ try {{
             return moduleName.Contains("SPO Mgmt Shell")
                 || moduleName.Contains("Online.SharePoint")
                 || moduleName.Contains("PnP.PowerShell")
+                || moduleName.Contains("PnP Nightly")
+                || moduleName.Contains("Nightly (Archive)")
                 || moduleName.Contains("Graph");
         }
 
@@ -396,10 +405,15 @@ try {{
 
             var row = _grid.Rows[e.RowIndex];
             string moduleName = row.Tag?.ToString() ?? "";
-            string statusText = row.Cells["Status"].Value?.ToString() ?? "";
             string actionText = row.Cells["Action"].Value?.ToString() ?? "";
 
-            if (string.IsNullOrEmpty(moduleName) || statusText == "OK" || string.IsNullOrEmpty(actionText))
+            if (string.IsNullOrEmpty(moduleName) || string.IsNullOrEmpty(actionText))
+                return;
+
+
+
+            string statusText = row.Cells["Status"].Value?.ToString() ?? "";
+            if (statusText == "OK")
                 return;
 
             _ = InstallModuleAsync(moduleName);
@@ -454,6 +468,8 @@ try {{
         {
             if (moduleName.Contains("SPO Mgmt Shell") || moduleName.Contains("SPO Management") || moduleName.Contains("Online.SharePoint"))
                 return "Microsoft.Online.SharePoint.PowerShell";
+            if (moduleName.Contains("Nightly"))
+                return "PnP.PowerShell.Nightly";
             if (moduleName.Contains("PnP"))
                 return "PnP.PowerShell";
             if (moduleName.Contains("Graph") || moduleName.Contains("Microsoft.Graph"))
@@ -465,6 +481,11 @@ try {{
         {
             if (psVersion == "7")
             {
+                // For PnP nightly, use -AllowPrerelease
+                bool isNightly = moduleName.Contains("Nightly", StringComparison.OrdinalIgnoreCase);
+                string installFlags = isNightly ? "-AllowPrerelease -Force -AllowClobber -Confirm:$false" : "-Force -AllowClobber -Confirm:$false";
+                string displayName = isNightly ? "PnP.PowerShell (Nightly/Prerelease)" : moduleName;
+
                 return $@"
 # PowerShell 7.4+ required for PnP.PowerShell
 $psVersion = $PSVersionTable.PSVersion
@@ -482,17 +503,22 @@ if (-not (Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue))
     Install-PackageProvider -Name NuGet -Force -Confirm:$false | Out-Null
 }}
 
-$module = Get-Module -ListAvailable '{moduleName}' -ErrorAction SilentlyContinue
-if ($module)
-{{
-    Write-Output 'Module {moduleName} version $($module.Version) is already installed.'
+{(isNightly ? @"
+# Remove stable PnP.PowerShell first to avoid conflicts
+$stable = Get-Module -ListAvailable 'PnP.PowerShell' -ErrorAction SilentlyContinue | Where-Object {{ $_.PrivateData.PSData.Prerelease -eq $null -or $_.PrivateData.PSData.Prerelease -eq '' }}
+if ($stable) {{
+    Write-Output 'Removing stable PnP.PowerShell to install nightly...'
+    Uninstall-Module -Name 'PnP.PowerShell' -AllVersions -Force -ErrorAction SilentlyContinue
 }}
-else
-{{
-    Write-Output 'Installing {moduleName}...'
-    Install-Module -Name '{moduleName}' -Force -AllowClobber -Confirm:$false -ErrorAction Stop
-    Write-Output '{moduleName} installed successfully.'
-}}
+" : "")}
+Write-Output 'Installing {displayName}...'
+Install-Module -Name 'PnP.PowerShell' {installFlags} -ErrorAction Stop
+$m = Get-Module -ListAvailable 'PnP.PowerShell' -ErrorAction SilentlyContinue | Select-Object -First 1
+Write-Output ('{displayName} installed: ' + $m.Version.ToString())
+Write-Output ''
+Write-Output 'Verifying Set-PnPFileArchiveState cmdlet...'
+$cmd = Get-Command 'Set-PnPFileArchiveState' -ErrorAction SilentlyContinue
+if ($cmd) {{ Write-Output 'Set-PnPFileArchiveState: OK' }} else {{ Write-Output 'WARNING: Set-PnPFileArchiveState still not found. You may need the latest nightly build.' }}
 ";
             }
             else
@@ -584,5 +610,6 @@ else
             _txtDebug.SelectionStart = _txtDebug.TextLength;
             _txtDebug.ScrollToCaret();
         }
+
     }
 }

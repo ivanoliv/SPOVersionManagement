@@ -276,7 +276,8 @@ namespace SPOVersionManagement.Forms
             _sidebar.AddChild("exec", "Data Sync", "exec.datasync");
             _sidebar.AddChild("exec", "Archive Sites", "exec.archive");
             _sidebar.AddChild("exec", "File Archive Explorer", "exec.filearchive");
-            _sidebar.AddChild("exec", "File Archive Queue", "exec.filearchivequeue");
+            // File Archive Queue disabled — Graph beta /archive API returns MethodNotAllowed (file-level archiving not GA)
+            // _sidebar.AddChild("exec", "File Archive Queue", "exec.filearchivequeue");
             _sidebar.AddChild("exec", "Session Manager", "exec.sessions");
             _sidebar.AddItem("\u23F0", "Task Scheduler", "scheduler");
             _sidebar.AddItem("\u29D6", "History", "history");

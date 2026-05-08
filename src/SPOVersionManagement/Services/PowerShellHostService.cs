@@ -174,6 +174,87 @@ namespace SPOVersionManagement.Services
             }
         }
 
+        public async Task<(bool Found, string Info)> CheckCmdletInPS7Async(string cmdletName)
+        {
+            if (string.IsNullOrEmpty(PS7Path))
+                return (false, "PS 7 not available");
+
+            try
+            {
+                return await Task.Run(() =>
+                {
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = PS7Path,
+                        Arguments = $"-NoProfile -Command \"if($PSVersionTable.PSVersion.Major -ge 7){{ $PSStyle.OutputRendering = 'PlainText' }}; $cmd = Get-Command '{cmdletName}' -ErrorAction SilentlyContinue; if($cmd){{ Write-Output $cmd.Module.Version.ToString() }}else{{ exit 1 }}\"",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true
+                    };
+                    psi.Environment["NO_COLOR"] = "1";
+
+                    using (var proc = Process.Start(psi))
+                    {
+                        string output = proc.StandardOutput.ReadToEnd().Trim();
+                        proc.WaitForExit();
+                        output = Regex.Replace(output, @"\x1B\[[0-9;]*m", "").Trim();
+                        if (proc.ExitCode == 0 && !string.IsNullOrEmpty(output))
+                            return (true, cmdletName + " found (v" + output + ")");
+                        return (false, cmdletName + " not found");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Queries the latest available PnP.PowerShell prerelease version from PSGallery via PS7.
+        /// </summary>
+        private async Task<string> GetLatestPnPVersionAsync()
+        {
+            if (string.IsNullOrEmpty(PS7Path))
+                return null;
+
+            try
+            {
+                return await Task.Run(() =>
+                {
+                    var psi = new ProcessStartInfo
+                    {
+                        FileName = PS7Path,
+                        Arguments = "-NoProfile -Command \"if($PSVersionTable.PSVersion.Major -ge 7){ $PSStyle.OutputRendering = 'PlainText' }; $m = Find-Module PnP.PowerShell -AllowPrerelease -ErrorAction SilentlyContinue; if($m){ Write-Output $m.Version }else{ exit 1 }\"",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true
+                    };
+                    psi.Environment["NO_COLOR"] = "1";
+                    psi.Environment["PNPPOWERSHELL_UPDATECHECK"] = "Off";
+
+                    using (var proc = Process.Start(psi))
+                    {
+                        string output = proc.StandardOutput.ReadToEnd().Trim();
+                        proc.WaitForExit();
+                        output = Regex.Replace(output, @"\x1B\[[0-9;]*m", "").Trim();
+                        // Strip prerelease suffix (e.g. "3.1.381-nightly" → "3.1.381")
+                        int dashIdx = output.IndexOf('-');
+                        if (dashIdx > 0) output = output.Substring(0, dashIdx);
+                        if (proc.ExitCode == 0 && Version.TryParse(output, out _))
+                            return output;
+                        return null;
+                    }
+                });
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
 
         /// <summary>
         /// Initializes the RunspacePool and imports required modules.
@@ -543,6 +624,213 @@ namespace SPOVersionManagement.Services
         }
 
         /// <summary>
+        /// Archives files using Set-PnPFileArchiveState via PnP.PowerShell in PS 7.
+        /// Groups files by site, connects to each site, then archives files.
+        /// Returns a dictionary of FileUrl → error message (null = success).
+        /// </summary>
+        public async Task<Dictionary<string, string>> RunArchiveFilesAsync(
+            List<(string SiteUrl, string FileUrl)> files,
+            bool useInteractiveLogin,
+            string clientId = null, string certThumbprint = null, string tenantId = null,
+            string pnpClientId = null,
+            string adminUrl = null,
+            CancellationToken cancellationToken = default)
+        {
+            var results = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            // Enable file archiving at tenant level via PnP (one-time, before per-site loop)
+            if (!string.IsNullOrEmpty(adminUrl))
+            {
+                try
+                {
+                    var enableSb = new System.Text.StringBuilder();
+                    enableSb.AppendLine("$env:PNPPOWERSHELL_UPDATECHECK = 'Off'");
+                    enableSb.AppendLine("$ErrorActionPreference = 'Stop'");
+                    enableSb.AppendLine("$pnpMod = Get-Module -ListAvailable PnP.PowerShell | Sort-Object Version -Descending | Select-Object -First 1");
+                    enableSb.AppendLine("if ($pnpMod) { Import-Module $pnpMod.Path -Force }");
+
+                    string safeAdmin = adminUrl.Replace("'", "''");
+                    if (useInteractiveLogin)
+                    {
+                        string effectiveClientId = pnpClientId ?? clientId;
+                        if (!string.IsNullOrEmpty(effectiveClientId))
+                            enableSb.AppendLine($"Connect-PnPOnline -Url '{safeAdmin}' -Interactive -ClientId '{effectiveClientId}'");
+                        else
+                            enableSb.AppendLine($"Connect-PnPOnline -Url '{safeAdmin}' -Interactive");
+                    }
+                    else
+                    {
+                        enableSb.AppendLine($"Connect-PnPOnline -Url '{safeAdmin}' -ClientId '{clientId}' -Thumbprint '{certThumbprint}' -Tenant '{tenantId}'");
+                    }
+
+                    enableSb.AppendLine("Set-PnPTenant -EnableSiteArchive $true -ErrorAction Stop");
+                    enableSb.AppendLine("Write-Output 'TENANT_FILE_ARCHIVE_ENABLED'");
+                    enableSb.AppendLine("Disconnect-PnPOnline -ErrorAction SilentlyContinue");
+
+                    string enableTempFile = System.IO.Path.Combine(
+                        System.IO.Path.GetTempPath(),
+                        $"PnP_TenantEnable_{Guid.NewGuid():N}.ps1");
+                    System.IO.File.WriteAllText(enableTempFile, enableSb.ToString(), System.Text.Encoding.UTF8);
+
+                    try
+                    {
+                        await RunScriptExternalAsync($"& '{enableTempFile}'", cancellationToken);
+                    }
+                    finally
+                    {
+                        try { System.IO.File.Delete(enableTempFile); } catch { }
+                    }
+                }
+                catch { /* Best-effort — archive may still work if already enabled */ }
+            }
+
+            // Group files by site URL
+            var bySite = files
+                .Where(f => !string.IsNullOrWhiteSpace(f.SiteUrl) && !string.IsNullOrWhiteSpace(f.FileUrl))
+                .GroupBy(f => f.SiteUrl, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var siteGroup in bySite)
+            {
+                string siteUrl = siteGroup.Key.Replace("'", "''");
+                var fileUrls = siteGroup.Select(f => f.FileUrl).ToList();
+
+                // Enable file archive at site level via SPO Management Shell (PS 5.1)
+                if (!string.IsNullOrEmpty(adminUrl))
+                {
+                    try
+                    {
+                        string enableScript =
+                            "$ErrorActionPreference = 'Stop'; " +
+                            "Import-Module Microsoft.Online.SharePoint.PowerShell -ErrorAction Stop; " +
+                            $"Connect-SPOService -Url '{adminUrl.Replace("'", "''")}' -ErrorAction Stop; " +
+                            $"Set-SPOSite -Identity '{siteUrl}' -AllowFileArchive $true -ErrorAction Stop; " +
+                            "Write-Output 'SITE_FILE_ARCHIVE_ENABLED'; " +
+                            "Disconnect-SPOService -ErrorAction SilentlyContinue";
+                        await RunScriptAsync(enableScript, cancellationToken: cancellationToken);
+                    }
+                    catch { /* Best-effort — may already be enabled or param not available */ }
+                }
+
+                // Build Connect-PnPOnline command
+                string connectCmd;
+                if (useInteractiveLogin)
+                {
+                    string effectiveClientId = pnpClientId ?? clientId;
+                    if (!string.IsNullOrEmpty(effectiveClientId))
+                        connectCmd = $"Connect-PnPOnline -Url '{siteUrl}' -Interactive -ClientId '{effectiveClientId}'";
+                    else
+                        connectCmd = $"Connect-PnPOnline -Url '{siteUrl}' -Interactive";
+                }
+                else
+                {
+                    if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(certThumbprint) || string.IsNullOrEmpty(tenantId))
+                    {
+                        foreach (var f in fileUrls)
+                            results[f] = "App credentials (ClientId/CertificateThumbprint/TenantId) not configured.";
+                        continue;
+                    }
+                    connectCmd = $"Connect-PnPOnline -Url '{siteUrl}' -ClientId '{clientId}' -Thumbprint '{certThumbprint}' -Tenant '{tenantId}'";
+                }
+
+                // Build script to temp file (avoids command-line escaping issues with quotes/newlines)
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("$env:PNPPOWERSHELL_UPDATECHECK = 'Off'");
+                sb.AppendLine("$ErrorActionPreference = 'Stop'");
+                // Force import latest PnP module to avoid stable/nightly assembly conflict
+                sb.AppendLine("$pnpMod = Get-Module -ListAvailable PnP.PowerShell | Sort-Object Version -Descending | Select-Object -First 1");
+                sb.AppendLine("if ($pnpMod) { Import-Module $pnpMod.Path -Force }");
+                // Connect to site (set flag to skip archive if connection fails)
+                sb.AppendLine("$connected = $false");
+                sb.AppendLine($"try {{ {connectCmd}; $connected = $true }} catch {{ Write-Output ('CONNECT_FAIL::' + ($_.Exception.Message -replace '[\\r\\n]+', ' ')) }}");
+                sb.AppendLine("if ($connected) {");
+                // Check if the site supports file archiving before proceeding
+                sb.AppendLine("  $archiveSupported = $true");
+                sb.AppendLine("  try {");
+                sb.AppendLine("    $site = Get-PnPSite -Includes 'Url' -ErrorAction SilentlyContinue");
+                sb.AppendLine("  } catch { }");
+
+                foreach (var fileUrl in fileUrls)
+                {
+                    string safeUrl = fileUrl.Replace("'", "''");
+                    // Convert full URL to server-relative path (Set-PnPFileArchiveState -Identity expects it)
+                    // e.g. https://tenant.sharepoint.com/sites/site1/Shared Documents/file.docx → /sites/site1/Shared Documents/file.docx
+                    sb.AppendLine($"  $fileFullUrl = '{safeUrl}'");
+                    sb.AppendLine($"  $siteBase = '{siteUrl}'");
+                    sb.AppendLine("  $serverRelative = $fileFullUrl");
+                    sb.AppendLine("  if ($fileFullUrl.StartsWith($siteBase, [StringComparison]::OrdinalIgnoreCase)) { $serverRelative = $fileFullUrl.Substring($siteBase.Length) }");
+                    sb.AppendLine("  if (-not $serverRelative.StartsWith('/')) { $serverRelative = '/' + $serverRelative }");
+                    sb.AppendLine($"  if (-not $archiveSupported) {{ Write-Output ('FAIL::{safeUrl}::File archiving not supported on this site (skipped)'); continue }}");;
+                    sb.AppendLine($"  try {{ Set-PnPFileArchiveState -Identity $serverRelative -ArchiveState Archived -Force -ErrorAction Stop; Write-Output ('OK::{safeUrl}') }} catch {{");
+                    sb.AppendLine($"    $errMsg = $_.Exception.Message -replace '[\\r\\n]+', ' '");
+                    sb.AppendLine($"    if ($errMsg -match 'MethodNotAllowed|not supported') {{ $archiveSupported = $false; Write-Output ('FAIL::{safeUrl}::' + $errMsg) }}");
+                    sb.AppendLine($"    else {{ Write-Output ('FAIL::{safeUrl}::' + $errMsg) }}");
+                    sb.AppendLine("  }");
+                }
+
+                sb.AppendLine("}");
+                sb.AppendLine("Disconnect-PnPOnline -ErrorAction SilentlyContinue");
+
+                // Write script to temp file (name contains PnP for PS7 detection in RunScriptExternalAsync)
+                string tempFile = System.IO.Path.Combine(
+                    System.IO.Path.GetTempPath(),
+                    $"PnP_Archive_{Guid.NewGuid():N}.ps1");
+
+                try
+                {
+                    System.IO.File.WriteAllText(tempFile, sb.ToString(), System.Text.Encoding.UTF8);
+                    string cmd = $"& '{tempFile}'";
+
+                    var output = await RunScriptExternalAsync(cmd, cancellationToken);
+
+                    // Parse structured output lines
+                    foreach (var obj in output)
+                    {
+                        string line = obj?.ToString() ?? "";
+                        if (line.StartsWith("OK::"))
+                        {
+                            string url = line.Substring(4);
+                            results[url] = null; // success
+                        }
+                        else if (line.StartsWith("FAIL::"))
+                        {
+                            var parts = line.Substring(6).Split(new[] { "::" }, 2, StringSplitOptions.None);
+                            string url = parts[0];
+                            string err = parts.Length > 1 ? parts[1] : "Unknown error";
+                            results[url] = err;
+                        }
+                        else if (line.StartsWith("CONNECT_FAIL::"))
+                        {
+                            string err = line.Substring(14);
+                            foreach (var f in fileUrls)
+                                results[f] = $"Connection failed: {err}";
+                        }
+                    }
+
+                    // Any files not in results = no output received
+                    foreach (var f in fileUrls)
+                    {
+                        if (!results.ContainsKey(f))
+                            results[f] = "No response from archive command.";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    foreach (var f in fileUrls)
+                    {
+                        if (!results.ContainsKey(f))
+                            results[f] = ex.Message;
+                    }
+                }
+                finally
+                {
+                    try { System.IO.File.Delete(tempFile); } catch { }
+                }
+            }
+
+            return results;
+        }
+
+        /// <summary>
         /// Checks prerequisites across both PowerShell versions.
         /// Returns info about what's installed and where.
         /// </summary>
@@ -600,13 +888,63 @@ namespace SPOVersionManagement.Services
             {
                 var (pnpInstalled, pnpVersion) = await CheckModuleInVersionAsync(
                     "PnP.PowerShell", "7");
+
+                // Minimum PnP version required for file archive features
+                const string MinPnpVersion = "3.1.367";
+                bool meetsMinVersion = false;
+                string pnpDisplayVersion = pnpVersion;
+
+                if (pnpInstalled && Version.TryParse(pnpVersion, out var parsedPnpVer)
+                    && Version.TryParse(MinPnpVersion, out var minVer))
+                {
+                    meetsMinVersion = parsedPnpVer >= minVer;
+                    if (!meetsMinVersion)
+                        pnpDisplayVersion = $"{pnpVersion} (minimum {MinPnpVersion} required — run Update-Module PnP.PowerShell -AllowPrerelease)";
+                }
+
+                // Check for newer version available
+                if (pnpInstalled)
+                {
+                    var latestVersion = await GetLatestPnPVersionAsync();
+                    if (!string.IsNullOrEmpty(latestVersion)
+                        && Version.TryParse(pnpVersion, out var currentVer)
+                        && Version.TryParse(latestVersion, out var latestVer)
+                        && latestVer > currentVer)
+                    {
+                        pnpDisplayVersion = $"{pnpVersion} (update available: {latestVersion})";
+                    }
+                }
+
                 results.Add(new Dictionary<string, object>
                 {
                     { "Module", "PnP.PowerShell (PS 7+)" },
-                    { "Installed", pnpInstalled },
-                    { "Version", pnpVersion },
-                    { "Required", "File archive (Set-PnPFileArchiveState)" }
+                    { "Installed", pnpInstalled && meetsMinVersion },
+                    { "Version", pnpDisplayVersion },
+                    { "Required", "File archive, Graph Search" }
                 });
+
+                // Check if Set-PnPFileArchiveState cmdlet exists (nightly build only)
+                if (pnpInstalled)
+                {
+                    var (cmdletFound, cmdletInfo) = await CheckCmdletInPS7Async("Set-PnPFileArchiveState");
+                    results.Add(new Dictionary<string, object>
+                    {
+                        { "Module", "PnP.PowerShell Nightly (Archive)" },
+                        { "Installed", cmdletFound },
+                        { "Version", cmdletFound ? cmdletInfo : "Set-PnPFileArchiveState not found — install PnP nightly" },
+                        { "Required", "File Archive Queue (archive execution)" }
+                    });
+                }
+                else
+                {
+                    results.Add(new Dictionary<string, object>
+                    {
+                        { "Module", "PnP.PowerShell Nightly (Archive)" },
+                        { "Installed", false },
+                        { "Version", "PnP.PowerShell not installed" },
+                        { "Required", "File Archive Queue (archive execution)" }
+                    });
+                }
             }
 
             // Convert to PSObject collection

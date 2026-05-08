@@ -193,7 +193,7 @@ function Search-FilesByExtensionLocal {
 {
     "requests": [
         {
-            "entityTypes": ["driveItem","listItem"],
+            "entityTypes": ["driveItem"],
             "query": {
                 "queryString": "($path) AND ($extFilter)"
             },
@@ -254,16 +254,30 @@ function Search-FilesByExtensionLocal {
             if (-not $fields) { $fields = $hit.resource.fields }
 
             $null = $allResults.Add([ordered]@{
-                Category      = $Category
-                WebUrl        = $fields.spWebUrl
-                FileUrl       = if ($fields.documentLink) { $fields.documentLink } else { $fields.path }
-                FileSizeMB    = if ($fields.size) { [math]::Round($fields.size / 1MB, 2) } else { 0 }
-                FileExtension = $fields.secondaryFileExtension
-                Created       = $fields.created
-                LastModified  = $fields.lastModifiedTime
-                Title         = $fields.title
-                ViewsLifeTime = $fields.viewsLifeTime
-                ViewsRecent   = $fields.viewsRecent
+                Category                  = $Category
+                WebUrl                    = $fields.spWebUrl
+                FileUrl                   = if ($fields.documentLink) { $fields.documentLink } else { $fields.path }
+                FileSizeMB                = if ($fields.size) { [math]::Round($fields.size / 1MB, 2) } else { 0 }
+                FileExtension             = $fields.secondaryFileExtension
+                Created                   = if ($fields.created) { Get-Date $fields.created -Format "yyyy-MM-dd" } else { $null }
+                LastModified              = if ($fields.lastModifiedTime) { Get-Date $fields.lastModifiedTime -Format "yyyy-MM-dd" } else { $null }
+                LastModifiedForRetention  = if ($fields.lastModifiedTimeForRetention) { Get-Date $fields.lastModifiedTimeForRetention -Format "yyyy-MM-dd" } else { $null }
+                Title                     = $fields.title
+                ViewsLifeTime             = $fields.viewsLifeTime
+                ViewsLifeTimeUniqueUsers  = $fields.viewsLifeTimeUniqueUsers
+                ViewsRecent               = $fields.viewsRecent
+                ViewsRecentUniqueUsers    = $fields.viewsRecentUniqueUsers
+                ViewsLastMonths1          = $fields.viewsLastMonths1
+                ViewsLastMonths1Unique    = $fields.viewsLastMonths1Unique
+                ViewsLastMonths2          = $fields.viewsLastMonths2
+                ViewsLastMonths2Unique    = $fields.viewsLastMonths2Unique
+                ViewsLastMonths3          = $fields.viewsLastMonths3
+                ViewsLastMonths3Unique    = $fields.viewsLastMonths3Unique
+                ViewsLast1Days            = $fields.viewsLast1Days
+                ViewsLast1DaysUniqueUsers = $fields.viewsLast1DaysUniqueUsers
+                ViewsLast7Days            = $fields.viewsLast7Days
+                ViewsLast7DaysUniqueUsers = $fields.viewsLast7DaysUniqueUsers
+                SnapshotDate              = (Get-Date).ToString("yyyy-MM-dd")
             })
         }
 
@@ -307,7 +321,7 @@ function Search-FileCountLocal {
 {
     "requests": [
         {
-            "entityTypes": ["driveItem","listItem"],
+            "entityTypes": ["driveItem"],
             "query": {
                 "queryString": "($path) AND ($extFilter)"
             },
@@ -381,7 +395,22 @@ $siteResult = [ordered]@{
 }
 
 if (-not $SummaryOnly) {
-    $siteResult.Files = @($allFileResults)
+    # Deduplicate by FileUrl (same file can appear in multiple entity types or categories)
+    $seen = @{}
+    $uniqueFiles = [System.Collections.ArrayList]::new()
+    foreach ($f in $allFileResults) {
+        $key = ($f.FileUrl ?? '').ToLowerInvariant().TrimEnd('/')
+        if (-not $seen.ContainsKey($key)) {
+            $seen[$key] = $true
+            $null = $uniqueFiles.Add($f)
+        }
+    }
+    if ($uniqueFiles.Count -lt $allFileResults.Count) {
+        $dupes = $allFileResults.Count - $uniqueFiles.Count
+        Write-Host "  Removed $dupes duplicate(s) ($($allFileResults.Count) -> $($uniqueFiles.Count))" -ForegroundColor Yellow
+    }
+    $siteResult.TotalFiles = $uniqueFiles.Count
+    $siteResult.Files = @($uniqueFiles)
 }
 
 $siteJsonPath = Join-Path $OutputPath "site_$siteHash.json"

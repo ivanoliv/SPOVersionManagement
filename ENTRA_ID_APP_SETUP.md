@@ -392,8 +392,12 @@ The user signs in via browser. The search runs with the user's identity.
 | API | Permission | Type | Required | Purpose |
 |-----|------------|------|----------|---------|
 | Microsoft Graph | `Sites.Read.All` | **Delegated** | **Yes** | Search files across all sites via Graph Search API |
+| Microsoft Graph | `Files.ReadWrite.All` | **Delegated** | **Yes** ¹ | Archive/reactivate files via Graph archive API |
 
-> **Tip:** Select **Microsoft Graph** → **Delegated permissions** → search for `Sites.Read.All`.
+> ¹ `Files.ReadWrite.All` is only needed if you use the **File Archive Queue** to archive files.
+> If you only search/browse files (File Archive Explorer), `Sites.Read.All` alone is sufficient.
+
+> **Tip:** Select **Microsoft Graph** → **Delegated permissions** → search for `Sites.Read.All` and `Files.ReadWrite.All`.
 
 #### Option B: App credentials (certificate) — uses **Application** permissions
 
@@ -403,8 +407,13 @@ The app authenticates with a certificate. No user interaction required (unattend
 |-----|------------|------|----------|---------|
 | SharePoint | `Sites.Read.All` | **Application** | **Yes** | Read files and list items across all sites |
 | Microsoft Graph | `Sites.Read.All` | **Application** | Optional | Alternative site enumeration via Graph |
+| Microsoft Graph | `Files.ReadWrite.All` | **Application** | **Yes** ¹ | Archive/reactivate files via Graph archive API |
+
+> ¹ `Files.ReadWrite.All` is only needed if you use the **File Archive Queue** to archive files.
+> If you only search/browse files (File Archive Explorer), `Sites.Read.All` alone is sufficient.
 
 > **Tip:** Select **SharePoint** → **Application permissions** → search for `Sites.Read.All`.
+> Then **Microsoft Graph** → **Application permissions** → search for `Files.ReadWrite.All`.
 
 #### Both modes
 
@@ -437,9 +446,36 @@ You can add **both** Delegated and Application permissions to the same app regis
 ### 3.7 Requirements
 
 - **PowerShell 7.4+** (`pwsh`) — PnP.PowerShell does NOT work on PowerShell 5.1
-- **PnP.PowerShell module** — install with: `Install-Module PnP.PowerShell -Scope CurrentUser -Force`
+- **PnP.PowerShell nightly build** — the **File Archive Queue** feature requires `Set-PnPFileArchiveState`, which is only available in the PnP.PowerShell **nightly/prerelease** build. The stable release does not include this cmdlet.
+
+  ```powershell
+  # Install the nightly (prerelease) build — required for file archiving
+  Install-Module PnP.PowerShell -AllowPrerelease -Scope CurrentUser -Force
+  ```
+
+  > **Why nightly?** The `Set-PnPFileArchiveState` cmdlet was introduced to support
+  > SharePoint's new file archiving (cold tier) capability. As of May 2026, this cmdlet
+  > is only available in the PnP.PowerShell prerelease/nightly builds. Once the PnP team
+  > ships a stable release with this cmdlet, you can switch back to the stable channel.
+  > The File Archive Explorer (search/browse) works with the stable build; only the
+  > archive execution in File Archive Queue requires the nightly build.
+
 - **Certificate installed** in `Cert:\CurrentUser\My` on the machine running the tool
 - **TenantId** is shared with the main SPO App (from `EntraIdApp.TenantId` in config)
+- **Microsoft 365 Archive license** — file archiving (cold tier) requires the **Microsoft 365 Archive** or **SharePoint Advanced Management (SAM)** add-on license (pay-as-you-go or committed). Enable it in the SharePoint Admin Center > Settings.
+
+- **File archive enabled at tenant level** — the app automatically enables file archiving via PnP before executing archive operations:
+
+  ```powershell
+  # The app runs this automatically (via PnP.PowerShell nightly):
+  Connect-PnPOnline -Url "https://contoso-admin.sharepoint.com" -Interactive
+  Set-PnPTenant -EnableSiteArchive $true
+  ```
+
+  > **Note:** The app runs this automatically before archiving files.
+  > Requires PnP.PowerShell **nightly/prerelease** build.
+  > Without this enabled, `Set-PnPFileArchiveState` will return
+  > `MethodNotAllowed: File Archive is not supported`.
 
 ### 3.8 Limitations
 
@@ -477,7 +513,8 @@ Install-Module Microsoft.Graph.Authentication -Scope CurrentUser -Force
 Install-Module Microsoft.Graph.Reports -Scope CurrentUser -Force
 
 # PnP.PowerShell (for File Archive Explorer — requires PowerShell 7+)
-Install-Module PnP.PowerShell -Scope CurrentUser -Force
+# Use -AllowPrerelease to get Set-PnPFileArchiveState cmdlet (nightly build)
+Install-Module PnP.PowerShell -AllowPrerelease -Scope CurrentUser -Force
 
 # Exchange Online Management (for Security & Compliance / Purview)
 Install-Module ExchangeOnlineManagement -Scope CurrentUser -Force
@@ -562,3 +599,82 @@ Install-Module ExchangeOnlineManagement -Scope CurrentUser -Force
 - Upload the new `.cer` to the corresponding app registration
 - Update the thumbprint in `AppPaths.json`
 - Import the new PFX on the VM
+
+### "Set-PnPFileArchiveState cmdlet not found"
+- This cmdlet is only available in the PnP.PowerShell **nightly/prerelease** build
+- The stable release does NOT include it
+- Install the nightly build in PowerShell 7+:
+  ```powershell
+  # Remove stable version first (if installed)
+  Uninstall-Module PnP.PowerShell -AllVersions -Force -ErrorAction SilentlyContinue
+  # Install nightly with prerelease flag
+  Install-Module PnP.PowerShell -AllowPrerelease -Scope CurrentUser -Force
+  ```
+- Alternatively, go to **Pre reqs** in the app and click **Install** next to "PnP.PowerShell Nightly (Archive)"
+- Verify with: `Get-Command Set-PnPFileArchiveState` in PowerShell 7
+
+### PnP.PowerShell assembly conflicts or multiple versions
+If you see errors like "Assembly with same name is already loaded" or `Install-Module` fails with "module could not be loaded", you likely have multiple PnP.PowerShell versions installed across different scopes (AllUsers vs CurrentUser). Perform a clean uninstall and reinstall:
+
+1. **List all installed versions** (run in pwsh):
+   ```powershell
+   Get-Module -ListAvailable PnP.PowerShell | Select-Object Version, ModuleBase | Sort-Object Version -Descending
+   ```
+
+2. **Remove all versions** — open an **elevated PowerShell** (Run as Administrator):
+   ```powershell
+   # Remove AllUsers versions (requires admin)
+   Remove-Item "C:\Program Files\WindowsPowerShell\Modules\PnP.PowerShell" -Recurse -Force -ErrorAction SilentlyContinue
+
+   # Remove CurrentUser versions
+   $userModPath = Join-Path ([Environment]::GetFolderPath('MyDocuments')) "PowerShell\Modules\PnP.PowerShell"
+   Remove-Item $userModPath -Recurse -Force -ErrorAction SilentlyContinue
+
+   # Also check OneDrive-synced path (common with Microsoft accounts)
+   $oneDrivePath = "$env:USERPROFILE\OneDrive - Microsoft\Documents\PowerShell\Modules\PnP.PowerShell"
+   Remove-Item $oneDrivePath -Recurse -Force -ErrorAction SilentlyContinue
+   ```
+
+3. **Install latest nightly** in a fresh pwsh session:
+   ```powershell
+   pwsh -NoProfile -Command "Install-Module PnP.PowerShell -AllowPrerelease -Force -Scope AllUsers"
+   ```
+
+4. **Verify single clean install**:
+   ```powershell
+   Get-Module -ListAvailable PnP.PowerShell | Select-Object Version, ModuleBase
+   ```
+   You should see exactly one version.
+
+### "Current access token lacks one of the required delegated Microsoft Graph permission scopes"
+- The PnP app needs `Files.ReadWrite.All` on **Microsoft Graph** to archive/reactivate files
+- Go to Entra ID → App registrations → PnP app → **API permissions**
+- Add **Microsoft Graph** → **Delegated permissions** → `Files.ReadWrite.All` (for interactive mode)
+- Or **Microsoft Graph** → **Application permissions** → `Files.ReadWrite.All` (for app credentials mode)
+- Click **Grant admin consent** → verify ✅ Granted
+- `Sites.Read.All` alone is sufficient for searching/browsing files, but archiving requires `Files.ReadWrite.All`
+
+### "MethodNotAllowed: File Archive is not supported"
+
+> **File-level archiving is currently disabled in the app.** The Microsoft Graph beta
+> `/archive` endpoint returns `MethodNotAllowed: File Archive is not supported` on most
+> tenants, even with M365 Archive provisioned, `EnableSiteArchive = $true`, and
+> `AllowFileArchive = $true` set per-site. This indicates that **file-level archiving**
+> (archiving individual files to cold tier) is a separate preview feature from
+> **site-level archiving** (archiving entire sites), which is GA and works.
+>
+> The archive execution button is disabled in the File Archive Queue panel until
+> Microsoft rolls out file-level archiving to General Availability. The File Archive
+> Explorer (search/browse by extension) continues to work normally.
+>
+> **Site-level archiving** works today via SharePoint Admin Center → Active sites →
+> select site → Archive, or via PowerShell:
+> ```powershell
+> Set-SPOSiteArchiveState -Identity "https://contoso.sharepoint.com/sites/site1" -ArchiveState Archived
+> ```
+
+- If you encounter this error in manual testing, it means file-level archiving is not flighted to your tenant
+- **Tenant-level settings** (for when file-level archiving becomes GA):
+  - `Set-PnPTenant -EnableSiteArchive $true` (requires PnP nightly)
+  - `Set-SPOSite -Identity <url> -AllowFileArchive $true` (per-site)
+- **Permissions**: `Files.ReadWrite.All` (Delegated) — Application permissions are NOT supported for the archive API

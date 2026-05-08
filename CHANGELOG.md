@@ -4,6 +4,46 @@ All notable changes to SPO Version Management are documented in this file.
 
 ---
 
+## v2.4.0.1 (2026-05-08)
+
+**File Archive Fixes, PnP Module Management & Documentation**
+
+### 🔧 Fixes
+
+#### File Archive Queue — Disabled (File-Level Archiving Not GA)
+- **File-level archiving temporarily disabled** — The Microsoft Graph beta `/drives/{id}/items/{id}/archive` endpoint returns `MethodNotAllowed: File Archive is not supported` on all tested tenants, even with:
+  - M365 Archive provisioned and active (Pay-as-you-go → Storage → File Archive → Status: Ativado)
+  - `Set-PnPTenant -EnableSiteArchive $true` (tenant-level toggle)
+  - `Set-SPOSite -AllowFileArchive $true` (per-site setting)
+  - PnP.PowerShell nightly build with `Set-PnPFileArchiveState` cmdlet
+  - Correct delegated permissions (`Files.ReadWrite.All`)
+- **Root cause**: File-level archiving (archiving individual files to cold tier) is a separate preview feature from site-level archiving (archiving entire sites). The Graph API endpoint exists in beta but is not yet flighted to most tenants. Site-level archiving is GA and works normally.
+- **What's disabled**: The "File Archive Queue" menu item is hidden from the sidebar. The archive execution button and code are preserved but commented out, ready to re-enable when Microsoft rolls out file-level archiving to General Availability.
+- **What still works**: File Archive Explorer (search/browse files by extension across sites) continues to work normally.
+
+#### PnP.PowerShell Module Management
+- **Minimum version check** — Pre-requisites panel now validates PnP.PowerShell version against minimum required (3.1.367). If installed version is below minimum, the check fails with an upgrade instruction.
+- **Update available alert** — Pre-requisites panel queries PSGallery for the latest PnP.PowerShell nightly version and shows "(update available: X.Y.Z)" when a newer version exists.
+- **Pre-requisites panel** — "File Archive (execution)" row now shows as disabled with explanation about Graph beta API status.
+
+#### Archive Execution Flow (Code Preserved)
+- **Tenant-level enable** — Added `Set-PnPTenant -EnableSiteArchive $true` via PnP (PS7) before archive execution loop
+- **Site-level enable** — Added `Set-SPOSite -AllowFileArchive $true` via SPO Management Shell (PS 5.1) per-site in archive loop
+- **ClientId passthrough** — PnP connections now correctly pass `-ClientId` for interactive login (required for delegated permissions)
+- **Error messages** — Archive errors now show actual Graph API error text instead of generic messages
+
+#### Console & UI
+- **File Archive Queue panel sizing** — Fixed console textbox being cut off by adjusting SplitContainer panel sizes
+
+### 📖 Documentation
+
+#### ENTRA_ID_APP_SETUP.md
+- **PnP cleanup guide** — New troubleshooting section "PnP.PowerShell assembly conflicts or multiple versions" with step-by-step cleanup and reinstall instructions covering AllUsers, CurrentUser, and OneDrive-synced module paths
+- **File-level archive status** — Updated "MethodNotAllowed" section explaining file-level vs site-level archiving distinction, current limitations, and site-level archiving workaround via SharePoint Admin Center
+- **Permissions reference** — Clarified that Graph archive API only supports Delegated permissions (Application permissions not supported)
+
+---
+
 ## v2.4.0.0 (2026-05-04)
 
 **Major Platform Upgrade: .NET 10 + PowerShell 7 Hosting**
