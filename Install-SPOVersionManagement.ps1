@@ -96,11 +96,7 @@ $alwaysUpdate = @(
     "ENTRA_ID_APP_SETUP.md",
     "web\Dashboard.html",
     "web\localization.js",
-    "config\ExtensionGroups.json",
-    "app\SPOVersionManagement.exe",
-    "app\SPOVersionManagement.exe.config",
-    "app\Newtonsoft.Json.dll",
-    "app\System.Management.Automation.dll"
+    "config\ExtensionGroups.json"
 )
 
 # --- Files to preserve if they exist at destination (user configs) ---
@@ -111,7 +107,7 @@ $preserveFiles = @(
 )
 
 # --- Folders to always update ---
-$updateFolders = @()
+$updateFolders = @("app")
 
 # --- Create destination structure ---
 New-Item -Path $DestinationPath -ItemType Directory -Force | Out-Null

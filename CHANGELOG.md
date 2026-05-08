@@ -4,6 +4,16 @@ All notable changes to SPO Version Management are documented in this file.
 
 ---
 
+## v2.4.0.2 (2026-05-08)
+
+**Install Script Fix — App Folder**
+
+### Fixed
+- `Install-SPOVersionManagement.ps1`: app folder was hardcoded to copy only 4 files (from old PS2EXE build), now copies entire `app\` directory recursively (357+ files for framework-dependent .NET 10 build)
+- Moved `app\` from individual file list to `$updateFolders` array for proper recursive copy with cleanup of previous version
+
+---
+
 ## v2.4.0.1 (2026-05-08)
 
 **File Archive Fixes, PnP Module Management & Documentation**
