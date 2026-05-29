@@ -227,6 +227,9 @@ namespace SPOVersionManagement.Controls
             _chkExportArchiveAnalysis.Checked = s.DataSyncExportArchiveAnalysis;
             _chkExportTenantStorage.Checked = s.DataSyncExportTenantStorage;
 
+            if (!string.IsNullOrEmpty(s.GraphReportCsv)) _txtGraphReportCsv.Text = s.GraphReportCsv;
+            if (!string.IsNullOrEmpty(s.SamReportCsv)) _txtSamReportCsv.Text = s.SamReportCsv;
+
             int lookBack = _config.DashboardConfig.LookBackDays;
             if (lookBack >= (int)_nudLookBackDays.Minimum && lookBack <= (int)_nudLookBackDays.Maximum)
                 _nudLookBackDays.Value = lookBack;
@@ -238,6 +241,8 @@ namespace SPOVersionManagement.Controls
             _chkExportGraphReport.CheckedChanged += (s, e) => SaveDataSyncSettings();
             _chkExportArchiveAnalysis.CheckedChanged += (s, e) => SaveDataSyncSettings();
             _chkExportTenantStorage.CheckedChanged += (s, e) => SaveDataSyncSettings();
+            _txtGraphReportCsv.TextChanged += (s, e) => SaveDataSyncSettings();
+            _txtSamReportCsv.TextChanged += (s, e) => SaveDataSyncSettings();
             _nudLookBackDays.ValueChanged += (s, e) => SaveLookBackDays();
         }
 
@@ -248,6 +253,8 @@ namespace SPOVersionManagement.Controls
             s.DataSyncExportGraphReport = _chkExportGraphReport.Checked;
             s.DataSyncExportArchiveAnalysis = _chkExportArchiveAnalysis.Checked;
             s.DataSyncExportTenantStorage = _chkExportTenantStorage.Checked;
+            s.GraphReportCsv = _txtGraphReportCsv.Text?.Trim() ?? "";
+            s.SamReportCsv = _txtSamReportCsv.Text?.Trim() ?? "";
             _config.SaveGuiSettings(s);
         }
 
@@ -320,7 +327,17 @@ namespace SPOVersionManagement.Controls
                 if (_chkExportAllSites.Checked || _chkExportTenantStorage.Checked)
                 {
                     sb.AppendLine("Import-Module Microsoft.Online.SharePoint.PowerShell -DisableNameChecking -WarningAction SilentlyContinue -ErrorAction SilentlyContinue");
-                    sb.AppendLine($"try {{ Connect-SPOService -Url '{adminUrl}' -ErrorAction Stop; Write-Host '  [OK] SPO connected' -ForegroundColor Green }} catch {{ Write-Host \"  [ERROR] SPO: $($_.Exception.Message)\" -ForegroundColor Red; exit 1 }}");
+                    
+                    // Use app auth (certificate) if configured, otherwise interactive
+                    var entra = _config.AppConfig.EntraIdApp;
+                    if (!string.IsNullOrEmpty(entra?.TenantId) && !string.IsNullOrEmpty(entra?.ClientId) && !string.IsNullOrEmpty(entra?.CertificateThumbprint))
+                    {
+                        sb.AppendLine($"try {{ Connect-SPOService -Url '{adminUrl}' -ClientId '{entra.ClientId}' -CertificateThumbprint '{entra.CertificateThumbprint}' -Tenant '{entra.TenantId}' -ErrorAction Stop; Write-Host '  [OK] SPO connected (App Auth)' -ForegroundColor Green }} catch {{ Write-Host \"  [ERROR] SPO: $($_.Exception.Message)\" -ForegroundColor Red; exit 1 }}");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"try {{ Connect-SPOService -Url '{adminUrl}' -ErrorAction Stop; Write-Host '  [OK] SPO connected' -ForegroundColor Green }} catch {{ Write-Host \"  [ERROR] SPO: $($_.Exception.Message)\" -ForegroundColor Red; exit 1 }}");
+                    }
                 }
                 sb.AppendLine("$WarningPreference = 'Continue'");
                 sb.AppendLine("Write-Host ''");
@@ -339,10 +356,10 @@ namespace SPOVersionManagement.Controls
                     string graphCsv = _txtGraphReportCsv.Text?.Trim();
                     if (!string.IsNullOrEmpty(graphCsv) && File.Exists(graphCsv))
                     {
-                        // Use local CSV file — skip Graph API call entirely
+                        // Use local CSV file — import and save to TenantStorage.json
                         sb.AppendLine($"Write-Host ''; Write-Host '=== Step {step}/{total}: Graph Report (from local CSV) ===' -ForegroundColor Cyan");
                         sb.AppendLine($"Import-Module '{Path.Combine(rootPath, "SPOVersionManagement.psm1").Replace("'", "''")}' -Force -DisableNameChecking -WarningAction SilentlyContinue");
-                        sb.AppendLine($"Import-GraphReportCSV -CsvPath '{graphCsv.Replace("'", "''")}'" );
+                        sb.AppendLine($"Import-GraphReportToStorage -CsvPath '{graphCsv.Replace("'", "''")}'" );
                     }
                     else
                     {

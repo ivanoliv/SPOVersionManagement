@@ -311,7 +311,7 @@ namespace SPOVersionManagement.Services
                 Owner = ReadString(obj, "O", "Owner"),
                 Status = ReadString(obj, "ST", "Status"),
                 VersionCount = ReadLong(obj, "VC", "VersionCount"),
-                VersionSizeMB = ReadDouble(obj, "VS", "VersionSizeMB"),
+                VersionSizeMB = ReadVersionSizeMB(obj),
                 Template = ReadString(obj, "TM", "Template"),
                 IsInactive = ReadBool(obj, "I", "IsInactive"),
                 IsOwnerless = ReadBool(obj, "OL", "IsOwnerless"),
@@ -332,6 +332,24 @@ namespace SPOVersionManagement.Services
             double gb = ReadDouble(obj, "StorageUsageCurrentGB");
             if (gb > 0)
                 return gb * 1024.0;
+
+            return 0;
+        }
+
+        private static double ReadVersionSizeMB(JObject obj)
+        {
+            double mb = ReadDouble(obj, "VS", "VersionSizeMB");
+            if (mb > 0)
+                return mb;
+
+            double gb = ReadDouble(obj, "VersionSizeGB");
+            if (gb > 0)
+                return gb * 1024.0;
+
+            // Fallback: VersionSize is in bytes — convert to MB
+            double bytes = ReadDouble(obj, "VersionSize");
+            if (bytes > 0)
+                return bytes / (1024.0 * 1024.0);
 
             return 0;
         }

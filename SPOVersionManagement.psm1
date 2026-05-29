@@ -673,6 +673,85 @@ function Write-ToCsvSafe {
     # Try to write to consolidated file
     Write-ToFileWithRetry -FilePath $FilePath -Content $Content -Append
 }
+
+function Write-JsonFileSafe {
+    <#
+    .SYNOPSIS
+        Writes JSON content to a file with retry logic and shared file access.
+        Prevents "file in use" errors when the app exe reads the same file.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$FilePath,
+        [Parameter(Mandatory)]
+        [string]$Content,
+        [int]$MaxRetries = 5,
+        [int]$RetryDelayMs = 300
+    )
+
+    for ($i = 0; $i -lt $MaxRetries; $i++) {
+        try {
+            $fileStream = [System.IO.FileStream]::new(
+                $FilePath,
+                [System.IO.FileMode]::Create,
+                [System.IO.FileAccess]::Write,
+                [System.IO.FileShare]::ReadWrite
+            )
+            try {
+                $writer = [System.IO.StreamWriter]::new($fileStream, [System.Text.UTF8Encoding]::new($false))
+                $writer.Write($Content)
+                $writer.Flush()
+            }
+            finally {
+                if ($writer) { $writer.Dispose() }
+                if ($fileStream) { $fileStream.Dispose() }
+            }
+            return
+        }
+        catch {
+            if ($i -eq ($MaxRetries - 1)) { throw $_ }
+            Start-Sleep -Milliseconds ($RetryDelayMs * ($i + 1))
+        }
+    }
+}
+
+function Read-JsonFileSafe {
+    <#
+    .SYNOPSIS
+        Reads a JSON file using shared file access to avoid lock conflicts with the app exe.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$FilePath,
+        [int]$MaxRetries = 5,
+        [int]$RetryDelayMs = 300
+    )
+
+    for ($i = 0; $i -lt $MaxRetries; $i++) {
+        try {
+            $fileStream = [System.IO.FileStream]::new(
+                $FilePath,
+                [System.IO.FileMode]::Open,
+                [System.IO.FileAccess]::Read,
+                [System.IO.FileShare]::ReadWrite
+            )
+            try {
+                $reader = [System.IO.StreamReader]::new($fileStream, [System.Text.UTF8Encoding]::new($false))
+                return $reader.ReadToEnd()
+            }
+            finally {
+                if ($reader) { $reader.Dispose() }
+                if ($fileStream) { $fileStream.Dispose() }
+            }
+        }
+        catch {
+            if ($i -eq ($MaxRetries - 1)) { throw $_ }
+            Start-Sleep -Milliseconds ($RetryDelayMs * ($i + 1))
+        }
+    }
+}
 #endregion
 
 #region Initialization
@@ -825,12 +904,13 @@ function Initialize-LogFiles {
     }
     
     if (-not (Test-Path $script:JobStatusFile)) {
-        @{
+        $initJson = @{
             LastUpdated = (Get-Date).ToString("o")
             ActiveJobs = @()
             QueuedSites = @()
             CompletedJobs = @()
-        } | ConvertTo-Json -Depth 10 | Out-File -FilePath $script:JobStatusFile -Encoding UTF8
+        } | ConvertTo-Json -Depth 10
+        Write-JsonFileSafe -FilePath $script:JobStatusFile -Content $initJson
     }
 }
 #endregion
@@ -1423,6 +1503,156 @@ function Import-GraphReportCSV {
         Write-Warning "Error processing CSV: $_"
         return $null
     }
+}
+
+function Import-GraphReportToStorage {
+    <#
+    .SYNOPSIS
+        Imports a Graph storage report CSV and saves to TenantStorage.json + TenantStorageTimeline.json
+    .DESCRIPTION
+        Lightweight import that does NOT require SPO connection. Reads the CSV,
+        merges trend data into the existing TenantStorage.json, and updates the timeline.
+        If TenantStorage.json already exists (from a previous sync), the quota/used values
+        are preserved and only the GraphData/trend fields are updated.
+        If TenantStorage.json does not exist, storage values are estimated from the CSV.
+    .PARAMETER CsvPath
+        Path to the SharePoint Site Usage Storage CSV file
+    .EXAMPLE
+        Import-GraphReportToStorage -CsvPath "C:\Reports\SharePointSiteUsage.csv"
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$CsvPath
+    )
+
+    if (-not (Test-Path $CsvPath)) {
+        Write-Warning "CSV file not found: $CsvPath"
+        return $null
+    }
+
+    Write-Host ""
+    Write-Host "  Importing Graph storage report..." -ForegroundColor Cyan
+    $graphHistory = Import-GraphReportCSV -CsvPath $CsvPath
+    if (-not $graphHistory -or -not $graphHistory.MonthlyData) {
+        Write-Warning "Could not parse Graph report CSV."
+        return $null
+    }
+
+    # Load existing TenantStorage.json if available
+    $tenantStorage = $null
+    if (Test-Path $script:TenantStorageFile) {
+        try {
+            $existing = Get-Content $script:TenantStorageFile -Raw | ConvertFrom-Json
+            # Convert PSCustomObject to hashtable for mutation
+            $tenantStorage = @{}
+            foreach ($prop in $existing.PSObject.Properties) {
+                $tenantStorage[$prop.Name] = $prop.Value
+            }
+            Write-Host "  [OK] Existing TenantStorage.json loaded" -ForegroundColor Green
+        } catch {
+            Write-Warning "Could not read existing TenantStorage.json: $_"
+        }
+    }
+
+    # If no existing data, create a minimal skeleton from CSV's most recent data point
+    if (-not $tenantStorage) {
+        # Get the most recent storage value from the daily data
+        $latestBytes = 0
+        if ($graphHistory.DailyData -and $graphHistory.DailyData.Count -gt 0) {
+            $sortedDates = $graphHistory.DailyData.Keys | Sort-Object -Descending
+            $latestBytes = $graphHistory.DailyData[$sortedDates[0]]
+        }
+        $tenantStorage = @{
+            StorageUsedBytes = $latestBytes
+            StorageUsedMB = [math]::Round($latestBytes / 1MB, 2)
+            StorageUsedGB = [math]::Round($latestBytes / 1GB, 2)
+            StorageUsedTB = [math]::Round($latestBytes / 1TB, 4)
+            TenantQuotaBytes = 0
+            TenantQuotaMB = 0
+            TenantQuotaGB = 0
+            TenantQuotaTB = 0
+            StorageAvailableBytes = 0
+            StorageAvailableMB = 0
+            StorageAvailableGB = 0
+            PercentUsed = 0
+            PercentAvailable = 0
+            StorageStatus = "Unknown"
+            ExtraStorageGB = 0
+            ExtraStorageTB = 0
+            ExtraCostPerYear = 0
+            CostPerTBPerYear = 13000
+            SiteCount = 0
+            LastUpdated = (Get-Date).ToString("o")
+            Source = "GraphCSV"
+            HasTrendData = $false
+        }
+        Write-Host "  [INFO] No existing TenantStorage.json — created from CSV data" -ForegroundColor Yellow
+    }
+
+    # Merge graph data into tenant storage (same logic as Update-TenantStorageStatus)
+    $tenantStorage.HasTrendData = $true
+    if (-not $tenantStorage.Source -or $tenantStorage.Source -eq "Unknown") {
+        $tenantStorage.Source = "GraphCSV"
+    }
+    $tenantStorage.LastUpdated = (Get-Date).ToString("o")
+
+    # Merge monthly data (accumulate over time)
+    $mergedMonthly = $graphHistory.MonthlyData
+    $mergedDaily = $graphHistory.DailyData
+    if ($tenantStorage.GraphData) {
+        $gd = $tenantStorage.GraphData
+        $existingMonthly = if ($gd -is [hashtable]) { $gd.MonthlyData } else { $gd.MonthlyData }
+        if ($existingMonthly) {
+            $existingMonthlyMap = @{}
+            foreach ($m in $existingMonthly) {
+                $mn = if ($m -is [hashtable]) { $m.MonthName } else { $m.MonthName }
+                $existingMonthlyMap[$mn] = $m
+            }
+            foreach ($m in $graphHistory.MonthlyData) {
+                $existingMonthlyMap[$m.MonthName] = $m
+            }
+            $mergedMonthly = @($existingMonthlyMap.Values | Sort-Object { $_.MonthName })
+        }
+        $existingDaily = if ($gd -is [hashtable]) { $gd.DailyData } else { $gd.DailyData }
+        if ($existingDaily) {
+            $dailyMap = @{}
+            if ($existingDaily -is [hashtable]) {
+                foreach ($k in $existingDaily.Keys) { $dailyMap[$k] = $existingDaily[$k] }
+            } else {
+                foreach ($prop in $existingDaily.PSObject.Properties) { $dailyMap[$prop.Name] = $prop.Value }
+            }
+            foreach ($k in $graphHistory.DailyData.Keys) { $dailyMap[$k] = $graphHistory.DailyData[$k] }
+            $mergedDaily = $dailyMap
+        }
+    }
+
+    $tenantStorage.GraphData = @{
+        MonthlyData = $mergedMonthly
+        DailyData = $mergedDaily
+        AvgMonthlyGrowthGB = $graphHistory.AvgMonthlyGrowthGB
+        TotalDataPoints = if ($mergedDaily -is [hashtable]) { $mergedDaily.Count } else { $graphHistory.TotalDataPoints }
+        ReportStartDate = $graphHistory.ReportStartDate
+        ReportEndDate = $graphHistory.ReportEndDate
+        ImportedAt = (Get-Date).ToString("o")
+    }
+
+    # Save
+    $tenantStorage | ConvertTo-Json -Depth 10 | Set-Content -Path $script:TenantStorageFile -Encoding UTF8
+    Write-Host "  [OK] TenantStorage.json updated (trend data: $($graphHistory.ReportStartDate) to $($graphHistory.ReportEndDate))" -ForegroundColor Green
+
+    # Update timeline
+    $snapshotParams = @{
+        TenantStorage = $tenantStorage
+        Trigger = "GraphImport"
+    }
+    if ($graphHistory.DailyData -and $graphHistory.DailyData.Count -gt 0) {
+        $snapshotParams.DailyStorageData = $graphHistory.DailyData
+    }
+    Save-TenantStorageSnapshot @snapshotParams
+    Write-Host "  [OK] TenantStorageTimeline.json updated" -ForegroundColor Green
+
+    return $tenantStorage
 }
 
 function Get-TenantStorageHistoryAggregated {
@@ -2066,7 +2296,7 @@ function Save-TenantStorageSnapshot {
 
         if (Test-Path $script:SiteExecutionHistoryFile) {
             try {
-                $histJson = Get-Content $script:SiteExecutionHistoryFile -Raw | ConvertFrom-Json -ErrorAction Stop
+                $histJson = Read-JsonFileSafe -FilePath $script:SiteExecutionHistoryFile | ConvertFrom-Json -ErrorAction Stop
                 if ($histJson.Sites -and $histJson.Sites.PSObject.Properties) {
                     foreach ($prop in $histJson.Sites.PSObject.Properties) {
                         $site = $prop.Value
@@ -2401,7 +2631,7 @@ function Get-AllTenantSites {
 #region Job Functions
 function Get-JobStatus {
     if (Test-Path $script:JobStatusFile) {
-        return Get-Content $script:JobStatusFile -Raw | ConvertFrom-Json
+        return Read-JsonFileSafe -FilePath $script:JobStatusFile | ConvertFrom-Json
     }
     return @{ ActiveJobs = @(); QueuedSites = @(); CompletedJobs = @() }
 }
@@ -2495,7 +2725,7 @@ function Get-SiteLastSuccessfulExecution {
     }
     
     try {
-        $jsonContent = Get-Content $script:SiteExecutionHistoryFile -Raw -ErrorAction Stop
+        $jsonContent = Read-JsonFileSafe -FilePath $script:SiteExecutionHistoryFile
         if (-not $jsonContent -or $jsonContent.Trim().Length -lt 2) {
             Write-Verbose "[Get-SiteLastSuccessfulExecution] History file is empty"
             return $null
@@ -2680,7 +2910,22 @@ function Test-ShouldProcessSite {
     
     Write-Verbose "[Test-ShouldProcessSite] Site: $SiteUrl | JobType: $JobType | ReexecutionDays: $ReexecutionDays"
     
-    # Check 1: Is there an existing job running?
+    # Check reexecution interval FIRST (instant in-memory check — avoids slow API call)
+    $lastExecution = Get-SiteLastSuccessfulExecution -SiteUrl $SiteUrl -JobType $JobType
+    $result.LastExecution = $lastExecution
+    
+    if ($lastExecution -and [int]$ReexecutionDays -gt 0) {
+        $days = [int]$ReexecutionDays
+        if ($lastExecution.DaysSinceExecution -lt $days) {
+            Write-Verbose "[Test-ShouldProcessSite] SKIP: DaysSinceExecution ($($lastExecution.DaysSinceExecution)) < ReexecutionDays ($days)"
+            $result.ShouldProcess = $false
+            $result.Reason = "RecentlyProcessed"
+            $result.SkipReason = "Processed $([Math]::Round($lastExecution.DaysSinceExecution, 1)) days ago (interval: $days days)"
+            return $result
+        }
+    }
+    
+    # Check 1: Is there an existing job running? (API call — only reached if site passes interval check)
     $existingJob = Get-ExistingJobProgress -SiteUrl $SiteUrl -JobType $JobType
     
     if ($existingJob -and $existingJob.IsRunning) {
@@ -2693,9 +2938,7 @@ function Test-ShouldProcessSite {
     }
     
     # Check 2: Was site recently processed successfully?
-    # Get last execution info regardless of mode
-    $lastExecution = Get-SiteLastSuccessfulExecution -SiteUrl $SiteUrl -JobType $JobType
-    $result.LastExecution = $lastExecution
+    # (lastExecution already loaded above for the early interval check)
     
     # Check 1b: If API returned a completed job not yet in history, capture it opportunistically
     if ($existingJob -and $existingJob.IsCompleted -and $existingJob.WorkItemId) {
@@ -2716,7 +2959,7 @@ function Test-ShouldProcessSite {
             $isHollowSuccess = $versionsProcessed -gt 0 -and $versionsDeleted -eq 0 -and $storageReleased -eq 0
             $finalStatus = if ($isHollowSuccess) { "CompleteSuccessNoEffect" } else { $existingJob.Status }
 
-            Save-SiteExecutionHistory -SiteUrl $SiteUrl -SiteTitle "" -JobType $JobType -ExecutionData @{
+            $null = Save-SiteExecutionHistory -SiteUrl $SiteUrl -SiteTitle "" -JobType $JobType -ExecutionData @{
                 Status = $finalStatus
                 HollowSuccess = $isHollowSuccess
                 DurationMinutes = $spoDuration
@@ -2752,17 +2995,6 @@ function Test-ShouldProcessSite {
             $result.NeedsUserConfirmation = $true
             $result.Reason = "NeedsConfirmation"
             $result.SkipReason = "Processed $([Math]::Round($lastExecution.DaysSinceExecution, 1)) days ago - awaiting user confirmation"
-        }
-    }
-    elseif ([int]$ReexecutionDays -gt 0) {
-        $days = [int]$ReexecutionDays
-        Write-Verbose "[Test-ShouldProcessSite] Checking interval: $days days"
-        if ($lastExecution -and $lastExecution.DaysSinceExecution -lt $days) {
-            Write-Verbose "[Test-ShouldProcessSite] SKIP: DaysSinceExecution ($($lastExecution.DaysSinceExecution)) < ReexecutionDays ($days)"
-            $result.ShouldProcess = $false
-            $result.Reason = "RecentlyProcessed"
-            $result.SkipReason = "Processed $([Math]::Round($lastExecution.DaysSinceExecution, 1)) days ago (interval: $days days)"
-            return $result
         }
     }
     
@@ -2818,7 +3050,7 @@ function Save-SiteExecutionHistory {
         
         if (Test-Path $script:SiteExecutionHistoryFile) {
             try {
-                $jsonContent = Get-Content $script:SiteExecutionHistoryFile -Raw -ErrorAction Stop
+                $jsonContent = Read-JsonFileSafe -FilePath $script:SiteExecutionHistoryFile
                 if ($jsonContent -and $jsonContent.Trim().Length -gt 2) {
                     $existingData = $jsonContent | ConvertFrom-Json -ErrorAction Stop
                     
@@ -3022,7 +3254,7 @@ function Save-SiteExecutionHistory {
         while (-not $saved -and $retryCount -lt $maxRetries) {
             try {
                 $jsonOutput = $history | ConvertTo-Json -Depth 10
-                $jsonOutput | Set-Content -Path $script:SiteExecutionHistoryFile -Encoding UTF8 -Force
+                Write-JsonFileSafe -FilePath $script:SiteExecutionHistoryFile -Content $jsonOutput
                 $saved = $true
             }
             catch {
@@ -3074,7 +3306,8 @@ function Update-JobStatus {
         ManageRetentionPolicy = [bool]$ManageRetentionPolicy
     }
     
-    $status | ConvertTo-Json -Depth 10 | Set-Content -Path $script:JobStatusFile -Encoding UTF8
+    $statusJson = $status | ConvertTo-Json -Depth 10
+    Write-JsonFileSafe -FilePath $script:JobStatusFile -Content $statusJson
 }
 
 function Sync-PendingJobStatus {
@@ -3189,7 +3422,7 @@ function Sync-PendingJobStatus {
                         }
                         
                         # Save to execution history
-                        Save-SiteExecutionHistory -SiteUrl $siteUrl -SiteTitle "" -JobType "BatchDelete" -ExecutionData @{
+                        $null = Save-SiteExecutionHistory -SiteUrl $siteUrl -SiteTitle "" -JobType "BatchDelete" -ExecutionData @{
                             Status = $jobStatus
                             HollowSuccess = $isHollowSuccess
                             DurationMinutes = $spoDuration
@@ -3299,7 +3532,7 @@ function Sync-ExternalJobResults {
     
     if (Test-Path $jobStatusFile) {
         try {
-            $jobStatus = Get-Content $jobStatusFile -Raw | ConvertFrom-Json
+            $jobStatus = Read-JsonFileSafe -FilePath $jobStatusFile | ConvertFrom-Json
             if ($jobStatus.RecentCompletedJobs) {
                 $existingCompletedJobs = @($jobStatus.RecentCompletedJobs)
                 foreach ($job in $existingCompletedJobs) {
@@ -3450,7 +3683,7 @@ function Sync-ExternalJobResults {
             
             # Read existing file to preserve other properties
             if (Test-Path $jobStatusFile) {
-                $existing = Get-Content $jobStatusFile -Raw | ConvertFrom-Json
+                $existing = Read-JsonFileSafe -FilePath $jobStatusFile | ConvertFrom-Json
                 if ($existing.ActiveJobs) { $jobStatus.ActiveJobs = $existing.ActiveJobs }
                 if ($existing.QueuedSites) { 
                     $jobStatus.QueuedSites = $existing.QueuedSites 
@@ -3460,7 +3693,8 @@ function Sync-ExternalJobResults {
                 if ($existing.MajorWithMinorVersionsLimit) { $jobStatus.MajorWithMinorVersionsLimit = $existing.MajorWithMinorVersionsLimit }
             }
             
-            $jobStatus | ConvertTo-Json -Depth 10 | Set-Content -Path $jobStatusFile -Encoding UTF8
+            $jobStatusJson = $jobStatus | ConvertTo-Json -Depth 10
+            Write-JsonFileSafe -FilePath $jobStatusFile -Content $jobStatusJson
             Write-Host "  [OK] Dashboard updated with external job results" -ForegroundColor Green
         } catch {
             Write-Warning "  Could not update JobStatus.json: $_"
@@ -3468,7 +3702,7 @@ function Sync-ExternalJobResults {
         
         # Also save to execution history
         foreach ($job in ($externalSyncJobs + $externalDeleteJobs)) {
-            Save-SiteExecutionHistory -SiteUrl $job.SiteUrl -SiteTitle "" -JobType $job.JobType -ExecutionData @{
+            $null = Save-SiteExecutionHistory -SiteUrl $job.SiteUrl -SiteTitle "" -JobType $job.JobType -ExecutionData @{
                 Status = $job.Status
                 DurationMinutes = $job.DurationMinutes
                 WorkItemId = $job.WorkItemId
@@ -3668,7 +3902,7 @@ function Start-SPOVersionPolicyOrchestration {
         $jobStatusFile = Join-Path $script:ConfigPath "JobStatus.json"
         if (Test-Path $jobStatusFile) {
             try {
-                $existingStatus = Get-Content $jobStatusFile -Raw | ConvertFrom-Json
+                $existingStatus = Read-JsonFileSafe -FilePath $jobStatusFile | ConvertFrom-Json
                 if ($existingStatus.QueuedSites -and $existingStatus.QueuedSites.Count -gt 0) {
                     Write-Host "  Resuming $($existingStatus.QueuedSites.Count) sites from previous queue..." -ForegroundColor Cyan
                     $sitesToProcess = $existingStatus.QueuedSites
@@ -3857,7 +4091,7 @@ function Start-SPOVersionPolicyOrchestration {
         $jobStatusFile = Join-Path $script:ConfigPath "JobStatus.json"
         if (Test-Path $jobStatusFile) {
             try {
-                $existingStatus = Get-Content $jobStatusFile -Raw | ConvertFrom-Json
+                $existingStatus = Read-JsonFileSafe -FilePath $jobStatusFile | ConvertFrom-Json
                 $processedCount = if ($existingStatus.CompletedJobsCount) { $existingStatus.CompletedJobsCount } else { 0 }
                 $previousActiveJobsCount = if ($existingStatus.ActiveJobs) { $existingStatus.ActiveJobs.Count } else { 0 }
                 $previousQueuedCount = if ($existingStatus.QueuedSitesCount) { $existingStatus.QueuedSitesCount } else { 0 }
@@ -3928,6 +4162,11 @@ function Start-SPOVersionPolicyOrchestration {
         }
     }
     
+    # Write initial queue status so Dashboard shows sites immediately
+    $initialQueuedList = @($siteQueue.ToArray())
+    Update-JobStatus -ActiveJobs @() -QueuedSites $initialQueuedList -RecentCompletedJobs @() -MajorVersionLimit $MajorVersionLimit -MajorWithMinorVersionsLimit $MajorWithMinorVersionsLimit -DeleteOnly:$DeleteOnly -SyncOnly:$SyncOnly -ManageRetentionPolicy:$ManageRetentionPolicy
+    Write-Host "  [OK] Queue published to Dashboard ($($initialQueuedList.Count) sites)" -ForegroundColor Green
+    
     try {
     while ($siteQueue.Count -gt 0 -or $activeJobs.Count -gt 0) {
         
@@ -3950,6 +4189,13 @@ function Start-SPOVersionPolicyOrchestration {
         }
         
         for ($i = 0; $i -lt $jobsToStart; $i++) {
+            # Update dashboard every 25 jobs so active jobs appear in real-time
+            if ($i -gt 0 -and $i % 25 -eq 0) {
+                $activeList = @($activeJobs.Values)
+                $queuedList = @($siteQueue.ToArray())
+                Update-JobStatus -ActiveJobs $activeList -QueuedSites $queuedList -RecentCompletedJobs @($completedJobs.Values) -MajorVersionLimit $MajorVersionLimit -MajorWithMinorVersionsLimit $MajorWithMinorVersionsLimit -DeleteOnly:$DeleteOnly -SyncOnly:$SyncOnly -ManageRetentionPolicy:$ManageRetentionPolicy
+            }
+            
             $siteInfo = $siteQueue.Dequeue()
             $siteUrl = $siteInfo.Url
             $phase = $siteInfo.Phase
@@ -4470,7 +4716,7 @@ function Start-SPOVersionPolicyOrchestration {
                     }
                     
                     # Save execution to site history
-                    Save-SiteExecutionHistory -SiteUrl $job.SiteUrl -SiteTitle $job.SiteTitle -JobType $job.JobType -ExecutionData $execData
+                    $null = Save-SiteExecutionHistory -SiteUrl $job.SiteUrl -SiteTitle $job.SiteTitle -JobType $job.JobType -ExecutionData $execData
                     
                     $statusIcon = if ($isHollowSuccess) { "[!!]" } elseif ($progress.Status -eq "CompleteSuccess") { "[OK]" } else { "[!]" }
                     $statusColor = if ($isHollowSuccess) { "Red" } elseif ($progress.Status -eq "CompleteSuccess") { "Green" } else { "Yellow" }
@@ -5299,6 +5545,7 @@ Export-ModuleMember -Function @(
     'Get-TenantStorageHistory',
     'Get-TenantStorageHistoryAggregated',
     'Import-GraphReportCSV',
+    'Import-GraphReportToStorage',
     'Export-AllSitesDataForDashboard',
     'ConvertTo-SiteDataObject',
     'Get-SPOAppPaths',
@@ -5315,5 +5562,7 @@ Export-ModuleMember -Function @(
     'Save-TenantStorageSnapshot',
     'Send-SPOTelemetry',
     'Send-SPOTelemetryBatch',
-    'Get-SPOGlobalStats'
+    'Get-SPOGlobalStats',
+    'Write-JsonFileSafe',
+    'Read-JsonFileSafe'
 )

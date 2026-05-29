@@ -529,7 +529,12 @@ namespace SPOVersionManagement.Forms
             {
                 _dataSyncPanel = new DataSyncPanel();
                 _dataSyncPanel.Initialize(_configService, _psHost);
-                _dataSyncPanel.StatusMessage += (s, msg) => SetStatus(msg);
+                _dataSyncPanel.StatusMessage += (s, msg) =>
+                {
+                    SetStatus(msg);
+                    if (msg.Contains("completed") && _homePanel != null)
+                        _homePanel.RefreshData();
+                };
             }
             return _dataSyncPanel;
         }

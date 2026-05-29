@@ -73,6 +73,9 @@ namespace SPOVersionManagement
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            // Apply any pending file updates from a previous installer run (locked files)
+            ApplyPendingUpdates(rootPath);
+
             try
             {
                 var form = new MainForm(rootPath, navigateTo);
@@ -85,6 +88,43 @@ namespace SPOVersionManagement
                     "SPO Version Management - Error",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
+            }
+        }
+
+        private static void ApplyPendingUpdates(string rootPath)
+        {
+            try
+            {
+                var appDir = Path.Combine(rootPath, "app");
+                if (!Directory.Exists(appDir)) return;
+
+                var pendingFiles = Directory.GetFiles(appDir, "*.pending", SearchOption.AllDirectories);
+                if (pendingFiles.Length == 0) return;
+
+                foreach (var pendingFile in pendingFiles)
+                {
+                    var targetFile = pendingFile.Substring(0, pendingFile.Length - ".pending".Length);
+                    try
+                    {
+                        File.Copy(pendingFile, targetFile, overwrite: true);
+                        File.Delete(pendingFile);
+                    }
+                    catch
+                    {
+                        // Still locked — will try again next restart
+                    }
+                }
+
+                // Clean up the apply-pending script if it exists
+                var script = Path.Combine(appDir, "apply-pending.ps1");
+                if (File.Exists(script))
+                {
+                    try { File.Delete(script); } catch { }
+                }
+            }
+            catch
+            {
+                // Non-critical — don't block startup
             }
         }
 

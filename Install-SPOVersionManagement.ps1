@@ -32,7 +32,8 @@
 [CmdletBinding()]
 param(
     [string]$DestinationPath = (Split-Path -Parent $MyInvocation.MyCommand.Path),
-    [switch]$Force
+    [switch]$Force,
+    [switch]$NonInteractive
 )
 
 $ErrorActionPreference = "Stop"
@@ -70,10 +71,12 @@ if ($isUpdate) {
 Write-Host ""
 
 # --- Confirm ---
-$confirm = Read-Host "Proceed with installation? (Y/N)"
-if ($confirm -notmatch '^[Yy]') {
-    Write-Host "Installation cancelled." -ForegroundColor Yellow
-    return
+if (-not $NonInteractive) {
+    $confirm = Read-Host "Proceed with installation? (Y/N)"
+    if ($confirm -notmatch '^[Yy]') {
+        Write-Host "Installation cancelled." -ForegroundColor Yellow
+        return
+    }
 }
 
 # --- Files that should ALWAYS be updated (scripts, modules, dashboard) ---
@@ -295,7 +298,7 @@ if ((Test-Path $dstDashConfig) -and -not $Force) {
     }
 }
 
-# --- Update folders ---
+# --- Update folders (handle locked files from running app) ---
 Write-Host ""
 foreach ($folder in $updateFolders) {
     $src = Join-Path $sourcePath $folder
@@ -305,11 +308,68 @@ foreach ($folder in $updateFolders) {
             Write-Host "  [Skipped] $folder\ (in-place install)" -ForegroundColor DarkGray
             continue
         }
-        if (Test-Path $dst) { Remove-Item -Path $dst -Recurse -Force }
-        Copy-Item -Path $src -Destination $dst -Recurse -Force
-        $count = (Get-ChildItem -Path $dst -Recurse -File).Count
-        $updatedCount += $count
-        Write-Host "  [Updated] $folder\ ($count files)" -ForegroundColor Green
+        
+        # Ensure target directory exists
+        if (-not (Test-Path $dst)) {
+            New-Item -Path $dst -ItemType Directory -Force | Out-Null
+        }
+        
+        $lockedFiles = @()
+        $copiedCount = 0
+        
+        # Copy each file individually to handle locked files gracefully
+        $srcFiles = Get-ChildItem -Path $src -Recurse -File
+        foreach ($srcFile in $srcFiles) {
+            $relativePath = $srcFile.FullName.Substring($src.Length + 1)
+            $dstFile = Join-Path $dst $relativePath
+            $dstDir = Split-Path -Parent $dstFile
+            if (-not (Test-Path $dstDir)) {
+                New-Item -Path $dstDir -ItemType Directory -Force | Out-Null
+            }
+            try {
+                Copy-Item -Path $srcFile.FullName -Destination $dstFile -Force -ErrorAction Stop
+                $copiedCount++
+            }
+            catch {
+                # File is locked (app running) — stage for update on next restart
+                $pendingFile = $dstFile + ".pending"
+                try {
+                    Copy-Item -Path $srcFile.FullName -Destination $pendingFile -Force
+                    $lockedFiles += $relativePath
+                }
+                catch {
+                    Write-Host "  [WARN] Cannot update: $relativePath (file locked)" -ForegroundColor Yellow
+                }
+            }
+        }
+        
+        $updatedCount += $copiedCount
+        
+        if ($lockedFiles.Count -gt 0) {
+            Write-Host "  [Updated] $folder\ ($copiedCount files updated, $($lockedFiles.Count) pending restart)" -ForegroundColor Yellow
+            Write-Host "  [INFO] The following files are locked (app is running):" -ForegroundColor DarkYellow
+            foreach ($lf in $lockedFiles) {
+                Write-Host "    - $lf (staged as .pending)" -ForegroundColor DarkYellow
+            }
+            Write-Host "  [INFO] Close the app and re-run the installer, or restart to apply." -ForegroundColor DarkYellow
+            
+            # Create a small script that applies pending files on next launch
+            $pendingScript = Join-Path $dst "apply-pending.ps1"
+            $pendingContent = @"
+# Auto-generated: applies pending file updates after app restart
+`$appDir = Split-Path -Parent `$MyInvocation.MyCommand.Path
+Get-ChildItem -Path `$appDir -Filter '*.pending' -Recurse | ForEach-Object {
+    `$target = `$_.FullName -replace '\.pending$', ''
+    try {
+        Move-Item -Path `$_.FullName -Destination `$target -Force
+    } catch { }
+}
+Remove-Item `$MyInvocation.MyCommand.Path -Force -ErrorAction SilentlyContinue
+"@
+            $pendingContent | Set-Content -Path $pendingScript -Encoding UTF8
+        } else {
+            Write-Host "  [Updated] $folder\ ($copiedCount files)" -ForegroundColor Green
+        }
     }
 }
 

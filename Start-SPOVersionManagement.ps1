@@ -30,6 +30,8 @@
 #   .\Start-SPOVersionManagement.ps1 -AdminUrl "..." -GraphReportCSV "C:\SharePointSiteUsage.csv"
 #   .\Start-SPOVersionManagement.ps1 -AdminUrl "..." -UseFileCache
 #   .\Start-SPOVersionManagement.ps1 -AdminUrl "..." -DeleteOnly -Unattended
+#   .\Start-SPOVersionManagement.ps1 -AdminUrl "..." -GraphReportOnly -GraphReportCSV "C:\SharePointSiteUsage.csv"
+#   .\Start-SPOVersionManagement.ps1 -AdminUrl "..." -GraphReportOnly  # downloads from Graph API
 #
 # Required Entra ID API Permissions (Application):
 #   - SharePoint > Sites.FullControl.All
@@ -96,6 +98,9 @@ param(
     [switch]$SyncOnly,
 
     [Parameter(Mandatory = $false)]
+    [switch]$GraphReportOnly,
+
+    [Parameter(Mandatory = $false)]
     [string]$InputSiteSyncListCSV,
 
     [Parameter(Mandatory = $false)]
@@ -135,6 +140,49 @@ if ($Unattended) {
 }
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host ""
+
+#region Graph Report Only (no SPO connection needed)
+if ($GraphReportOnly) {
+    Write-Host "[GRAPH REPORT ONLY] Importing storage report — no SPO connection required" -ForegroundColor Yellow
+    Write-Host ""
+
+    Import-Module "$scriptPath\SPOVersionManagement.psm1" -Force -DisableNameChecking -ErrorAction Stop
+
+    if ($GraphReportCSV -and (Test-Path $GraphReportCSV)) {
+        $result = Import-GraphReportToStorage -CsvPath $GraphReportCSV
+    }
+    else {
+        Write-Host "  [INFO] No -GraphReportCSV provided. Downloading from Graph API..." -ForegroundColor Cyan
+        $userModules = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'WindowsPowerShell\Modules'
+        if ($env:PSModulePath -notlike "*$userModules*") {
+            $env:PSModulePath = "$userModules;$env:PSModulePath"
+        }
+        Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
+        Import-Module Microsoft.Graph.Reports -ErrorAction Stop
+        $context = Get-MgContext -ErrorAction SilentlyContinue
+        if (-not $context) {
+            Connect-MgGraph -Scopes "Reports.Read.All" -NoWelcome -ErrorAction Stop
+        }
+        $tempCsv = Join-Path $scriptPath "Logs\GraphReport_Auto.csv"
+        Get-MgReportSharePointSiteUsageStorage -Period D180 -OutFile $tempCsv -ErrorAction Stop
+        Write-Host "  [OK] Report downloaded to $tempCsv" -ForegroundColor Green
+        $result = Import-GraphReportToStorage -CsvPath $tempCsv
+    }
+
+    if ($result) {
+        Write-Host ""
+        Write-Host "================================================================" -ForegroundColor Green
+        Write-Host "  GRAPH REPORT IMPORT COMPLETE" -ForegroundColor Green
+        Write-Host "================================================================" -ForegroundColor Green
+        Write-Host "  TenantStorage.json and TenantStorageTimeline.json updated." -ForegroundColor Cyan
+        Write-Host "  Open the Dashboard to view storage trends." -ForegroundColor Cyan
+        Write-Host "================================================================" -ForegroundColor Green
+    } else {
+        Write-Host "  [ERROR] Graph report import failed." -ForegroundColor Red
+    }
+    exit 0
+}
+#endregion
 
 #region Database Reset (must run before anything else)
 if ($ResetDatabase) {
@@ -400,11 +448,12 @@ if ($pendingSessions -and $pendingSessions.Count -gt 0) {
     }
 
     if ($Unattended) {
-        # Unattended: auto-continue the most recent pending session
-        $resumeFromSession = $pendingSessions | Sort-Object { [DateTime]::Parse($_.LastUpdated) } -Descending | Select-Object -First 1
-        $useSessionConfig = $true
+        # Unattended: cancel old sessions and start fresh with current command-line params
+        foreach ($session in $pendingSessions) {
+            Update-SessionProgress -SessionId $session.SessionId -Status "Cancelled"
+        }
         Write-Host ""
-        Write-Host "  [UNATTENDED] Auto-resuming most recent session: $($resumeFromSession.SessionId)" -ForegroundColor Yellow
+        Write-Host "  [UNATTENDED] Cancelled $($pendingSessions.Count) pending session(s). Starting fresh with current parameters." -ForegroundColor Yellow
     }
     else {
         Write-Host ""
@@ -549,6 +598,8 @@ if ($InputSiteListCSV) {
     else { Write-Warning "Inclusion file not found: $InputSiteListCSV" }
 }
 else {
+    # Clear any inclusion list from a previous run in the same PS session
+    $Global:SPOIncludedSites = $null
     Write-Host "  Inclusion list: NOT CONFIGURED (process all sites)" -ForegroundColor Gray
 }
 
@@ -755,7 +806,7 @@ $resumeExecution = $false
 
 if (Test-Path $jobStatusFile) {
     try {
-        $existingStatus = Get-Content $jobStatusFile -Raw | ConvertFrom-Json
+        $existingStatus = Read-JsonFileSafe -FilePath $jobStatusFile | ConvertFrom-Json
         $activeJobsCount = if ($existingStatus.ActiveJobs) { $existingStatus.ActiveJobs.Count } else { 0 }
         $queuedSitesCount = if ($existingStatus.QueuedSitesCount) { $existingStatus.QueuedSitesCount } else { 0 }
         $completedCount = if ($existingStatus.CompletedJobsCount) { $existingStatus.CompletedJobsCount } else { 0 }
@@ -767,9 +818,9 @@ if (Test-Path $jobStatusFile) {
             Write-Host "  Previous execution: $activeJobsCount active, $queuedSitesCount queued, $completedCount completed" -ForegroundColor Yellow
 
             if ($Unattended) {
-                # Unattended: auto-continue
-                $resumeExecution = $true
-                Write-Host "  [UNATTENDED] Auto-continuing previous execution" -ForegroundColor Yellow
+                # Unattended: discard stale queue and start fresh with current params
+                $resumeExecution = $false
+                Write-Host "  [UNATTENDED] Discarding previous queue. Starting fresh with current parameters." -ForegroundColor Yellow
             }
             else {
                 Write-Host "  [C] Continue | [R] Restart" -ForegroundColor White
@@ -789,7 +840,7 @@ if (Test-Path $jobStatusFile) {
 }
 
 if (-not $resumeExecution) {
-    @{
+    $initJson = @{
         LastUpdated                = (Get-Date).ToString("o")
         ActiveJobs                 = @()
         QueuedSites                = @()
@@ -800,7 +851,8 @@ if (-not $resumeExecution) {
         CompletedJobsCount         = 0
         MajorVersionLimit          = $MajorVersionLimit
         MajorWithMinorVersionsLimit = $MajorWithMinorVersionsLimit
-    } | ConvertTo-Json -Depth 10 | Set-Content -Path $jobStatusFile -Encoding UTF8
+    } | ConvertTo-Json -Depth 10
+    Write-JsonFileSafe -FilePath $jobStatusFile -Content $initJson
     Write-Host "  [OK] Job status initialized" -ForegroundColor Green
 }
 #endregion
@@ -1015,8 +1067,14 @@ try {
     Update-SessionProgress -SessionId $sessionId -Status "Completed" | Out-Null
 }
 catch {
-    Update-SessionProgress -SessionId $sessionId -Status "Failed" | Out-Null
-    Write-Error "Error during orchestration: $_"
+    try { Update-SessionProgress -SessionId $sessionId -Status "Failed" | Out-Null } catch { }
+    Write-Host ""
+    Write-Host "  ╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Red
+    Write-Host "  ║  ORCHESTRATION ERROR                                         ║" -ForegroundColor Red
+    Write-Host "  ╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Red
+    Write-Host "  Error: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "  At: $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)" -ForegroundColor DarkYellow
+    Write-Host ""
     exit 1
 }
 
