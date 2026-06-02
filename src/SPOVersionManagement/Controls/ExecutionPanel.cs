@@ -1835,7 +1835,12 @@ namespace SPOVersionManagement.Controls
 
             string path = NullIfEmpty(txt.Text);
             if (!string.IsNullOrEmpty(path))
+            {
+                // If relative path, resolve against RootPath
+                if (!Path.IsPathRooted(path))
+                    path = Path.Combine(_config.RootPath, path);
                 return path;
+            }
 
             // Auto-detect from default file
             string autoPath = Path.Combine(_config.RootPath, defaultFileName);
