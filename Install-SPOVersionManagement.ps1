@@ -79,6 +79,40 @@ if (-not $NonInteractive) {
     }
 }
 
+# --- Kill running app if destination has a running exe ---
+$appExeName = "SPOVersionManagement"
+$runningApp = Get-Process -Name $appExeName -ErrorAction SilentlyContinue
+if ($runningApp) {
+    Write-Host ""
+    Write-Host "  [INFO] SPO Version Management is running (PID: $($runningApp.Id))" -ForegroundColor Yellow
+    Write-Host "  Stopping the app to update files..." -ForegroundColor Yellow
+    try {
+        $runningApp | Stop-Process -Force
+        Start-Sleep -Seconds 2
+        Write-Host "  [OK] App stopped." -ForegroundColor Green
+    }
+    catch {
+        Write-Host "  [WARN] Could not stop the app: $_" -ForegroundColor DarkYellow
+        Write-Host "  Some files may not be updated. Close the app manually and re-run." -ForegroundColor DarkYellow
+    }
+}
+
+# --- Apply any pending files from a previous interrupted install ---
+$appFolder = Join-Path $DestinationPath "app"
+if (Test-Path $appFolder) {
+    $pendingFiles = Get-ChildItem -Path $appFolder -Filter "*.pending" -Recurse -ErrorAction SilentlyContinue
+    if ($pendingFiles -and $pendingFiles.Count -gt 0) {
+        Write-Host "  Applying $($pendingFiles.Count) pending file(s) from previous install..." -ForegroundColor Yellow
+        foreach ($pf in $pendingFiles) {
+            $target = $pf.FullName -replace '\.pending$', ''
+            try {
+                Move-Item -Path $pf.FullName -Destination $target -Force
+            } catch { }
+        }
+        Write-Host "  [OK] Pending files applied." -ForegroundColor Green
+    }
+}
+
 # --- Files that should ALWAYS be updated (scripts, modules, dashboard) ---
 $alwaysUpdate = @(
     "SPOVersionManagement.psm1",
@@ -392,5 +426,20 @@ if ($isUpdate) {
     Write-Host "  1. Edit config\AppPaths.json with your tenant paths" -ForegroundColor White
     Write-Host "  2. Edit config\DashboardConfig.json for your preferences" -ForegroundColor White
     Write-Host "  3. Run .\Start-SPOVersionManagement.ps1 -AdminUrl https://yourtenant-admin.sharepoint.com" -ForegroundColor White
+}
+
+# --- Offer to restart app if it was running ---
+if ($runningApp) {
+    $appExePath = Join-Path $DestinationPath "app\SPOVersionManagement.exe"
+    if (Test-Path $appExePath) {
+        Write-Host ""
+        if (-not $NonInteractive) {
+            $restart = Read-Host "Restart the app now? (Y/N)"
+            if ($restart -match '^[Yy]') {
+                Start-Process -FilePath $appExePath
+                Write-Host "  [OK] App restarted." -ForegroundColor Green
+            }
+        }
+    }
 }
 Write-Host ""
