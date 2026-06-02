@@ -769,6 +769,12 @@ function Initialize-SPOVersionManagement {
     if (-not (Test-Path $script:LogPath)) {
         New-Item -ItemType Directory -Path $script:LogPath -Force | Out-Null
     }
+    if (-not (Test-Path $script:ConfigPath)) {
+        New-Item -ItemType Directory -Path $script:ConfigPath -Force | Out-Null
+    }
+    if (-not (Test-Path $script:BackupPath)) {
+        New-Item -ItemType Directory -Path $script:BackupPath -Force | Out-Null
+    }
     
     $script:MaxConcurrentJobs = $MaxConcurrentJobs
     $script:PollingIntervalSeconds = $PollingIntervalSeconds

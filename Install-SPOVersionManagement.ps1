@@ -252,9 +252,6 @@ if ((Test-Path $dstAppPaths) -and -not $Force) {
     # Backup existing
     $backupName = "AppPaths_backup_$timestamp.json"
     Copy-Item -Path $dstAppPaths -Destination (Join-Path $DestinationPath "Logs\Backup\$backupName") -Force
-    
-    # Always update RootPath to actual install location
-    $dstConfig | Add-Member -NotePropertyName 'RootPath' -NotePropertyValue $DestinationPath -Force
 
     # Save merged config
     $dstConfig | ConvertTo-Json -Depth 10 | Set-Content -Path $dstAppPaths -Encoding UTF8
