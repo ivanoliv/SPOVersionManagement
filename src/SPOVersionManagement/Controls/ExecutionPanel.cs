@@ -19,6 +19,7 @@ namespace SPOVersionManagement.Controls
         private ConfigurationService _config;
         private ExecutionHistoryService _history;
         private PowerShellHostService _psHost;
+        private SiteDataService _siteData;
         private CancellationTokenSource _cts;
 
         // Connection
@@ -47,6 +48,9 @@ namespace SPOVersionManagement.Controls
         // Input files
         private TextBox _txtSiteListCsv, _txtExclusionCsv, _txtGraphReportCsv, _txtSyncListCsv, _txtSamReportCsv, _txtCacheFile;
         private CheckBox _chkUseFileCache;
+        private CheckBox _chkIncludeSites, _chkExcludeSites;
+        private Label _lblIncludeCount, _lblExcludeCount;
+        private FlatButton _btnViewInclude, _btnViewExclude;
 
         // Console / progress
         private TextBox _console;
@@ -79,6 +83,7 @@ namespace SPOVersionManagement.Controls
         {
             _config = config;
             _history = new ExecutionHistoryService(config);
+            _siteData = new SiteDataService(config);
             _psHost = psHost;
             BuildLayout();
         }
@@ -376,15 +381,34 @@ namespace SPOVersionManagement.Controls
             Controls.Add(filesCard);
             CL(filesCard, "INPUT FILES", AppTheme.AccentCyan, 14, 2);
             int fy = 22, fLbl = 162;
+            int fChkX = fLbl - 18; // checkbox at 144, label ends before it
+            int fTxtX = fLbl + 4;  // textbox starts at 166
+            int fAfterBrowse = fTxtX + fIn + 30; // x position after the "..." browse button
 
-            PL(filesCard, "Include Sites (CSV):", 14, fy, fLbl);
-            _txtSiteListCsv = FileRow(filesCard, fLbl + 14, fy, fIn, "CSV|*.csv", _config.AppConfig.InputFiles?.IncludeSites);
-            CL(filesCard, "Only process these sites", AppTheme.TextMuted, fLbl + fIn + 50, fy + 2);
+            // Include Sites row with checkbox + count badge + manage button
+            PL(filesCard, "Include Sites (CSV):", 14, fy, fChkX - 16);
+            _chkIncludeSites = new CheckBox { Text = "", Size = new Size(16, 16), Location = new Point(fChkX, fy + 2), BackColor = Color.Transparent, Checked = true };
+            filesCard.Controls.Add(_chkIncludeSites);
+            _txtSiteListCsv = FileRow(filesCard, fTxtX, fy, fIn, "CSV|*.csv", _config.AppConfig.InputFiles?.IncludeSites);
+            _lblIncludeCount = new Label { Text = "", Font = new Font("Segoe UI", 7f, FontStyle.Bold), ForeColor = AppTheme.AccentGreen, AutoSize = true, BackColor = Color.Transparent, Location = new Point(fAfterBrowse + 4, fy + 3) };
+            filesCard.Controls.Add(_lblIncludeCount);
+            _btnViewInclude = new FlatButton { Text = "Manage", Size = new Size(54, 20), Location = new Point(fAfterBrowse + 124, fy) };
+            _btnViewInclude.SetGhostStyle();
+            _btnViewInclude.Click += (s, e) => ShowScopeManagerDialog("IncludeSites.csv", "Target Sites");
+            filesCard.Controls.Add(_btnViewInclude);
             fy += 26;
 
-            PL(filesCard, "Exclude Sites (CSV):", 14, fy, fLbl);
-            _txtExclusionCsv = FileRow(filesCard, fLbl + 14, fy, fIn, "CSV|*.csv", _config.AppConfig.InputFiles?.ExcludeSites);
-            CL(filesCard, "Skip these sites", AppTheme.TextMuted, fLbl + fIn + 50, fy + 2);
+            // Exclude Sites row with checkbox + count badge + manage button
+            PL(filesCard, "Exclude Sites (CSV):", 14, fy, fChkX - 16);
+            _chkExcludeSites = new CheckBox { Text = "", Size = new Size(16, 16), Location = new Point(fChkX, fy + 2), BackColor = Color.Transparent, Checked = true };
+            filesCard.Controls.Add(_chkExcludeSites);
+            _txtExclusionCsv = FileRow(filesCard, fTxtX, fy, fIn, "CSV|*.csv", _config.AppConfig.InputFiles?.ExcludeSites);
+            _lblExcludeCount = new Label { Text = "", Font = new Font("Segoe UI", 7f, FontStyle.Bold), ForeColor = AppTheme.AccentGold, AutoSize = true, BackColor = Color.Transparent, Location = new Point(fAfterBrowse + 4, fy + 3) };
+            filesCard.Controls.Add(_lblExcludeCount);
+            _btnViewExclude = new FlatButton { Text = "Manage", Size = new Size(54, 20), Location = new Point(fAfterBrowse + 124, fy) };
+            _btnViewExclude.SetGhostStyle();
+            _btnViewExclude.Click += (s, e) => ShowScopeManagerDialog("ExcludeSites.csv", "Skip Sites");
+            filesCard.Controls.Add(_btnViewExclude);
             fy += 26;
 
             PL(filesCard, "Graph Report (CSV):", 14, fy, fLbl);
@@ -474,8 +498,12 @@ namespace SPOVersionManagement.Controls
             _chkRetention.CheckedChanged += SettingChanged;
             _chkSkipGraph.CheckedChanged += SettingChanged;
             _chkUseFileCache.CheckedChanged += SettingChanged;
+            _chkIncludeSites.CheckedChanged += SettingChanged;
+            _chkExcludeSites.CheckedChanged += SettingChanged;
             _txtSiteListCsv.TextChanged += SettingChanged;
+            _txtSiteListCsv.TextChanged += (s, e) => RefreshScopeCountBadges();
             _txtExclusionCsv.TextChanged += SettingChanged;
+            _txtExclusionCsv.TextChanged += (s, e) => RefreshScopeCountBadges();
             _txtGraphReportCsv.TextChanged += SettingChanged;
             _txtSyncListCsv.TextChanged += SettingChanged;
             _txtSamReportCsv.TextChanged += SettingChanged;
@@ -531,12 +559,51 @@ namespace SPOVersionManagement.Controls
                 return;
             }
 
+            // Resolve effective scope files (respecting checkboxes + auto-detect)
+            string effectiveIncludeCsv = ResolveScopeCsvPath(_txtSiteListCsv, "IncludeSites.csv", _chkIncludeSites);
+            string effectiveExcludeCsv = ResolveScopeCsvPath(_txtExclusionCsv, "ExcludeSites.csv", _chkExcludeSites);
+
+            int includeCount = effectiveIncludeCsv != null ? GetScopeFileEntryCount(effectiveIncludeCsv) : 0;
+            int excludeCount = effectiveExcludeCsv != null ? GetScopeFileEntryCount(effectiveExcludeCsv) : 0;
+
+            // Pre-execution scope confirmation if scope files are active
+            if (includeCount > 0 || excludeCount > 0)
+            {
+                string scopeMsg = "Execution Scope detected:\n\n";
+                if (includeCount > 0)
+                    scopeMsg += $"  \u2714 TARGET: {includeCount} site(s) will be processed\n";
+                if (excludeCount > 0)
+                    scopeMsg += $"  \u2716 SKIP: {excludeCount} site(s) will be excluded\n";
+                if (includeCount == 0)
+                    scopeMsg += "  \u25CB TARGET: All tenant sites (no include filter)\n";
+
+                scopeMsg += "\nDo you want to review the scope before executing?\n\n[Yes] = Review scope  |  [No] = Continue execution  |  [Cancel] = Abort";
+
+                var scopeResult = MessageBox.Show(scopeMsg, "Scope Confirmation", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Information);
+                if (scopeResult == DialogResult.Cancel)
+                    return;
+                if (scopeResult == DialogResult.Yes)
+                {
+                    if (includeCount > 0) ShowScopeManagerDialog("IncludeSites.csv", "Target Sites");
+                    if (excludeCount > 0) ShowScopeManagerDialog("ExcludeSites.csv", "Skip Sites");
+                    // Refresh counts in case user edited during review
+                    RefreshScopeCountBadges();
+                    effectiveIncludeCsv = ResolveScopeCsvPath(_txtSiteListCsv, "IncludeSites.csv", _chkIncludeSites);
+                    effectiveExcludeCsv = ResolveScopeCsvPath(_txtExclusionCsv, "ExcludeSites.csv", _chkExcludeSites);
+                    includeCount = effectiveIncludeCsv != null ? GetScopeFileEntryCount(effectiveIncludeCsv) : 0;
+                    excludeCount = effectiveExcludeCsv != null ? GetScopeFileEntryCount(effectiveExcludeCsv) : 0;
+                    // After review, confirm execution
+                    if (MessageBox.Show("Proceed with execution?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                        return;
+                }
+            }
+
             string desc = doSync && doDelete ? "Full (Sync + Delete)" : doSync ? "Sync Only" : "Delete Only";
             bool byAge = _rbDeleteByAge.Checked;
             string deleteMode = byAge ? $"By age ({_nudDeleteBeforeDays.Value} days)" : $"By count (Major:{_nudMajorVer.Value}, Minor:{_nudMinorVer.Value})";
             string files = "";
-            if (!string.IsNullOrEmpty(_txtSiteListCsv.Text)) files += $"\nInclude: {Path.GetFileName(_txtSiteListCsv.Text)}";
-            if (!string.IsNullOrEmpty(_txtExclusionCsv.Text)) files += $"\nExclude: {Path.GetFileName(_txtExclusionCsv.Text)}";
+            if (includeCount > 0) files += $"\nInclude: {includeCount} site(s)";
+            if (excludeCount > 0) files += $"\nExclude: {excludeCount} site(s)";
             if (!string.IsNullOrEmpty(_txtGraphReportCsv.Text)) files += $"\nGraph: {Path.GetFileName(_txtGraphReportCsv.Text)}";
             if (_chkUseFileCache.Checked) files += $"\nCache: {Path.GetFileName(_txtCacheFile.Text)}";
 
@@ -584,12 +651,20 @@ namespace SPOVersionManagement.Controls
                 bool hasGraphReport = !string.IsNullOrEmpty(NullIfEmpty(_txtGraphReportCsv.Text));
                 bool skipGraphConnection = hasGraphReport || _chkSkipGraph.Checked;
 
+                // Log scope status to console
+                if (includeCount > 0)
+                    AppendConsole($"[Scope] Target: {includeCount} site(s) from {Path.GetFileName(effectiveIncludeCsv)}", AppTheme.AccentCyan);
+                if (excludeCount > 0)
+                    AppendConsole($"[Scope] Skip: {excludeCount} site(s) from {Path.GetFileName(effectiveExcludeCsv)}", AppTheme.AccentCyan);
+                if (includeCount == 0 && excludeCount == 0)
+                    AppendConsole("[Scope] Processing ALL tenant sites (no scope filters)", AppTheme.TextMuted);
+
                 await _psHost.StartVersionManagementAsync(adminUrl,
                     (int)_nudMajorVer.Value, (int)_nudMinorVer.Value, (int)_nudConcurrent.Value,
                     doSync && !doDelete, !doSync && doDelete,
                     _chkRetention.Checked, _chkUseFileCache.Checked, _cts.Token,
-                    inputSiteListCsv: NullIfEmpty(_txtSiteListCsv.Text),
-                    inputExclusionSiteListCsv: NullIfEmpty(_txtExclusionCsv.Text),
+                    inputSiteListCsv: effectiveIncludeCsv,
+                    inputExclusionSiteListCsv: effectiveExcludeCsv,
                     graphReportCsv: NullIfEmpty(_txtGraphReportCsv.Text),
                     inputSiteSyncListCsv: NullIfEmpty(_txtSyncListCsv.Text),
                     checkBatchSize: (int)_nudCheckBatchSize.Value,
@@ -1092,6 +1167,9 @@ namespace SPOVersionManagement.Controls
             _txtCacheFile.Enabled = s.UseFileCache;
             }
             finally { _loadingSettings = false; }
+
+            // Auto-detect scope file entries and update badges/checkboxes
+            RefreshScopeCountBadges();
         }
 
         public void SaveGuiSettings()
@@ -1550,6 +1628,221 @@ namespace SPOVersionManagement.Controls
         {
             var v = s?.Trim();
             return string.IsNullOrEmpty(v) ? null : v;
+        }
+
+        private int GetScopeFileEntryCount(string csvPath)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(csvPath))
+                    return 0;
+
+                // Resolve relative path against root
+                string fullPath = Path.IsPathRooted(csvPath) ? csvPath : Path.Combine(_config.RootPath, csvPath);
+                if (!File.Exists(fullPath))
+                    return 0;
+
+                var lines = File.ReadAllLines(fullPath).Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
+                return Math.Max(0, lines.Length - 1); // subtract header
+            }
+            catch { return 0; }
+        }
+
+        private void RefreshScopeCountBadges()
+        {
+            // Include sites
+            string includePath = !string.IsNullOrWhiteSpace(_txtSiteListCsv.Text)
+                ? _txtSiteListCsv.Text
+                : Path.Combine(_config.RootPath, "IncludeSites.csv");
+            int includeCount = GetScopeFileEntryCount(includePath);
+
+            if (includeCount > 0)
+            {
+                _lblIncludeCount.Text = $"\u25CF {includeCount} site(s) targeted";
+                _lblIncludeCount.ForeColor = AppTheme.AccentGreen;
+                _chkIncludeSites.Checked = true;
+                _btnViewInclude.Visible = true;
+            }
+            else
+            {
+                _lblIncludeCount.Text = "All sites (no filter)";
+                _lblIncludeCount.ForeColor = AppTheme.TextMuted;
+                _chkIncludeSites.Checked = false;
+                _btnViewInclude.Visible = false;
+            }
+
+            // Exclude sites
+            string excludePath = !string.IsNullOrWhiteSpace(_txtExclusionCsv.Text)
+                ? _txtExclusionCsv.Text
+                : Path.Combine(_config.RootPath, "ExcludeSites.csv");
+            int excludeCount = GetScopeFileEntryCount(excludePath);
+
+            if (excludeCount > 0)
+            {
+                _lblExcludeCount.Text = $"\u25CF {excludeCount} site(s) excluded";
+                _lblExcludeCount.ForeColor = AppTheme.AccentGold;
+                _chkExcludeSites.Checked = true;
+                _btnViewExclude.Visible = true;
+            }
+            else
+            {
+                _lblExcludeCount.Text = "No exclusions";
+                _lblExcludeCount.ForeColor = AppTheme.TextMuted;
+                _chkExcludeSites.Checked = false;
+                _btnViewExclude.Visible = false;
+            }
+        }
+
+        private void ShowScopeManagerDialog(string fileName, string title)
+        {
+            string fullPath = Path.Combine(_config.RootPath, fileName);
+            var items = _siteData != null ? _siteData.LoadScopeList(fileName) : new List<ScopeSiteItem>();
+
+            using (var dlg = new Form())
+            {
+                dlg.Text = $"{title} — {fileName}";
+                dlg.Size = new Size(700, 480);
+                dlg.StartPosition = FormStartPosition.CenterParent;
+                dlg.BackColor = Color.FromArgb(24, 28, 36);
+                dlg.ForeColor = AppTheme.TextPrimary;
+                dlg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dlg.MaximizeBox = false;
+                dlg.MinimizeBox = false;
+
+                var grid = new DataGridView
+                {
+                    Location = new Point(12, 12),
+                    Size = new Size(660, 340),
+                    AllowUserToAddRows = false,
+                    AllowUserToDeleteRows = false,
+                    SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                    MultiSelect = true,
+                    ReadOnly = true,
+                    RowHeadersVisible = false,
+                    BackgroundColor = Color.FromArgb(18, 22, 28),
+                    GridColor = Color.FromArgb(40, 44, 52),
+                    DefaultCellStyle = new DataGridViewCellStyle { BackColor = Color.FromArgb(18, 22, 28), ForeColor = AppTheme.TextPrimary, SelectionBackColor = Color.FromArgb(40, 80, 120), Font = new Font("Segoe UI", 9f) },
+                    ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle { BackColor = Color.FromArgb(30, 34, 42), ForeColor = AppTheme.AccentCyan, Font = new Font("Segoe UI", 8.5f, FontStyle.Bold) },
+                    EnableHeadersVisualStyles = false
+                };
+                grid.Columns.Add("SiteUrl", "Site URL");
+                grid.Columns.Add("Reason", "Reason");
+                grid.Columns[0].Width = 440;
+                grid.Columns[1].Width = 200;
+
+                foreach (var item in items)
+                    grid.Rows.Add(item.SiteUrl, item.Reason);
+
+                dlg.Controls.Add(grid);
+
+                var lblCount = new Label { Text = $"{items.Count} site(s)", Location = new Point(12, 360), AutoSize = true, ForeColor = AppTheme.TextMuted, Font = new Font("Segoe UI", 8f) };
+                dlg.Controls.Add(lblCount);
+
+                // Add button
+                var btnAdd = new Button { Text = "+ Add URL", Location = new Point(12, 390), Size = new Size(90, 28), FlatStyle = FlatStyle.Flat, ForeColor = AppTheme.AccentGreen, BackColor = Color.FromArgb(30, 34, 42) };
+                btnAdd.FlatAppearance.BorderColor = AppTheme.AccentGreen;
+                btnAdd.Click += (s, e) =>
+                {
+                    using (var input = new Form())
+                    {
+                        input.Text = "Add Site URL";
+                        input.Size = new Size(500, 140);
+                        input.StartPosition = FormStartPosition.CenterParent;
+                        input.BackColor = Color.FromArgb(24, 28, 36);
+                        input.FormBorderStyle = FormBorderStyle.FixedDialog;
+                        input.MaximizeBox = false; input.MinimizeBox = false;
+
+                        var txtUrl = new TextBox { Location = new Point(12, 16), Size = new Size(460, 22), BackColor = Color.FromArgb(18, 22, 28), ForeColor = AppTheme.TextPrimary };
+                        txtUrl.PlaceholderText = "https://tenant.sharepoint.com/sites/sitename";
+                        input.Controls.Add(txtUrl);
+
+                        var txtReason = new TextBox { Location = new Point(12, 44), Size = new Size(360, 22), BackColor = Color.FromArgb(18, 22, 28), ForeColor = AppTheme.TextPrimary };
+                        txtReason.PlaceholderText = "Reason (optional)";
+                        input.Controls.Add(txtReason);
+
+                        var btnOk = new Button { Text = "Add", Location = new Point(380, 44), Size = new Size(60, 24), DialogResult = DialogResult.OK, FlatStyle = FlatStyle.Flat, ForeColor = AppTheme.AccentGreen, BackColor = Color.FromArgb(30, 34, 42) };
+                        btnOk.FlatAppearance.BorderColor = AppTheme.AccentGreen;
+                        input.Controls.Add(btnOk);
+                        input.AcceptButton = btnOk;
+
+                        if (input.ShowDialog(dlg) == DialogResult.OK && !string.IsNullOrWhiteSpace(txtUrl.Text))
+                        {
+                            string url = txtUrl.Text.Trim();
+                            if (!items.Any(i => string.Equals(i.SiteUrl, url, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                items.Add(new ScopeSiteItem { SiteUrl = url, Reason = txtReason.Text.Trim() });
+                                grid.Rows.Add(url, txtReason.Text.Trim());
+                                lblCount.Text = $"{items.Count} site(s)";
+                            }
+                        }
+                    }
+                };
+                dlg.Controls.Add(btnAdd);
+
+                // Remove button
+                var btnRemove = new Button { Text = "Remove", Location = new Point(110, 390), Size = new Size(80, 28), FlatStyle = FlatStyle.Flat, ForeColor = AppTheme.AccentRed, BackColor = Color.FromArgb(30, 34, 42) };
+                btnRemove.FlatAppearance.BorderColor = AppTheme.AccentRed;
+                btnRemove.Click += (s, e) =>
+                {
+                    if (grid.SelectedRows.Count == 0) return;
+                    var toRemove = new List<string>();
+                    foreach (DataGridViewRow row in grid.SelectedRows)
+                        toRemove.Add(row.Cells[0].Value?.ToString() ?? "");
+                    items.RemoveAll(i => toRemove.Contains(i.SiteUrl, StringComparer.OrdinalIgnoreCase));
+                    foreach (DataGridViewRow row in grid.SelectedRows.Cast<DataGridViewRow>().ToList())
+                        grid.Rows.Remove(row);
+                    lblCount.Text = $"{items.Count} site(s)";
+                };
+                dlg.Controls.Add(btnRemove);
+
+                // Clear All button
+                var btnClear = new Button { Text = "Clear All", Location = new Point(198, 390), Size = new Size(80, 28), FlatStyle = FlatStyle.Flat, ForeColor = AppTheme.AccentGold, BackColor = Color.FromArgb(30, 34, 42) };
+                btnClear.FlatAppearance.BorderColor = AppTheme.AccentGold;
+                btnClear.Click += (s, e) =>
+                {
+                    if (MessageBox.Show($"Remove all {items.Count} entries?", "Clear", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+                    {
+                        items.Clear();
+                        grid.Rows.Clear();
+                        lblCount.Text = "0 site(s)";
+                    }
+                };
+                dlg.Controls.Add(btnClear);
+
+                // Save & Close
+                var btnSave = new Button { Text = "Save && Close", Location = new Point(550, 390), Size = new Size(110, 28), FlatStyle = FlatStyle.Flat, ForeColor = AppTheme.AccentCyan, BackColor = Color.FromArgb(30, 34, 42), DialogResult = DialogResult.OK };
+                btnSave.FlatAppearance.BorderColor = AppTheme.AccentCyan;
+                dlg.Controls.Add(btnSave);
+
+                // Cancel
+                var btnCancel = new Button { Text = "Cancel", Location = new Point(440, 390), Size = new Size(80, 28), FlatStyle = FlatStyle.Flat, ForeColor = AppTheme.TextMuted, BackColor = Color.FromArgb(30, 34, 42), DialogResult = DialogResult.Cancel };
+                btnCancel.FlatAppearance.BorderColor = AppTheme.TextMuted;
+                dlg.Controls.Add(btnCancel);
+                dlg.CancelButton = btnCancel;
+
+                if (dlg.ShowDialog(ParentForm) == DialogResult.OK)
+                {
+                    _siteData.SaveScopeList(fileName, items);
+                    RefreshScopeCountBadges();
+                }
+            }
+        }
+
+        private string ResolveScopeCsvPath(TextBox txt, string defaultFileName, CheckBox chk)
+        {
+            if (!chk.Checked)
+                return null;
+
+            string path = NullIfEmpty(txt.Text);
+            if (!string.IsNullOrEmpty(path))
+                return path;
+
+            // Auto-detect from default file
+            string autoPath = Path.Combine(_config.RootPath, defaultFileName);
+            if (File.Exists(autoPath) && GetScopeFileEntryCount(autoPath) > 0)
+                return autoPath;
+
+            return null;
         }
         #endregion
     }

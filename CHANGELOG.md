@@ -4,6 +4,39 @@ All notable changes to SPO Version Management are documented in this file.
 
 ---
 
+## v2.4.0.4 (2026-06-02)
+
+**Execution Scope Management — Target Sites & Skip Sites UX Overhaul**
+
+### Added
+
+#### Site Catalog — "Add to Target" Button
+- New **"Add to Target"** button (cyan) in Site Catalog toolbar allows selecting one or multiple sites and adding them directly to the Target Sites execution scope (`IncludeSites.csv`)
+- Works alongside existing "Add to Skip" and "Add to Archive" buttons
+- Confirmation message shows count of added sites and reminds user that execution will process ONLY targeted sites
+
+#### Execution Panel — Scope Checkboxes, Badges & Manage Dialog
+- **Checkboxes** on Include/Exclude Sites rows — auto-checked when file has entries, unchecking temporarily disables scope without deleting entries
+- **Count badges** — green `● N site(s) targeted` or gold `● N site(s) excluded` shown inline after browse button, updates dynamically on file change or panel load
+- **"Manage" button** — opens a full CRUD dialog (dark-themed popup) for each scope file:
+  - DataGridView listing all sites with URL and Reason columns
+  - **+ Add URL** — input form with URL field and optional reason
+  - **Remove** — delete selected rows
+  - **Clear All** — wipe entire scope list with confirmation
+  - **Save & Close** / **Cancel** — persist changes back to CSV and refresh badges
+- **Auto-detection** — if `IncludeSites.csv` or `ExcludeSites.csv` has entries, execution automatically uses them even if the textbox path is empty (no more need to manually type the CSV path)
+
+#### Pre-Execution Scope Confirmation
+- When scope files are active, a confirmation dialog appears before execution:
+  - Shows target count and skip count
+  - Options: **Review** (opens Manage dialog for last-minute edits), **Continue** (proceed), **Abort** (cancel)
+- Console logs scope status at execution start: `[Scope] Target: N site(s) from IncludeSites.csv`
+
+### Fixed
+- **Critical bug**: Adding sites to Target Scope via the Execution Scope page and running execution would process ALL tenant sites instead of only targeted sites — the inclusion list was only passed to the script if the user manually typed the CSV path in the textbox. Now auto-detected from file content.
+
+---
+
 ## v2.4.0.2 (2026-05-08)
 
 **Install Script Fix — App Folder**

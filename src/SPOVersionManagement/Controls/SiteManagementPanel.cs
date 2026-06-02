@@ -67,6 +67,7 @@ namespace SPOVersionManagement.Controls
         private FlatButton _btnConfirmQueueSelection;
         private FlatButton _btnAddSelectedToSkip;
         private FlatButton _btnAddSelectedToArchive;
+        private FlatButton _btnAddSelectedToScope;
         private FlatButton _btnRemoveFromQueue;
         private FlatButton _btnRunQueue;
 
@@ -284,6 +285,11 @@ namespace SPOVersionManagement.Controls
             _btnAddSelectedToSkip.SetAccentColor(AppTheme.AccentGold);
             _btnAddSelectedToSkip.Click += (s, e) => AddSelectedSitesToSkipList();
             _toolbar.Controls.Add(_btnAddSelectedToSkip);
+
+            _btnAddSelectedToScope = new FlatButton { Text = "Add to Target", Size = new Size(110, 26), Location = new Point(btnRight - 540, 8), Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            _btnAddSelectedToScope.SetAccentColor(AppTheme.AccentCyan);
+            _btnAddSelectedToScope.Click += (s, e) => AddSelectedSitesToTargetList();
+            _toolbar.Controls.Add(_btnAddSelectedToScope);
 
             _btnAddSelectedToArchive = new FlatButton { Text = "Add to Archive", Size = new Size(118, 26), Location = new Point(btnRight - 430, 8), Anchor = AnchorStyles.Top | AnchorStyles.Right };
             _btnAddSelectedToArchive.SetAccentColor(AppTheme.AccentGreen);
@@ -1005,6 +1011,7 @@ namespace SPOVersionManagement.Controls
             _btnAddToQueue.Visible = _currentView == "catalog" || _currentView == "candidates";
             _btnConfirmQueueSelection.Visible = false;
             _btnAddSelectedToSkip.Visible = _currentView == "catalog" || _currentView == "candidates";
+            _btnAddSelectedToScope.Visible = _currentView == "catalog" || _currentView == "candidates";
             _btnAddSelectedToArchive.Visible = _currentView == "catalog" || _currentView == "candidates";
             _btnRemoveFromQueue.Visible = _currentView == "queue";
             _btnRunQueue.Visible = _currentView == "queue";
@@ -1110,6 +1117,7 @@ namespace SPOVersionManagement.Controls
             else
             {
                 placeRight(_btnAddSelectedToArchive);
+                placeRight(_btnAddSelectedToScope);
                 placeRight(_btnAddSelectedToSkip);
                 placeRight(_btnAddToQueue);
             }
@@ -1512,6 +1520,37 @@ namespace SPOVersionManagement.Controls
                 LoadScopeIntoGrid(_skipGrid, "ExcludeSites.csv");
 
             MessageBox.Show($"Added {added} site(s) to Skip list.", "Skip List", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void AddSelectedSitesToTargetList()
+        {
+            var urls = GetSelectedUrls();
+            if (urls.Count == 0)
+            {
+                MessageBox.Show("Select at least one site row to add to Target Scope.", "Target Scope", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var items = _siteData.LoadScopeList("IncludeSites.csv");
+            int added = 0;
+            foreach (var url in urls)
+            {
+                if (items.Any(i => string.Equals(i.SiteUrl, url, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
+                items.Add(new ScopeSiteItem
+                {
+                    SiteUrl = url,
+                    Reason = "Added from Site Catalog"
+                });
+                added++;
+            }
+
+            _siteData.SaveScopeList("IncludeSites.csv", items);
+            if (_targetGrid != null)
+                LoadScopeIntoGrid(_targetGrid, "IncludeSites.csv");
+
+            MessageBox.Show($"Added {added} site(s) to Target Scope.\nExecution will process ONLY targeted sites.", "Target Scope", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private DataGridView GetFocusedScopeGrid()
