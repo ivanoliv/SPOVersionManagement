@@ -1648,7 +1648,7 @@ namespace SPOVersionManagement.Controls
             catch { return 0; }
         }
 
-        private void RefreshScopeCountBadges()
+        public void RefreshScopeCountBadges()
         {
             // Include sites
             string includePath = !string.IsNullOrWhiteSpace(_txtSiteListCsv.Text)

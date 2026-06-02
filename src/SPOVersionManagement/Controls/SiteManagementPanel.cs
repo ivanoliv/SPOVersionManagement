@@ -16,6 +16,8 @@ namespace SPOVersionManagement.Controls
 {
     public class SiteManagementPanel : UserControl
     {
+        public event EventHandler ScopeChanged;
+
         private ConfigurationService _config;
         private PowerShellHostService _psHost;
         private ExecutionHistoryService _history;
@@ -1519,6 +1521,7 @@ namespace SPOVersionManagement.Controls
             if (_skipGrid != null)
                 LoadScopeIntoGrid(_skipGrid, "ExcludeSites.csv");
 
+            ScopeChanged?.Invoke(this, EventArgs.Empty);
             MessageBox.Show($"Added {added} site(s) to Skip list.", "Skip List", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -1550,6 +1553,7 @@ namespace SPOVersionManagement.Controls
             if (_targetGrid != null)
                 LoadScopeIntoGrid(_targetGrid, "IncludeSites.csv");
 
+            ScopeChanged?.Invoke(this, EventArgs.Empty);
             MessageBox.Show($"Added {added} site(s) to Target Scope.\nExecution will process ONLY targeted sites.", "Target Scope", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -1906,6 +1910,7 @@ namespace SPOVersionManagement.Controls
             }
 
             _siteData.SaveScopeList(fileName, items);
+            ScopeChanged?.Invoke(this, EventArgs.Empty);
             MessageBox.Show((isTarget ? "Target Sites" : "Skip Sites") + " saved.", "Sites", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 

@@ -423,6 +423,7 @@ namespace SPOVersionManagement.Forms
             {
                 _sitesPanel = new SiteManagementPanel();
                 _sitesPanel.Initialize(_configService, _psHost, _historyService);
+                _sitesPanel.ScopeChanged += (s, e) => _executionPanel?.RefreshScopeCountBadges();
             }
             return _sitesPanel;
         }
