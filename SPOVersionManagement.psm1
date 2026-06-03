@@ -4733,6 +4733,53 @@ function Start-SPOVersionPolicyOrchestration {
                     # Send real-time telemetry for completed BatchDelete jobs
                     if ($job.JobType -eq "BatchDelete") {
                         Send-SPOTelemetry -WorkItemId $resolvedWorkItemId -SiteUrl $job.SiteUrl -JobType $job.JobType -StorageFreedBytes ([long]$progress.StorageReleasedInBytes) -VersionsDeleted ([long]$progress.VersionsDeleted)
+                        
+                        # Refresh site storage from SPO after successful delete
+                        try {
+                            $refreshedSite = Get-SPOSite -Identity $job.SiteUrl -Detailed -ErrorAction Stop
+                            $refreshedStorageMB = $refreshedSite.StorageUsageCurrent
+                            $refreshedStorageGB = [math]::Round($refreshedStorageMB / 1024, 2)
+                            $refreshedVersionSize = if ($refreshedSite.VersionSize) { [long]$refreshedSite.VersionSize } else { [long]0 }
+                            Write-Host "    [REFRESH] Storage after: $refreshedStorageGB GB | Versions: $([math]::Round($refreshedVersionSize / 1GB, 2)) GB" -ForegroundColor DarkCyan
+                            
+                            # Update execution history with actual post-deletion storage
+                            $execData.StorageAfterBytes = [long]$refreshedStorageMB * 1MB
+                            $execData.VersionSizeAfterBytes = $refreshedVersionSize
+                            $null = Save-SiteExecutionHistory -SiteUrl $job.SiteUrl -SiteTitle $job.SiteTitle -JobType $job.JobType -ExecutionData $execData
+                            
+                            # Update AllSites.json cache file for dashboard
+                            if (Test-Path $script:AllSitesFile) {
+                                try {
+                                    $allSitesData = Get-Content $script:AllSitesFile -Raw | ConvertFrom-Json
+                                    $siteEntry = $allSitesData.Sites | Where-Object { $_.Url -eq $job.SiteUrl }
+                                    if ($siteEntry) {
+                                        $siteEntry.StorageUsageCurrent = $refreshedStorageMB
+                                        $siteEntry.StorageUsageCurrentMB = $refreshedStorageMB
+                                        $siteEntry.StorageUsageCurrentGB = $refreshedStorageGB
+                                        $siteEntry.VersionSize = $refreshedVersionSize
+                                        $siteEntry.VersionSizeMB = [math]::Round($refreshedVersionSize / 1MB, 2)
+                                        $siteEntry.VersionSizeGB = [math]::Round($refreshedVersionSize / 1GB, 4)
+                                        $siteEntry.VersionCount = if ($refreshedSite.VersionCount) { $refreshedSite.VersionCount } else { $siteEntry.VersionCount }
+                                        $allSitesData.LastUpdated = (Get-Date).ToString("o")
+                                        Write-JsonFileSafe -FilePath $script:AllSitesFile -Content ($allSitesData | ConvertTo-Json -Depth 10)
+                                    }
+                                }
+                                catch { Write-Verbose "    [REFRESH] Could not update AllSites.json: $_" }
+                            }
+                            
+                            # Update in-memory cache
+                            if ($script:AllSitesCache) {
+                                $cachedSite = $script:AllSitesCache | Where-Object { $_.Url -eq $job.SiteUrl }
+                                if ($cachedSite) {
+                                    $cachedSite.StorageUsageCurrent = $refreshedStorageMB
+                                    $cachedSite.StorageUsageCurrentMB = $refreshedStorageMB
+                                    $cachedSite.StorageUsageCurrentGB = $refreshedStorageGB
+                                }
+                            }
+                        }
+                        catch {
+                            Write-Verbose "    [REFRESH] Could not refresh storage for $($job.SiteUrl): $_"
+                        }
                     }
                     
                     # Resume retention policies after BatchDelete completes
