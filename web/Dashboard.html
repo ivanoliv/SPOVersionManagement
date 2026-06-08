@@ -7008,8 +7008,20 @@
             const firstExec = sortedExecutionsAsc.find(e => e.StorageBeforeBytes > 0);
             const firstStorageBytes = firstExec ? firstExec.StorageBeforeBytes : 0;
             
-            // Current storage data
-            const currentStorageBytes = currentSiteData ? (currentSiteData.StorageUsageCurrentMB || 0) * 1024 * 1024 : 0;
+            // Current storage data — prefer latest execution's StorageAfterBytes if available and lower
+            let currentStorageBytes = currentSiteData ? (currentSiteData.StorageUsageCurrentMB || 0) * 1024 * 1024 : 0;
+            const latestBatchDelete = [...sortedExecutionsAsc].reverse().find(e => e.JobType === 'BatchDelete' && e.StorageReleasedBytes > 0);
+            if (latestBatchDelete) {
+                let effectiveAfter = 0;
+                if (latestBatchDelete.StorageAfterBytes > 0) {
+                    effectiveAfter = latestBatchDelete.StorageAfterBytes;
+                } else if (latestBatchDelete.StorageBeforeBytes > 0) {
+                    effectiveAfter = latestBatchDelete.StorageBeforeBytes - (latestBatchDelete.StorageReleasedBytes || 0);
+                }
+                if (effectiveAfter > 0 && (currentStorageBytes === 0 || effectiveAfter < currentStorageBytes)) {
+                    currentStorageBytes = effectiveAfter;
+                }
+            }
             const currentVersionBytes = currentSiteData ? (currentSiteData.VersionSize || 0) : 0;
             const versionPercent = currentStorageBytes > 0 ? ((currentVersionBytes / currentStorageBytes) * 100).toFixed(1) : 0;
             

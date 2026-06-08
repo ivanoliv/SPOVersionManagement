@@ -4740,7 +4740,18 @@ function Start-SPOVersionPolicyOrchestration {
                             $refreshedStorageMB = $refreshedSite.StorageUsageCurrent
                             $refreshedStorageGB = [math]::Round($refreshedStorageMB / 1024, 2)
                             $refreshedVersionSize = if ($refreshedSite.VersionSize) { [long]$refreshedSite.VersionSize } else { [long]0 }
-                            Write-Host "    [REFRESH] Storage after: $refreshedStorageGB GB | Versions: $([math]::Round($refreshedVersionSize / 1GB, 2)) GB" -ForegroundColor DarkCyan
+                            
+                            # If SPO hasn't recalculated yet (returns same value), use calculated estimate
+                            $originalStorageMB = if ($job.StorageUsedMB) { $job.StorageUsedMB } else { 0 }
+                            $releasedMB = [math]::Round([long]$progress.StorageReleasedInBytes / 1MB, 2)
+                            if ($releasedMB -gt 0 -and $refreshedStorageMB -ge $originalStorageMB) {
+                                # SPO hasn't updated yet — use calculated value
+                                $refreshedStorageMB = [math]::Max(0, $originalStorageMB - $releasedMB)
+                                $refreshedStorageGB = [math]::Round($refreshedStorageMB / 1024, 2)
+                                Write-Host "    [REFRESH] Storage after (calculated): $refreshedStorageGB GB (SPO not yet recalculated)" -ForegroundColor DarkYellow
+                            } else {
+                                Write-Host "    [REFRESH] Storage after: $refreshedStorageGB GB | Versions: $([math]::Round($refreshedVersionSize / 1GB, 2)) GB" -ForegroundColor DarkCyan
+                            }
                             
                             # Update execution history with actual post-deletion storage
                             $execData.StorageAfterBytes = [long]$refreshedStorageMB * 1MB
