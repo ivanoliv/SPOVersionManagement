@@ -7182,6 +7182,9 @@
                     const latestVersionSizeBefore = latest.VersionSizeBeforeBytes || 0;
                     const latestVersionSizeAfter = latest.VersionSizeAfterBytes || 0;
                     const totalFreed = batchDeleteExecs.reduce((s, e) => s + (e.StorageReleasedBytes || 0), 0);
+                    const versionRecoveredPct = latestVersionSizeBefore > 0 
+                        ? Math.round(((latestVersionSizeBefore - latestVersionSizeAfter) / latestVersionSizeBefore) * 100)
+                        : 0;
                     
                     // Cost calculation for version storage remaining
                     const isPt = getCurrentLanguage() === 'pt';
@@ -7226,7 +7229,7 @@
                                 <div class="storage-stat-icon">📉</div>
                                 <div class="storage-stat-info">
                                     <span class="storage-stat-label">${t('history.versionImpact.versionsAfter')}</span>
-                                    <span class="storage-stat-value">${latestVersionSizeAfter > 0 ? formatBytes(latestVersionSizeAfter) : '0 B'}</span>
+                                    <span class="storage-stat-value">${latestVersionSizeAfter > 0 ? formatBytes(latestVersionSizeAfter) : '0 B'}${versionRecoveredPct > 0 ? ` <span style="color: #4CAF50; font-size: 0.75em;">(-${versionRecoveredPct}%)</span>` : ''}</span>
                                 </div>
                             </div>
                         </div>
@@ -7237,6 +7240,12 @@
                                 <strong style="color: #ff6384;">${currSym} ${versionCostYear.toFixed(2)}/${isPt ? 'ano' : 'yr'}</strong>
                             </span>
                             ${versionPctTenant > 0 ? `<span style="color: #888;">${versionPctTenant.toFixed(2)}% ${t('history.timeline.ofTenant')}</span>` : ''}
+                        </div>
+                        <div style="margin-top: 6px; padding: 8px 12px; background: rgba(76,175,80,0.1); border-radius: 8px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 0.85em;">
+                            <span style="color: #81c784;">${isPt ? 'Custo recuperado' : 'Cost recovered'}: 
+                                <strong style="color: #4CAF50;">${currSym} ${(totalFreed / (1024*1024*1024) * effectiveCost).toFixed(2)}/${isPt ? 'mês' : 'mo'}</strong> · 
+                                <strong style="color: #4CAF50;">${currSym} ${(totalFreed / (1024*1024*1024) * effectiveCost * 12).toFixed(2)}/${isPt ? 'ano' : 'yr'}</strong>
+                            </span>
                         </div>` : `
                         <div style="margin-top: 8px; padding: 6px 10px; background: rgba(76,175,80,0.15); border-radius: 6px; font-size: 0.85em; color: #81c784;">
                             ✅ ${t('history.versionImpact.noVersionCost')}
@@ -7258,6 +7267,7 @@
                                 <th>${t('history.column.versionsProc')}</th>
                                 <th>${t('history.column.deleted')}</th>
                                 <th>${t('history.column.freed')}</th>
+                                <th>${isPt ? 'Economia/mês' : 'Savings/mo'}</th>
                                 <th>${t('history.column.cumulative')}</th>
                                 <th>${t('history.column.retention')}</th>
                             </tr>
@@ -7303,6 +7313,7 @@
                         <td>${formatNumber(exec.VersionsProcessed || 0)}</td>
                         <td class="highlight-cell">${formatNumber(exec.VersionsDeleted || 0)}</td>
                         <td class="highlight-cell-blue">${formatBytes(exec.StorageReleasedBytes || 0)}</td>
+                        <td style="color: #4CAF50; font-weight: 600;">${exec.StorageReleasedBytes > 0 ? currSym + ' ' + ((exec.StorageReleasedBytes / (1024*1024*1024)) * effectiveCost).toFixed(2) : '--'}</td>
                         <td class="highlight-cell-green">${formatBytes(cumFreed)}</td>
                         <td>${exec.RetentionManaged 
                             ? `<span class="retention-exec-badge" title="${(exec.RetentionPolicies || []).join(', ')}${exec.RetentionWaitMinutes ? ' | ' + exec.RetentionWaitMinutes + ' min wait' : ''}">🛡️ ${(exec.RetentionPolicies || []).length}p</span>` 

@@ -4,6 +4,39 @@ All notable changes to SPO Version Management are documented in this file.
 
 ---
 
+## v2.4.0.5 (2026-06-08)
+
+**Dashboard — Cost Savings Visibility & Version Recovery Metrics**
+
+### Added
+
+#### Execution History Table — Cost Savings Column
+- New **"Economia/mês" (Savings/mo)** column in the per-site execution history table
+- Shows the monthly cost saving for each execution based on `StorageReleasedBytes × configured cost/GB`
+- Respects user-configured currency (BRL or USD) and exchange rate from Settings
+- Displayed in green with bold styling for quick visual identification
+- Works retroactively — all historical executions show their cost impact
+
+#### "Versões Depois" Card — Recovery Percentage
+- The "Versions After" card now displays a green **(-X%)** indicator showing how much version storage was recovered relative to the original version size
+- Provides immediate visual feedback on cleanup effectiveness
+
+#### Version Impact Section — Cost Recovered Row
+- New green-styled row below the "cost still used" footer showing **total cost recovered** (monthly + annual)
+- Calculated from total freed bytes across all BatchDelete executions for the site
+- Helps customers understand the cumulative monetary value of version cleanup
+
+### Fixed
+- **Relative CSV path resolution**: `ResolveScopeCsvPath` in ExecutionPanel.cs now resolves relative paths (e.g., `IncludeSites.csv`) against `_config.RootPath` instead of failing with file-not-found
+- **Post-BatchDelete storage refresh**: `SPOVersionManagement.psm1` now calls `Get-SPOSite` after batch delete completion to get accurate `StorageAfterBytes`; uses fallback calculation if SPO hasn't updated yet
+- **Missing config directory on init**: `Initialize-SPOVersionManagement` now creates `ConfigPath` and `BackupPath` directories if they don't exist
+- **Installer RootPath overwrite**: `Install-SPOVersionManagement.ps1` no longer forces `RootPath` to the destination path, preserving user's existing configuration
+- **Dashboard timeline chart scale**: Fixed `VersionSize` being incorrectly multiplied by 1MB (value already in bytes)
+- **Dashboard formatBytes PB overflow**: Added PB unit and `Math.min` clamp to prevent `undefined` on very large values
+- **Scope badge refresh on change**: `SiteManagementPanel` now fires `ScopeChanged` event on AddToTarget/AddToSkip/SaveScopeList, triggering `RefreshScopeCountBadges` in ExecutionPanel
+
+---
+
 ## v2.4.0.4 (2026-06-02)
 
 **Execution Scope Management — Target Sites & Skip Sites UX Overhaul**
