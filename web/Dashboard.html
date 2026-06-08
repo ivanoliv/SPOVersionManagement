@@ -6524,10 +6524,10 @@
         }
         
         function formatBytes(bytes) {
-            if (!bytes || bytes === 0) return '0 B';
-            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            if (!bytes || bytes <= 0) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
             const k = 1024;
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), units.length - 1);
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + units[i];
         }
         
@@ -7420,7 +7420,7 @@
             // Add current data point if available
             if (currentSiteData && currentSiteData.StorageUsageCurrent > 0) {
                 const currentGB = (currentSiteData.StorageUsageCurrentMB || currentSiteData.StorageUsageCurrent || 0) / 1024;
-                const currentVersionBytes = (currentSiteData.VersionSize || currentSiteData.VersionSizeMB || 0) * 1024 * 1024;
+                const currentVersionBytes = currentSiteData.VersionSize || (currentSiteData.VersionSizeMB || 0) * 1024 * 1024;
                 const currentCost = currentGB * effectiveCostPerGBMonth;
                 const pctNow = tenantUsedGB > 0 ? ((currentGB / tenantUsedGB) * 100) : 0;
                 
