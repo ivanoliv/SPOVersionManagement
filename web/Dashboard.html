@@ -7046,6 +7046,12 @@
             }
             
             // Build content
+            const isPt = getCurrentLanguage() === 'pt';
+            const costPerGBMonth = parseFloat(document.getElementById('configCostPerGBMonthBRL')?.value) || 1.14;
+            const exchangeRate = getExchangeRate();
+            const effectiveCost = isPt ? costPerGBMonth * exchangeRate : costPerGBMonth;
+            const currSym = isPt ? 'R$' : '$';
+            
             let html = `
                 <div class="site-history-header">
                     <div class="site-history-url">${siteUrl}</div>
