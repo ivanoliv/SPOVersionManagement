@@ -1,6 +1,6 @@
 {
   "Version": "1.3",
-  "AppVersion": "2.4.0.5",
+  "AppVersion": "2.4.0.6",
   "Description": "Configuração centralizada de diretórios e arquivos da aplicação SPO Version Management",
   "LastModified": "2026-05-07T16:41:15.9967273Z",
   "RootPath": "",
@@ -38,25 +38,25 @@
     "DashboardScript": "Start-Dashboard.ps1"
   },
   "EntraIdApp": {
-    "TenantId": "5e61806d-fae5-4dee-a54c-279c7110d43a",
+    "TenantId": "",
     "ClientId": "",
     "CertificateThumbprint": ""
   },
   "PnPApp": {
-    "ClientId": "d623dce1-f285-47b2-a20d-0757b22ef14f",
+    "ClientId": "",
     "CertificateThumbprint": ""
   },
   "PurviewApp": {
     "ClientId": "",
     "CertificateThumbprint": "",
-    "Organization": "m365cpi95329477"
+    "Organization": ""
   },
   "GitHubRepo": "ivanoliv/SPOVersionManagement",
   "TelemetryEndpoint": "https://spo-telemetry-6406.azurewebsites.net",
   "TelemetryEnabled": true,
   "TelemetryConsentRequested": true,
   "TelemetryConsentRequestedAt": "2026-05-04T20:48:11.7253663Z",
-  "TelemetrySalt": "cdf7db9f51bd3e08b0fe12060f436fa8",
+  "TelemetrySalt": "",
   "RelativePaths": {
     "JobStatus": "./JobStatus.json",
     "TenantStorage": "./TenantStorage.json",
@@ -66,7 +66,9 @@
     "DashboardConfig": "./DashboardConfig.json",
     "ExecutionHistory": "./ExecutionHistory.csv",
     "SiteStorage": "./SiteStorage.csv",
-    "TenantStorageTimeline": "./TenantStorageTimeline.json"
+    "TenantStorageTimeline": "./TenantStorageTimeline.json",
+    "ArchiveAnalysis": "./ArchiveAnalysis.json",
+    "ArchiveQueue": "./ArchiveQueue.json"
   },
-  "AdminUrl": "https://M365CPI95329477-admin.sharepoint.com"
+  "AdminUrl": ""
 }

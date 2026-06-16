@@ -126,6 +126,7 @@ $script:IncludedSites = @()
 $script:ExcludedSites = @()
 $script:AllSitesCache = $null  # Cache for Get-SPOSite -Limit All to avoid duplicate calls
 $script:AllSitesCacheTime = $null
+$script:AllSitesJsonCache = $null  # In-memory cache for AllSites.json to avoid OOM on repeated loads
 
 # ── First-Run Initialization ─────────────────────────────────────
 # Ensure required directories and files exist on first run
@@ -1919,9 +1920,26 @@ function Update-TenantStorageStatus {
         if ($UseFileCache) {
             if (Test-Path $script:AllSitesFile) {
                 Write-Host "  [FILE CACHE] Loading sites from $($script:AllSitesFile)..." -ForegroundColor Cyan
-                $fileData = Get-Content $script:AllSitesFile -Raw | ConvertFrom-Json
-                $allSites = if ($fileData.Sites) { $fileData.Sites } else { $fileData }
-                Write-Host "    [OK] $($allSites.Count) sites loaded from file cache" -ForegroundColor Green
+                try {
+                    if (-not $script:AllSitesJsonCache) {
+                        $rawJson = [System.IO.File]::ReadAllText($script:AllSitesFile)
+                        $script:AllSitesJsonCache = $rawJson | ConvertFrom-Json
+                        $rawJson = $null
+                        [System.GC]::Collect()
+                    }
+                    $fileData = $script:AllSitesJsonCache
+                    $allSites = if ($fileData.Sites) { $fileData.Sites } else { $fileData }
+                    Write-Host "    [OK] $($allSites.Count) sites loaded from file cache" -ForegroundColor Green
+                }
+                catch [System.OutOfMemoryException] {
+                    Write-Warning "  [OOM] AllSites.json too large for memory. Falling back to Get-SPOSite..."
+                    $script:AllSitesJsonCache = $null
+                    [System.GC]::Collect()
+                    $allSites = Get-SPOSite -Limit All -ErrorAction Stop
+                    $script:AllSitesCache = $allSites
+                    $script:AllSitesCacheTime = Get-Date
+                    Write-Host "    [OK] $($allSites.Count) sites loaded from SPO (OOM fallback)" -ForegroundColor Yellow
+                }
             } else {
                 throw "File cache not found: $($script:AllSitesFile). Run Export-AllSitesStorage first to create the cache."
             }
@@ -2460,7 +2478,29 @@ function Get-AllTenantSites {
         if ($UseFileCache) {
             if (Test-Path $script:AllSitesFile) {
                 Write-Host "  [FILE CACHE] Loading sites from $($script:AllSitesFile) and filtering by inclusion list..." -ForegroundColor Cyan
-                $fileData = Get-Content $script:AllSitesFile -Raw | ConvertFrom-Json
+                try {
+                    if (-not $script:AllSitesJsonCache) {
+                        $rawJson = [System.IO.File]::ReadAllText($script:AllSitesFile)
+                        $script:AllSitesJsonCache = $rawJson | ConvertFrom-Json
+                        $rawJson = $null
+                        [System.GC]::Collect()
+                    }
+                    $fileData = $script:AllSitesJsonCache
+                } catch [System.OutOfMemoryException] {
+                    Write-Warning "  [OOM] AllSites.json too large. Falling back to Get-SPOSite per site..."
+                    $script:AllSitesJsonCache = $null
+                    [System.GC]::Collect()
+                    $fileData = $null
+                }
+                if (-not $fileData) {
+                    # OOM fallback: fetch each included site individually
+                    $allSites = @()
+                    foreach ($siteUrl in $includedSiteUrls) {
+                        try { $allSites += Get-SPOSite -Identity $siteUrl -Detailed -ErrorAction Stop } catch {}
+                    }
+                    Write-Host "    [OK] $($allSites.Count) sites loaded individually (OOM fallback)" -ForegroundColor Yellow
+                    return $allSites
+                }
                 $cachedSites = if ($fileData.Sites) { $fileData.Sites } else { $fileData }
                 Write-Host "    [OK] $($cachedSites.Count) total sites in cache" -ForegroundColor Green
                 
@@ -2535,9 +2575,26 @@ function Get-AllTenantSites {
     if ($UseFileCache) {
         if (Test-Path $script:AllSitesFile) {
             Write-Host "    [FILE CACHE] Loading sites from $($script:AllSitesFile)..." -ForegroundColor Cyan
-            $fileData = Get-Content $script:AllSitesFile -Raw | ConvertFrom-Json
-            $allSites = if ($fileData.Sites) { $fileData.Sites } else { $fileData }
-            Write-Host "    [OK] $($allSites.Count) sites loaded from file cache" -ForegroundColor Green
+            try {
+                if (-not $script:AllSitesJsonCache) {
+                    $rawJson = [System.IO.File]::ReadAllText($script:AllSitesFile)
+                    $script:AllSitesJsonCache = $rawJson | ConvertFrom-Json
+                    $rawJson = $null
+                    [System.GC]::Collect()
+                }
+                $fileData = $script:AllSitesJsonCache
+                $allSites = if ($fileData.Sites) { $fileData.Sites } else { $fileData }
+                Write-Host "    [OK] $($allSites.Count) sites loaded from file cache" -ForegroundColor Green
+            }
+            catch [System.OutOfMemoryException] {
+                Write-Warning "  [OOM] AllSites.json too large for memory. Falling back to Get-SPOSite..."
+                $script:AllSitesJsonCache = $null
+                [System.GC]::Collect()
+                $allSites = Get-SPOSite -Limit All -ErrorAction Stop
+                $script:AllSitesCache = $allSites
+                $script:AllSitesCacheTime = Get-Date
+                Write-Host "    [OK] $($allSites.Count) sites loaded from SPO (OOM fallback)" -ForegroundColor Yellow
+            }
         } else {
             throw "File cache not found: $($script:AllSitesFile). Run Export-AllSitesStorage first to create the cache."
         }
@@ -4759,10 +4816,15 @@ function Start-SPOVersionPolicyOrchestration {
                             $null = Save-SiteExecutionHistory -SiteUrl $job.SiteUrl -SiteTitle $job.SiteTitle -JobType $job.JobType -ExecutionData $execData
                             
                             # Update AllSites.json cache file for dashboard
+                            # Use in-memory cache if available to avoid OOM on large files (10k+ sites)
                             if (Test-Path $script:AllSitesFile) {
                                 try {
-                                    $allSitesData = Get-Content $script:AllSitesFile -Raw | ConvertFrom-Json
-                                    $siteEntry = $allSitesData.Sites | Where-Object { $_.Url -eq $job.SiteUrl }
+                                    if (-not $script:AllSitesJsonCache) {
+                                        # Load once into script-level cache to avoid repeated OOM
+                                        $rawJson = Read-JsonFileSafe -FilePath $script:AllSitesFile
+                                        $script:AllSitesJsonCache = $rawJson | ConvertFrom-Json
+                                    }
+                                    $siteEntry = $script:AllSitesJsonCache.Sites | Where-Object { $_.Url -eq $job.SiteUrl }
                                     if ($siteEntry) {
                                         $siteEntry.StorageUsageCurrent = $refreshedStorageMB
                                         $siteEntry.StorageUsageCurrentMB = $refreshedStorageMB
@@ -4771,9 +4833,14 @@ function Start-SPOVersionPolicyOrchestration {
                                         $siteEntry.VersionSizeMB = [math]::Round($refreshedVersionSize / 1MB, 2)
                                         $siteEntry.VersionSizeGB = [math]::Round($refreshedVersionSize / 1GB, 4)
                                         $siteEntry.VersionCount = if ($refreshedSite.VersionCount) { $refreshedSite.VersionCount } else { $siteEntry.VersionCount }
-                                        $allSitesData.LastUpdated = (Get-Date).ToString("o")
-                                        Write-JsonFileSafe -FilePath $script:AllSitesFile -Content ($allSitesData | ConvertTo-Json -Depth 10)
+                                        $script:AllSitesJsonCache.LastUpdated = (Get-Date).ToString("o")
+                                        Write-JsonFileSafe -FilePath $script:AllSitesFile -Content ($script:AllSitesJsonCache | ConvertTo-Json -Depth 10 -Compress)
                                     }
+                                }
+                                catch [System.OutOfMemoryException] {
+                                    Write-Warning "    [REFRESH] AllSites.json too large to update in-memory (OOM). Skipping cache update."
+                                    $script:AllSitesJsonCache = $null
+                                    [System.GC]::Collect()
                                 }
                                 catch { Write-Verbose "    [REFRESH] Could not update AllSites.json: $_" }
                             }
@@ -5070,7 +5137,9 @@ function Export-AllSitesDataForDashboard {
     if ($Upsert -and (Test-Path $script:AllSitesFile)) {
         Write-Host "  Loading existing data for merge (upsert)..." -ForegroundColor Cyan
         try {
-            $existingData = Get-Content $script:AllSitesFile -Raw | ConvertFrom-Json
+            $existingRaw = [System.IO.File]::ReadAllText($script:AllSitesFile)
+            $existingData = $existingRaw | ConvertFrom-Json
+            $existingRaw = $null
             if ($existingData.Sites) {
                 foreach ($site in $existingData.Sites) {
                     $normalizedUrl = $site.Url.TrimEnd("/").ToLower()

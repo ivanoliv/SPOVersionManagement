@@ -80,7 +80,18 @@ $startTime = Get-Date
 
 try {
     # Get all sites with details
-    $allSites = Get-SPOSite -Limit All -Detailed -WarningAction SilentlyContinue
+    $allSites = @(Get-SPOSite -Limit All -Detailed -WarningAction SilentlyContinue)
+    
+    # Get archived sites (not returned by default in Get-SPOSite -Limit All)
+    try {
+        $archivedSites = @(Get-SPOSite -Limit All -ArchiveStatus Archived -WarningAction SilentlyContinue -ErrorAction SilentlyContinue)
+        if ($archivedSites.Count -gt 0) {
+            Write-Host "  [+] $($archivedSites.Count) archived sites found" -ForegroundColor Yellow
+            $allSites = $allSites + $archivedSites
+        }
+    } catch {
+        Write-Host "  [INFO] -ArchiveStatus parameter not supported on this SPO module version" -ForegroundColor DarkGray
+    }
     
     $elapsed = (Get-Date) - $startTime
     Write-Host "[OK] $($allSites.Count) sites found in $($elapsed.TotalSeconds.ToString('N1')) seconds" -ForegroundColor Green

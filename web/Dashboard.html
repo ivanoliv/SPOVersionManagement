@@ -7047,9 +7047,10 @@
             
             // Build content
             const isPt = getCurrentLanguage() === 'pt';
-            const costPerGBMonth = parseFloat(document.getElementById('configCostPerGBMonthBRL')?.value) || 1.14;
-            const exchangeRate = getExchangeRate();
-            const effectiveCost = isPt ? costPerGBMonth * exchangeRate : costPerGBMonth;
+            const costPerGBMonth = isPt 
+                ? (parseFloat(document.getElementById('configCostPerGBMonthBRL')?.value) || 1.14)
+                : (parseFloat(document.getElementById('configCostPerGBMonthUSD')?.value) || 0.20);
+            const effectiveCost = costPerGBMonth;
             const currSym = isPt ? 'R$' : '$';
             
             let html = `
@@ -7194,9 +7195,10 @@
                     
                     // Cost calculation for version storage remaining
                     const isPt = getCurrentLanguage() === 'pt';
-                    const costPerGBMonth = parseFloat(document.getElementById('configCostPerGBMonthBRL')?.value) || 1.14;
-                    const exchangeRate = getExchangeRate();
-                    const effectiveCost = isPt ? costPerGBMonth * exchangeRate : costPerGBMonth;
+                    const costPerGBMonth = isPt 
+                        ? (parseFloat(document.getElementById('configCostPerGBMonthBRL')?.value) || 1.14)
+                        : (parseFloat(document.getElementById('configCostPerGBMonthUSD')?.value) || 0.20);
+                    const effectiveCost = costPerGBMonth;
                     const currSym = isPt ? 'R$' : '$';
                     const versionSizeAfterGB = latestVersionSizeAfter / (1024 * 1024 * 1024);
                     const versionCostMonth = versionSizeAfterGB * effectiveCost;
@@ -7387,11 +7389,11 @@
             const isPt = locale === 'pt';
             
             // Get cost settings
-            const costPerGBMonth = parseFloat(document.getElementById('configCostPerGBMonthBRL')?.value) || 1.14;
-            const exchangeRate = getExchangeRate();
-            const showBRL = isPt;
-            const currencySymbol = showBRL ? 'R$' : '$';
-            const effectiveCostPerGBMonth = showBRL ? costPerGBMonth * exchangeRate : costPerGBMonth;
+            const costPerGBMonth = isPt 
+                ? (parseFloat(document.getElementById('configCostPerGBMonthBRL')?.value) || 1.14)
+                : (parseFloat(document.getElementById('configCostPerGBMonthUSD')?.value) || 0.20);
+            const currencySymbol = isPt ? 'R$' : '$';
+            const effectiveCostPerGBMonth = costPerGBMonth;
             
             // Get tenant totals for percentage calculation
             const tenantUsedGB = cachedTenantStorage?.TenantUsedGB || cachedTenantStorage?.StorageUsedGB || 0;
@@ -12493,9 +12495,10 @@
         // Helper function to get file path (for fetch - always relative)
         function getFilePath(fileName) {
             // Para Dashboard HTML, sempre usar caminhos relativos
+            // Priority: RelativePaths > Files > default with .json extension
             return (appPaths.RelativePaths && appPaths.RelativePaths[fileName]) 
-                   || appPaths.Files[fileName] 
-                   || fileName + '.json';
+                   || (appPaths.Files && appPaths.Files[fileName])
+                   || './' + fileName + '.json';
         }
         
         // Helper function to get full file path (for display)

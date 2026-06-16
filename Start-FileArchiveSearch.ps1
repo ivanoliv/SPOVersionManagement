@@ -416,6 +416,23 @@ if (-not $SummaryOnly) {
 $siteJsonPath = Join-Path $OutputPath "site_$siteHash.json"
 $siteResult | ConvertTo-Json -Depth 5 -Compress | Set-Content -Path $siteJsonPath -Encoding UTF8
 
+# Export CSV (tab-delimited) alongside JSON — force all columns even if null
+$siteCsvPath = Join-Path $OutputPath "site_$siteHash.csv"
+if ($siteResult.Files -and $siteResult.Files.Count -gt 0) {
+    $allColumns = @(
+        'Category','WebUrl','FileUrl','FileSizeMB','FileExtension','Created',
+        'LastModified','LastModifiedForRetention','Title',
+        'ViewsLifeTime','ViewsLifeTimeUniqueUsers','ViewsRecent','ViewsRecentUniqueUsers',
+        'ViewsLastMonths1','ViewsLastMonths1Unique','ViewsLastMonths2','ViewsLastMonths2Unique',
+        'ViewsLastMonths3','ViewsLastMonths3Unique',
+        'ViewsLast1Days','ViewsLast1DaysUniqueUsers','ViewsLast7Days','ViewsLast7DaysUniqueUsers',
+        'SnapshotDate'
+    )
+    $siteResult.Files | ForEach-Object { [PSCustomObject]$_ } | Select-Object $allColumns |
+        Export-Csv -Path $siteCsvPath -NoTypeInformation -Encoding UTF8 -Delimiter "`t"
+    Write-Host "  CSV exported: $siteCsvPath ($($siteResult.Files.Count) rows)" -ForegroundColor Green
+}
+
 # ── Update index ──────────────────────────────────────────────────
 $indexPath = Join-Path $OutputPath "index.json"
 $index = @{ Sites = @() }
