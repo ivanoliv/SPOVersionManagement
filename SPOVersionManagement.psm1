@@ -126,6 +126,7 @@ $script:IncludedSites = @()
 $script:ExcludedSites = @()
 $script:AllSitesCache = $null  # Cache for Get-SPOSite -Limit All to avoid duplicate calls
 $script:AllSitesCacheTime = $null
+$script:AllSitesJsonCache = $null  # In-memory cache for AllSites.json to avoid OOM on repeated loads
 
 # ── First-Run Initialization ─────────────────────────────────────
 # Ensure required directories and files exist on first run
@@ -4759,10 +4760,15 @@ function Start-SPOVersionPolicyOrchestration {
                             $null = Save-SiteExecutionHistory -SiteUrl $job.SiteUrl -SiteTitle $job.SiteTitle -JobType $job.JobType -ExecutionData $execData
                             
                             # Update AllSites.json cache file for dashboard
+                            # Use in-memory cache if available to avoid OOM on large files (10k+ sites)
                             if (Test-Path $script:AllSitesFile) {
                                 try {
-                                    $allSitesData = Get-Content $script:AllSitesFile -Raw | ConvertFrom-Json
-                                    $siteEntry = $allSitesData.Sites | Where-Object { $_.Url -eq $job.SiteUrl }
+                                    if (-not $script:AllSitesJsonCache) {
+                                        # Load once into script-level cache to avoid repeated OOM
+                                        $rawJson = Read-JsonFileSafe -FilePath $script:AllSitesFile
+                                        $script:AllSitesJsonCache = $rawJson | ConvertFrom-Json
+                                    }
+                                    $siteEntry = $script:AllSitesJsonCache.Sites | Where-Object { $_.Url -eq $job.SiteUrl }
                                     if ($siteEntry) {
                                         $siteEntry.StorageUsageCurrent = $refreshedStorageMB
                                         $siteEntry.StorageUsageCurrentMB = $refreshedStorageMB
@@ -4771,9 +4777,14 @@ function Start-SPOVersionPolicyOrchestration {
                                         $siteEntry.VersionSizeMB = [math]::Round($refreshedVersionSize / 1MB, 2)
                                         $siteEntry.VersionSizeGB = [math]::Round($refreshedVersionSize / 1GB, 4)
                                         $siteEntry.VersionCount = if ($refreshedSite.VersionCount) { $refreshedSite.VersionCount } else { $siteEntry.VersionCount }
-                                        $allSitesData.LastUpdated = (Get-Date).ToString("o")
-                                        Write-JsonFileSafe -FilePath $script:AllSitesFile -Content ($allSitesData | ConvertTo-Json -Depth 10)
+                                        $script:AllSitesJsonCache.LastUpdated = (Get-Date).ToString("o")
+                                        Write-JsonFileSafe -FilePath $script:AllSitesFile -Content ($script:AllSitesJsonCache | ConvertTo-Json -Depth 10 -Compress)
                                     }
+                                }
+                                catch [System.OutOfMemoryException] {
+                                    Write-Warning "    [REFRESH] AllSites.json too large to update in-memory (OOM). Skipping cache update."
+                                    $script:AllSitesJsonCache = $null
+                                    [System.GC]::Collect()
                                 }
                                 catch { Write-Verbose "    [REFRESH] Could not update AllSites.json: $_" }
                             }

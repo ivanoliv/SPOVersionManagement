@@ -918,8 +918,18 @@ namespace SPOVersionManagement.Controls
             return result ?? string.Empty;
         }
 
+        private bool _togglingDeleteMode;
         private void ToggleDeleteMode()
         {
+            if (_togglingDeleteMode) return;
+            _togglingDeleteMode = true;
+
+            // Radio buttons are in separate panels — enforce mutual exclusion manually
+            if (_rbDeleteByCount.Checked)
+                _rbDeleteByAge.Checked = false;
+            else if (_rbDeleteByAge.Checked)
+                _rbDeleteByCount.Checked = false;
+
             bool byCount = _rbDeleteByCount.Checked;
             _nudMajorVer.Enabled = byCount;
             _nudMinorVer.Enabled = byCount;
@@ -932,6 +942,8 @@ namespace SPOVersionManagement.Controls
 
             SetGroupInputState(_deleteByCountGroup, byCount);
             SetGroupInputState(_deleteByAgeGroup, !byCount);
+
+            _togglingDeleteMode = false;
         }
 
         private void SetGroupInputState(Panel group, bool enabled)

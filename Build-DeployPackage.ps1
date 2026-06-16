@@ -63,6 +63,7 @@ $rootFiles = @(
     "Build-DeployPackage.ps1",
     "Import-SamInactiveSites.ps1",
     "Start-ArchiveWebsites.ps1",
+    "Start-FileArchiveSearch.ps1",
     "IncludeSites.csv",
     "ExcludeSites.csv",
     "README.md",

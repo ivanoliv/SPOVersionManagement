@@ -4,6 +4,21 @@ All notable changes to SPO Version Management are documented in this file.
 
 ---
 
+## v2.4.0.6 (2026-06-16)
+
+**Stability & Large Tenant Fixes**
+
+### Fixed
+- **OutOfMemoryException on large tenants (10k+ sites)**: AllSites.json was being loaded from disk on every job completion, causing OOM in PS 5.1. Now loads once into memory cache and mutates in-place, with explicit OOM catch and GC fallback
+- **Delete mode radio buttons not mutually exclusive**: "Delete by version count" and "Delete by age" could both be selected simultaneously because they live in separate WinForms panels. Added reentrancy-guarded mutual exclusion logic
+- **CSV export missing View columns**: File Archive Explorer CSV now uses explicit `Select-Object` with all 24 columns (ViewsLastMonths1, ViewsLastMonths2, ViewsLast7Days, etc.) to ensure null values still appear as columns
+
+### Changed
+- AllSites.json writes now use `-Compress` flag to reduce file size for large tenants
+- File Archive CSV uses `Read-JsonFileSafe` (stream reader) for shared file access
+
+---
+
 ## v2.4.0.5 (2026-06-08)
 
 **Dashboard — Cost Savings Visibility & Version Recovery Metrics**
