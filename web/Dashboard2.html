@@ -507,6 +507,91 @@
 
         .wizard-panel { display: none; }
         .wizard-panel.active { display: block; animation: fadeIn 0.3s ease-out; }
+
+        /* ========== Tab Bar ========== */
+        .tab-bar { display: flex; gap: 2px; margin-bottom: 16px; background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 4px; overflow-x: auto; }
+        .tab-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border: none; background: transparent; color: var(--text-muted); font-size: 12px; font-weight: 500; cursor: pointer; border-radius: 6px; white-space: nowrap; transition: all var(--transition); }
+        .tab-btn:hover { color: var(--text-primary); background: var(--bg-card); }
+        .tab-btn.active { color: var(--accent); background: var(--bg-sidebar-active); }
+        .tab-btn svg { stroke-width: 1.8; }
+        .settings-tab-content { display: none; }
+        .settings-tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
+
+        /* ========== Breadcrumb ========== */
+        .breadcrumb { display: flex; align-items: center; gap: 6px; margin-bottom: 16px; font-size: 12px; }
+        .breadcrumb-item { color: var(--text-muted); cursor: pointer; }
+        .breadcrumb-item:hover { color: var(--text-primary); }
+        .breadcrumb-item.active { color: var(--text-primary); cursor: default; }
+        .breadcrumb-sep { color: var(--text-muted); }
+
+        /* ========== Field Styles ========== */
+        .field-group { margin-bottom: 0; }
+        .field-label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
+        .field-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .field-info { cursor: pointer; font-size: 14px; vertical-align: middle; margin-left: 4px; }
+
+        /* ========== Radio Card ========== */
+        .radio-card-group { display: grid; gap: 8px; }
+        .radio-card { display: flex; align-items: flex-start; gap: 10px; padding: 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: all var(--transition); }
+        .radio-card:hover { border-color: var(--accent); }
+        .radio-card:has(input:checked) { border-color: var(--accent); background: var(--bg-sidebar-active); }
+        .radio-card input { margin-top: 3px; }
+        .radio-card-content { flex: 1; }
+        .radio-card-content strong { font-size: 13px; display: block; }
+        .radio-card-content p { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .radio-card.compact { padding: 10px 14px; }
+        .radio-card.compact .radio-card-content strong { display: inline; }
+
+        /* ========== Inline Docs ========== */
+        .inline-doc { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); border-radius: var(--radius-sm); padding: 14px; margin-top: 12px; font-size: 12px; color: var(--text-secondary); line-height: 1.7; }
+        .inline-doc strong { color: var(--text-primary); }
+        .inline-doc ul { padding-left: 16px; margin-top: 6px; }
+        .inline-doc a { color: var(--accent); }
+
+        /* ========== Permission Box ========== */
+        .permission-box { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--radius-sm); padding: 12px; font-size: 12px; margin-top: 8px; }
+        .permission-box strong { color: var(--yellow); }
+        .permission-box ul { padding-left: 16px; margin-top: 6px; }
+        .permission-box code { background: var(--bg-secondary); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+        /* ========== Conditional Panel ========== */
+        .conditional-panel { margin-top: 16px; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+        .conditional-panel-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+
+        /* ========== Option Row ========== */
+        .option-row { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: all var(--transition); }
+        .option-row:hover { border-color: var(--accent); }
+        .option-row input { margin-top: 3px; }
+        .option-content { flex: 1; }
+        .option-content strong { font-size: 13px; }
+        .option-content p { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+        /* ========== Page TOC (right sidebar) ========== */
+        .page-toc { position: sticky; top: 24px; }
+        .page-toc-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); display: block; margin-bottom: 8px; }
+        .page-toc ul { list-style: none; }
+        .page-toc li { padding: 4px 0; }
+        .page-toc a { font-size: 12px; color: var(--text-secondary); text-decoration: none; }
+        .page-toc a:hover { color: var(--accent); }
+
+        /* ========== Code Block ========== */
+        .code-block { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+        .code-block-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-card); border-bottom: 1px solid var(--border); font-size: 11px; color: var(--text-muted); }
+
+        /* ========== Highlight Boxes ========== */
+        .highlight-box { padding: 16px; border-radius: var(--radius-sm); font-size: 12px; color: var(--text-secondary); }
+        .highlight-box strong { display: block; margin-bottom: 4px; }
+        .highlight-box.green { background: rgba(16,185,129,0.1); border: 1px solid var(--green); }
+        .highlight-box.green strong { color: var(--green); }
+        .highlight-box.blue { background: rgba(59,130,246,0.1); border: 1px solid var(--accent); }
+        .highlight-box.blue strong { color: var(--accent); }
+
+        /* ========== Nav Footer Bar ========== */
+        .nav-footer-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; margin-top: 16px; border-top: 1px solid var(--border); }
+
+        /* ========== Doc Link ========== */
+        .doc-link { font-size: 12px; color: var(--accent); text-decoration: none; }
+        .doc-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -1232,6 +1317,7 @@
         // Trigger page-specific renders
         if (route === 'optimize') renderOptimize();
         if (route === 'sites') renderSites();
+        if (route === 'settings') settingsTab('connection');
     }
 
     // ===== Sidebar =====
@@ -1697,17 +1783,43 @@
     }
 
     // ===== Configuration Wizard =====
+    function settingsTab(tab) {
+        document.querySelectorAll('.settings-tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        const panel = document.getElementById('settingsTab-' + tab);
+        if (panel) panel.classList.add('active');
+        const btn = document.querySelector('.tab-btn[data-tab="' + tab + '"]');
+        if (btn) btn.classList.add('active');
+        // Update breadcrumb
+        const names = { connection:'Connection', scope:'Scope', policy:'Policy', options:'Options', run:'Run', dashboard:'Dashboard' };
+        document.getElementById('settingsSubBreadcrumb').textContent = names[tab] ? '›' : '';
+        document.getElementById('settingsSubName').textContent = names[tab] || '';
+    }
+
+    function showAuthFields(type) {
+        const el = document.getElementById('cfgCertFields');
+        if (el) el.style.display = type === 'certificate' ? 'block' : 'none';
+    }
+
+    function toggleDoc(id) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function copyCfgForLLM() {
+        const cmd = document.getElementById('cfgGeneratedCommand').textContent;
+        const context = `# SPO Version Management - Execution Configuration\n# Generated: ${new Date().toISOString()}\n# Dashboard: http://localhost:8080/Dashboard2.html#/settings\n\n${cmd}\n\n# Documentation: https://ivanoliv.github.io/SPOVersionManagement/guides/tool-manual/`;
+        navigator.clipboard.writeText(context).then(() => alert('Copied with full context for LLM!'));
+    }
+
+    // i18n placeholder (to be expanded)
+    const i18n = { 'en-US': {}, 'pt-BR': {}, 'es': {} };
+    let currentLang = 'en-US';
+    function setLanguage(lang) { currentLang = lang; /* TODO: translate page */ }
+
     function cfgNext(step) {
-        document.querySelectorAll('#page-settings .wizard-panel').forEach(p => p.classList.remove('active'));
-        document.getElementById('cfgStep' + step).classList.add('active');
-        document.getElementById('configStepBadge').textContent = 'Step ' + step + ' of 5';
-        // Update indicators
-        for (let i = 1; i <= 5; i++) {
-            const ind = document.getElementById('cfgStep' + i + 'Ind');
-            ind.classList.remove('active', 'done');
-            if (i < step) ind.classList.add('done');
-            else if (i === step) ind.classList.add('active');
-        }
+        const tabs = ['connection','scope','policy','options','run'];
+        if (step >= 1 && step <= 5) settingsTab(tabs[step-1]);
     }
 
     function updateCfgPolicy() {
@@ -1783,13 +1895,14 @@
           .catch(() => alert('Could not save. Ensure the dashboard server is running.'));
     }
 
-    // Show/hide cert fields based on auth selection
+    // Show/hide conditional fields based on selections
     document.addEventListener('change', (e) => {
         if (e.target.name === 'cfgAuth') {
-            document.getElementById('cfgCertFields').style.display = e.target.value === 'certificate' ? 'block' : 'none';
+            showAuthFields(e.target.value);
         }
         if (e.target.name === 'cfgScope') {
-            document.getElementById('cfgCsvPath').style.display = e.target.value === 'csv' ? 'block' : 'none';
+            const el = document.getElementById('cfgCsvPath');
+            if (el) el.style.display = e.target.value === 'csv' ? 'block' : 'none';
         }
     });
 
