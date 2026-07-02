@@ -1,0 +1,1924 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPO Investment Optimizer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
+    <style>
+        /* ========== CSS Variables & Reset ========== */
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2235;
+            --bg-card-hover: #1f2a40;
+            --bg-sidebar: #0d1321;
+            --bg-sidebar-active: rgba(59, 130, 246, 0.15);
+            --border: #1e293b;
+            --border-glow: rgba(59, 130, 246, 0.3);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --green: #10b981;
+            --green-glow: rgba(16, 185, 129, 0.2);
+            --yellow: #f59e0b;
+            --yellow-glow: rgba(245, 158, 11, 0.2);
+            --red: #ef4444;
+            --red-glow: rgba(239, 68, 68, 0.2);
+            --purple: #8b5cf6;
+            --cyan: #06b6d4;
+            --sidebar-width: 260px;
+            --sidebar-collapsed: 64px;
+            --header-height: 56px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* ========== Sidebar ========== */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: width var(--transition);
+            z-index: 100;
+            position: fixed;
+            left: 0;
+            top: 0;
+        }
+
+        .sidebar.collapsed { width: var(--sidebar-collapsed); }
+        .sidebar.collapsed .nav-label,
+        .sidebar.collapsed .sidebar-header-text,
+        .sidebar.collapsed .nav-section-title,
+        .sidebar.collapsed .sidebar-footer-text { display: none; }
+        .sidebar.collapsed .sidebar-header { justify-content: center; padding: 16px 8px; }
+        .sidebar.collapsed .nav-item { justify-content: center; padding: 12px 0; }
+        .sidebar.collapsed .nav-item svg { margin-right: 0; }
+
+        .sidebar-header {
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .sidebar-logo svg { width: 20px; height: 20px; stroke: white; fill: none; }
+
+        .sidebar-header-text h1 {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            white-space: nowrap;
+        }
+
+        .sidebar-header-text .version {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 8px;
+        }
+
+        .nav-section-title {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            padding: 16px 12px 6px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 14px;
+            margin: 2px 0;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--bg-sidebar-active);
+            color: var(--accent);
+            border-left: 3px solid var(--accent);
+        }
+
+        .nav-item svg {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            flex-shrink: 0;
+            stroke-width: 1.8;
+        }
+
+        .nav-label { white-space: nowrap; }
+
+        .nav-badge {
+            margin-left: auto;
+            background: var(--accent);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
+
+        .sidebar-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-toggle {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+        }
+
+        .sidebar-toggle:hover { background: var(--bg-card); color: var(--text-primary); }
+
+        /* ========== Main Content ========== */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            transition: margin-left var(--transition);
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed ~ .main-content { margin-left: var(--sidebar-collapsed); }
+
+        .header {
+            height: var(--header-height);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            flex-shrink: 0;
+        }
+
+        .header-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-badge {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .header-badge.live {
+            background: var(--green-glow);
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .page-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        /* ========== Cards ========== */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: all var(--transition);
+        }
+
+        .card:hover {
+            border-color: var(--border-glow);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .card-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-icon svg { width: 18px; height: 18px; }
+
+        .card-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            letter-spacing: -1px;
+        }
+
+        .card-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .card-value.green { color: var(--green); }
+        .card-value.yellow { color: var(--yellow); }
+        .card-value.red { color: var(--red); }
+        .card-value.accent { color: var(--accent); }
+
+        /* ========== Sections ========== */
+        .section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .section-body { padding: 20px; }
+
+        /* ========== Action Items ========== */
+        .action-list { list-style: none; }
+
+        .action-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            transition: background var(--transition);
+        }
+
+        .action-item:last-child { border-bottom: none; }
+        .action-item:hover { background: var(--bg-card-hover); }
+
+        .action-priority {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 14px;
+            flex-shrink: 0;
+        }
+
+        .action-priority.high { background: var(--red); box-shadow: 0 0 8px var(--red-glow); }
+        .action-priority.medium { background: var(--yellow); box-shadow: 0 0 8px var(--yellow-glow); }
+        .action-priority.low { background: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+
+        .action-text { flex: 1; }
+        .action-text .action-title { font-size: 13px; font-weight: 500; }
+        .action-text .action-detail { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+        .action-value {
+            text-align: right;
+            margin-left: 16px;
+        }
+
+        .action-value .money { font-size: 14px; font-weight: 700; color: var(--green); }
+        .action-value .effort { font-size: 11px; color: var(--text-muted); }
+
+        /* ========== Gauge ========== */
+        .gauge-container {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 16px;
+        }
+
+        .gauge-ring {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+
+        .gauge-ring svg { transform: rotate(-90deg); }
+
+        .gauge-ring .gauge-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .gauge-info { flex: 1; }
+        .gauge-info .gauge-label { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+        .gauge-info .gauge-description { font-size: 12px; color: var(--text-muted); }
+
+        /* ========== Treemap ========== */
+        .treemap-container {
+            width: 100%;
+            height: 320px;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+
+        .treemap-container rect { stroke: var(--bg-primary); stroke-width: 2px; }
+        .treemap-container text { fill: white; font-size: 11px; font-weight: 500; }
+
+        /* ========== Page: Hidden by default ========== */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* ========== Responsive ========== */
+        @media (max-width: 1024px) {
+            .sidebar { width: var(--sidebar-collapsed); }
+            .sidebar .nav-label, .sidebar .sidebar-header-text,
+            .sidebar .nav-section-title { display: none; }
+            .main-content { margin-left: var(--sidebar-collapsed); }
+        }
+
+        /* ========== Scrollbar ========== */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* ========== Animations ========== */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .page.active { animation: fadeIn 0.3s ease-out; }
+
+        /* ========== Data Table ========== */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .data-table th {
+            text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);
+            border-bottom: 1px solid var(--border); cursor: pointer; user-select: none;
+            position: sticky; top: 0; background: var(--bg-card); z-index: 1;
+        }
+        .data-table th:hover { color: var(--text-primary); }
+        .data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .data-table tr:hover td { background: var(--bg-card-hover); }
+        .data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+        .data-table .site-name { font-weight: 500; color: var(--accent); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .data-table .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+        .data-table .tag-green { background: var(--green-glow); color: var(--green); }
+        .data-table .tag-yellow { background: var(--yellow-glow); color: var(--yellow); }
+        .data-table .tag-red { background: var(--red-glow); color: var(--red); }
+
+        .table-wrapper { max-height: 500px; overflow-y: auto; }
+
+        /* ========== Search & Filters ========== */
+        .search-bar {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+        }
+        .search-input {
+            flex: 1; padding: 10px 14px; background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none;
+            transition: border-color var(--transition);
+        }
+        .search-input:focus { border-color: var(--accent); }
+        .search-input::placeholder { color: var(--text-muted); }
+
+        .btn {
+            padding: 8px 16px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
+            border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary);
+            cursor: pointer; transition: all var(--transition); white-space: nowrap;
+        }
+        .btn:hover { background: var(--bg-card-hover); border-color: var(--accent); }
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        /* ========== Progress Bar ========== */
+        .progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+        /* ========== Scenario Slider ========== */
+        .slider-container { margin: 16px 0; }
+        .slider-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+        input[type="range"] {
+            width: 100%; -webkit-appearance: none; height: 6px; background: var(--border);
+            border-radius: 3px; outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+            background: var(--accent); cursor: pointer; box-shadow: 0 2px 8px rgba(59,130,246,0.4);
+        }
+
+        /* ========== Chart containers ========== */
+        .chart-container { position: relative; height: 240px; }
+
+        /* ========== Wizard Steps ========== */
+        .wizard-step {
+            flex: 1; padding: 10px 12px; text-align: center; font-size: 11px; font-weight: 600;
+            background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px;
+            color: var(--text-muted); transition: all var(--transition);
+        }
+        .wizard-step.active { background: var(--bg-sidebar-active); border-color: var(--accent); color: var(--accent); }
+        .wizard-step.done { background: var(--green-glow); border-color: var(--green); color: var(--green); }
+
+        .wizard-panel { display: none; }
+        .wizard-panel.active { display: block; animation: fadeIn 0.3s ease-out; }
+    </style>
+</head>
+<body>
+    <!-- ========== SIDEBAR ========== -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="sidebar-header-text">
+                <h1>SPO Optimizer</h1>
+                <div class="version" id="appVersion">v2.4.0.6</div>
+            </div>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Intelligence</div>
+            <a class="nav-item active" data-route="overview" href="#/overview">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                <span class="nav-label">Overview</span>
+            </a>
+            <a class="nav-item" data-route="optimize" href="#/optimize">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"/></svg>
+                <span class="nav-label">Storage Optimizer</span>
+            </a>
+            <a class="nav-item" data-route="governance" href="#/governance">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span class="nav-label">Governance</span>
+            </a>
+            <a class="nav-item" data-route="copilot" href="#/copilot">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a7 7 0 0 1 7 7c0 3-2 5.5-4 7l-1 4h-4l-1-4c-2-1.5-4-4-4-7a7 7 0 0 1 7-7z"/><line x1="10" y1="22" x2="14" y2="22"/></svg>
+                <span class="nav-label">Copilot Readiness</span>
+            </a>
+
+            <div class="nav-section-title">Operations</div>
+            <a class="nav-item" data-route="sites" href="#/sites">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                <span class="nav-label">Site Catalog</span>
+            </a>
+            <a class="nav-item" data-route="execution" href="#/execution">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span class="nav-label">Execution</span>
+            </a>
+            <a class="nav-item" data-route="files" href="#/files">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span class="nav-label">File Intelligence</span>
+            </a>
+            <a class="nav-item" data-route="archive" href="#/archive">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                <span class="nav-label">Archive</span>
+            </a>
+
+            <div class="nav-section-title">Monitoring</div>
+            <a class="nav-item" data-route="history" href="#/history">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span class="nav-label">History</span>
+            </a>
+            <a class="nav-item" data-route="settings" href="#/settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span class="nav-label">Settings</span>
+            </a>
+        </div>
+
+        <div class="sidebar-footer">
+            <button class="sidebar-toggle" onclick="toggleSidebar()">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+            </button>
+            <span class="sidebar-footer-text" style="font-size:11px; color:var(--text-muted)">Collapse</span>
+        </div>
+    </nav>
+
+    <!-- ========== MAIN ========== -->
+    <div class="main-content">
+        <header class="header">
+            <h2 class="header-title" id="pageTitle">Investment Overview</h2>
+            <div class="header-actions">
+                <span class="header-badge" id="tenantBadge">Tenant: --</span>
+                <span class="header-badge live" id="statusBadge">● Live</span>
+                <span class="header-badge" id="lastUpdate">Updated: --</span>
+            </div>
+        </header>
+
+        <div class="page-content">
+            <!-- ===== PAGE: OVERVIEW ===== -->
+            <div class="page active" id="page-overview">
+                <div class="card-grid" id="investmentCards">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-label">Recovered (saved)</span>
+                            <div class="card-icon" style="background:var(--green-glow)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+                            </div>
+                        </div>
+                        <div class="card-value green" id="cardRecovered">--</div>
+                        <div class="card-subtitle" id="cardRecoveredLicenses">-- Copilot licenses equivalent</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-label">Still Wasting</span>
+                            <div class="card-icon" style="background:var(--yellow-glow)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            </div>
+                        </div>
+                        <div class="card-value yellow" id="cardWasting">--</div>
+                        <div class="card-subtitle" id="cardWastingLicenses">-- licenses burning</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-label">Growth Bleeding</span>
+                            <div class="card-icon" style="background:var(--red-glow)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg>
+                            </div>
+                        </div>
+                        <div class="card-value red" id="cardGrowth">--</div>
+                        <div class="card-subtitle" id="cardGrowthLicenses">-- licenses/month bleeding</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-label">Conversion Potential</span>
+                            <div class="card-icon" style="background:rgba(139,92,246,0.15)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                            </div>
+                        </div>
+                        <div class="card-value accent" id="cardPotential">--</div>
+                        <div class="card-subtitle" id="cardPotentialDetail">total waste → licenses</div>
+                    </div>
+                </div>
+
+                <!-- Storage Treemap -->
+                <div class="section">
+                    <div class="section-header">
+                        <span class="section-title">Where Is Money Going?</span>
+                        <span style="font-size:11px; color:var(--text-muted)">Sized by cost waste • Colored by recoverability</span>
+                    </div>
+                    <div class="section-body">
+                        <div class="treemap-container" id="storageTreemap"></div>
+                    </div>
+                </div>
+
+                <!-- Action Center + Maturity side-by-side -->
+                <div style="display:grid; grid-template-columns: 1fr 380px; gap: 16px;">
+                    <!-- Action Center -->
+                    <div class="section">
+                        <div class="section-header">
+                            <span class="section-title">Action Center (sorted by ROI)</span>
+                        </div>
+                        <ul class="action-list" id="actionList">
+                            <li class="action-item">
+                                <span class="action-priority high"></span>
+                                <div class="action-text">
+                                    <div class="action-title">Loading actions...</div>
+                                    <div class="action-detail">Analyzing data</div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Maturity Gauges -->
+                    <div class="section">
+                        <div class="section-header">
+                            <span class="section-title">Maturity Score</span>
+                        </div>
+                        <div class="section-body" id="maturityGauges">
+                            <div class="gauge-container">
+                                <div class="gauge-ring" id="gaugeStorage"></div>
+                                <div class="gauge-info">
+                                    <div class="gauge-label">Storage Health</div>
+                                    <div class="gauge-description">Version policy, cleanup, lifecycle</div>
+                                </div>
+                            </div>
+                            <div class="gauge-container">
+                                <div class="gauge-ring" id="gaugeGovernance"></div>
+                                <div class="gauge-info">
+                                    <div class="gauge-label">Governance</div>
+                                    <div class="gauge-description">Purview, SAM, permissions</div>
+                                </div>
+                            </div>
+                            <div class="gauge-container">
+                                <div class="gauge-ring" id="gaugeCopilot"></div>
+                                <div class="gauge-info">
+                                    <div class="gauge-label">Copilot Ready</div>
+                                    <div class="gauge-description">Data quality for AI grounding</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== PAGE: OPTIMIZE ===== -->
+            <div class="page" id="page-optimize">
+                <div class="card-grid">
+                    <div class="card"><div class="card-header"><span class="card-label">Tenant Quota</span></div><div class="card-value accent" id="optQuota">--</div><div class="card-subtitle">Allocated storage</div></div>
+                    <div class="card"><div class="card-header"><span class="card-label">Currently Used</span></div><div class="card-value" id="optUsed">--</div><div class="card-subtitle" id="optUsedPct">--% of quota</div></div>
+                    <div class="card"><div class="card-header"><span class="card-label">Versions (reducible)</span></div><div class="card-value yellow" id="optVersions">--</div><div class="card-subtitle" id="optVersionsPct">--% of used storage</div></div>
+                    <div class="card"><div class="card-header"><span class="card-label">Total Freed</span></div><div class="card-value green" id="optFreed">--</div><div class="card-subtitle" id="optFreedCost">$-- saved annually</div></div>
+                </div>
+
+                <!-- Version Reduction Simulator -->
+                <div class="section">
+                    <div class="section-header"><span class="section-title">Version Reduction Simulator</span></div>
+                    <div class="section-body">
+                        <div class="slider-container">
+                            <div class="slider-label">
+                                <span>Keep <strong id="simVersionCount">5</strong> versions per file</span>
+                                <span id="simSavings">Estimated savings: --</span>
+                            </div>
+                            <input type="range" id="versionSlider" min="1" max="10" value="5" oninput="updateVersionSimulator(this.value)">
+                            <div class="slider-label" style="margin-top:4px">
+                                <span style="color:var(--red)">1 (aggressive)</span>
+                                <span style="color:var(--green)">10 (conservative)</span>
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:20px;">
+                            <div class="card" style="border-color:var(--yellow)">
+                                <div class="card-label">Storage Freed</div>
+                                <div class="card-value yellow" id="simStorageFreed" style="font-size:22px">--</div>
+                            </div>
+                            <div class="card" style="border-color:var(--green)">
+                                <div class="card-label">Annual Savings</div>
+                                <div class="card-value green" id="simCostSaved" style="font-size:22px">--</div>
+                            </div>
+                            <div class="card" style="border-color:var(--purple)">
+                                <div class="card-label">Copilot Licenses</div>
+                                <div class="card-value" id="simLicenses" style="font-size:22px; color:var(--purple)">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Storage Composition -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <div class="section">
+                        <div class="section-header"><span class="section-title">Storage Composition</span></div>
+                        <div class="section-body">
+                            <div class="chart-container"><canvas id="storageCompositionChart"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="section-header"><span class="section-title">Growth Forecast (6 months)</span></div>
+                        <div class="section-body">
+                            <div class="chart-container"><canvas id="growthForecastChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Sites by waste -->
+                <div class="section">
+                    <div class="section-header"><span class="section-title">Top 15 Sites by Version Waste (cost impact)</span></div>
+                    <div class="section-body">
+                        <div class="table-wrapper">
+                            <table class="data-table" id="topWasteSitesTable">
+                                <thead><tr><th>Site</th><th class="num">Storage</th><th class="num">Versions</th><th class="num">Ver %</th><th class="num">Annual Waste</th></tr></thead>
+                                <tbody id="topWasteSitesBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== PAGE: GOVERNANCE ===== -->
+            <div class="page" id="page-governance">
+                <div class="section">
+                    <div class="section-header"><span class="section-title">Governance Maturity Assessment</span></div>
+                    <div class="section-body"><p style="color:var(--text-muted)">Coming soon — Purview retention policies, sensitivity labels, SAM policies, oversharing reports</p></div>
+                </div>
+            </div>
+
+            <!-- ===== PAGE: COPILOT ===== -->
+            <div class="page" id="page-copilot">
+                <div class="section">
+                    <div class="section-header"><span class="section-title">Copilot Readiness Score</span></div>
+                    <div class="section-body"><p style="color:var(--text-muted)">Coming soon — data quality scoring, stale content detection, oversharing risk, agent grounding recommendations</p></div>
+                </div>
+            </div>
+
+            <!-- ===== PAGE: SITES ===== -->
+            <div class="page" id="page-sites">
+                <div class="card-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="card"><div class="card-label">Total Sites</div><div class="card-value accent" id="sitesTotal">--</div></div>
+                    <div class="card"><div class="card-label">Total Storage</div><div class="card-value" id="sitesStorage">--</div></div>
+                    <div class="card"><div class="card-label">Avg Version %</div><div class="card-value yellow" id="sitesAvgVer">--</div></div>
+                    <div class="card"><div class="card-label">Sites Over 100GB</div><div class="card-value red" id="sitesOver100">--</div></div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <span class="section-title">Site Catalog</span>
+                        <span style="font-size:11px; color:var(--text-muted)" id="sitesShowing">Showing -- sites</span>
+                    </div>
+                    <div class="section-body" style="padding:12px 16px 0">
+                        <div class="search-bar">
+                            <input type="text" class="search-input" id="siteSearch" placeholder="Search by site name or URL..." oninput="filterSites()">
+                            <button class="btn" onclick="sortSites('storageGB')">Sort: Storage</button>
+                            <button class="btn" onclick="sortSites('versionPct')">Sort: Version %</button>
+                            <button class="btn" onclick="sortSites('wasteCost')">Sort: Waste $</button>
+                            <button class="btn btn-primary" onclick="exportSitesCsv()">Export CSV</button>
+                        </div>
+                    </div>
+                    <div class="table-wrapper" style="max-height:calc(100vh - 340px)">
+                        <table class="data-table" id="siteCatalogTable">
+                            <thead><tr>
+                                <th onclick="sortSites('title')">Site</th>
+                                <th class="num" onclick="sortSites('storageGB')">Storage</th>
+                                <th class="num" onclick="sortSites('versionGB')">Versions</th>
+                                <th class="num" onclick="sortSites('versionPct')">Ver %</th>
+                                <th class="num" onclick="sortSites('versionCount')">Ver Count</th>
+                                <th class="num" onclick="sortSites('wasteCost')">Annual Waste</th>
+                                <th>Template</th>
+                            </tr></thead>
+                            <tbody id="siteCatalogBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== PAGE: EXECUTION ===== -->
+            <div class="page" id="page-execution">
+                <div class="section">
+                    <div class="section-header"><span class="section-title">Execution Monitor</span></div>
+                    <div class="section-body"><p style="color:var(--text-muted)">Coming soon — real-time job monitoring, queue status</p></div>
+                </div>
+            </div>
+
+            <!-- ===== PAGE: FILES ===== -->
+            <div class="page" id="page-files">
+                <div class="section">
+                    <div class="section-header"><span class="section-title">File Intelligence</span></div>
+                    <div class="section-body"><p style="color:var(--text-muted)">Coming soon — tenant-wide file type analysis, extension breakdown, cost by file category</p></div>
+                </div>
+            </div>
+
+            <!-- ===== PAGE: ARCHIVE ===== -->
+            <div class="page" id="page-archive">
+                <!-- Archive Wizard Steps -->
+                <div class="section">
+                    <div class="section-header">
+                        <span class="section-title">Archive Wizard</span>
+                        <div style="display:flex;gap:8px;">
+                            <span class="header-badge" id="archiveStepBadge">Step 1 of 4</span>
+                            <span class="header-badge" id="archiveQueueCount">Queue: 0 sites</span>
+                        </div>
+                    </div>
+                    <div class="section-body">
+                        <!-- Step indicators -->
+                        <div style="display:flex;gap:4px;margin-bottom:24px;">
+                            <div class="wizard-step active" data-step="1" id="archStep1Indicator">1. Identify</div>
+                            <div class="wizard-step" data-step="2" id="archStep2Indicator">2. Select</div>
+                            <div class="wizard-step" data-step="3" id="archStep3Indicator">3. Review</div>
+                            <div class="wizard-step" data-step="4" id="archStep4Indicator">4. Execute</div>
+                        </div>
+
+                        <!-- Step 1: Identify candidates -->
+                        <div class="wizard-panel active" id="archiveStep1">
+                            <h3 style="margin-bottom:12px;">Identify Archive Candidates</h3>
+                            <p style="color:var(--text-secondary);margin-bottom:16px;">Find sites that haven't been used recently and are consuming storage. These are candidates for archival.</p>
+                            
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
+                                <div>
+                                    <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Inactive threshold (days)</label>
+                                    <input type="number" class="search-input" id="archInactiveDays" value="180" style="width:100%">
+                                </div>
+                                <div>
+                                    <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Minimum storage (GB)</label>
+                                    <input type="number" class="search-input" id="archMinStorage" value="1" style="width:100%">
+                                </div>
+                                <div>
+                                    <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Max sites to show</label>
+                                    <input type="number" class="search-input" id="archMaxResults" value="100" style="width:100%">
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="findArchiveCandidates()">Find Candidates</button>
+                            
+                            <div id="archiveCandidatesResult" style="margin-top:16px;"></div>
+                        </div>
+
+                        <!-- Step 2: Select sites -->
+                        <div class="wizard-panel" id="archiveStep2">
+                            <h3 style="margin-bottom:12px;">Select Sites to Archive</h3>
+                            <p style="color:var(--text-secondary);margin-bottom:16px;">Check the sites you want to add to the archive queue. You can select all or pick individually.</p>
+                            
+                            <div style="margin-bottom:12px;display:flex;gap:8px;">
+                                <button class="btn" onclick="archiveSelectAll()">Select All</button>
+                                <button class="btn" onclick="archiveDeselectAll()">Deselect All</button>
+                                <span style="margin-left:auto;font-size:12px;color:var(--text-secondary)" id="archiveSelectedCount">0 selected</span>
+                            </div>
+                            <div class="table-wrapper" style="max-height:350px;" id="archiveCandidatesTable"></div>
+                            <div style="margin-top:16px;display:flex;gap:8px;">
+                                <button class="btn" onclick="archiveGoToStep(1)">← Back</button>
+                                <button class="btn btn-primary" onclick="archiveAddToQueue()">Add to Queue →</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Review queue -->
+                        <div class="wizard-panel" id="archiveStep3">
+                            <h3 style="margin-bottom:12px;">Review Archive Queue</h3>
+                            <p style="color:var(--text-secondary);margin-bottom:16px;">These sites will be archived. Archiving sets the site to read-only and moves content to cold storage.</p>
+                            
+                            <div class="card-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px;">
+                                <div class="card"><div class="card-label">Sites in Queue</div><div class="card-value accent" id="archQueueSiteCount">0</div></div>
+                                <div class="card"><div class="card-label">Storage to Archive</div><div class="card-value yellow" id="archQueueStorage">0 GB</div></div>
+                                <div class="card"><div class="card-label">Annual Savings</div><div class="card-value green" id="archQueueSavings">$0</div></div>
+                            </div>
+                            <div class="table-wrapper" style="max-height:250px;" id="archiveQueueTable"></div>
+                            <div style="margin-top:16px;display:flex;gap:8px;">
+                                <button class="btn" onclick="archiveGoToStep(2)">← Back</button>
+                                <button class="btn" onclick="archiveClearQueue()">Clear Queue</button>
+                                <button class="btn btn-primary" onclick="archiveSaveAndProceed()">Save Queue & Continue →</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Execute -->
+                        <div class="wizard-panel" id="archiveStep4">
+                            <h3 style="margin-bottom:12px;">Execute Archival</h3>
+                            <p style="color:var(--text-secondary);margin-bottom:16px;">The queue has been saved to <code>config/ArchiveQueue.json</code>. Run the following command to start archiving:</p>
+                            
+                            <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin:16px 0;font-family:monospace;font-size:13px;position:relative;">
+                                <code id="archiveCommand">.\Start-ArchiveWebsites.ps1</code>
+                                <button class="btn" style="position:absolute;top:8px;right:8px;font-size:10px;" onclick="copyArchiveCommand()">Copy</button>
+                            </div>
+                            
+                            <div style="background:rgba(59,130,246,0.1);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:16px;margin-top:16px;">
+                                <strong style="color:var(--accent);">What happens next:</strong>
+                                <ul style="margin-top:8px;padding-left:20px;color:var(--text-secondary);font-size:13px;line-height:1.8;">
+                                    <li>Sites will be set to <strong>ReadOnly</strong> first</li>
+                                    <li>Content moves to cold storage (may take hours for large sites)</li>
+                                    <li>Users can still view content but cannot edit</li>
+                                    <li>Storage quota is freed after migration completes</li>
+                                    <li>Sites can be reactivated later if needed</li>
+                                </ul>
+                            </div>
+                            <div style="margin-top:16px;">
+                                <button class="btn" onclick="archiveGoToStep(3)">← Back</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== PAGE: HISTORY ===== -->
+            <div class="page" id="page-history">
+                <div class="section">
+                    <div class="section-header"><span class="section-title">Execution History</span></div>
+                    <div class="section-body"><p style="color:var(--text-muted)">Coming soon — session history, per-site execution records</p></div>
+                </div>
+            </div>
+
+            <!-- ===== PAGE: SETTINGS ===== -->
+            <div class="page" id="page-settings">
+                <div class="section">
+                    <div class="section-header">
+                        <span class="section-title">Execution Configuration Wizard</span>
+                        <span class="header-badge" id="configStepBadge">Step 1 of 5</span>
+                    </div>
+                    <div class="section-body">
+                        <!-- Step indicators -->
+                        <div style="display:flex;gap:4px;margin-bottom:24px;">
+                            <div class="wizard-step active" id="cfgStep1Ind">1. Connect</div>
+                            <div class="wizard-step" id="cfgStep2Ind">2. Scope</div>
+                            <div class="wizard-step" id="cfgStep3Ind">3. Policy</div>
+                            <div class="wizard-step" id="cfgStep4Ind">4. Options</div>
+                            <div class="wizard-step" id="cfgStep5Ind">5. Run</div>
+                        </div>
+
+                        <!-- Step 1: Connection -->
+                        <div class="wizard-panel active" id="cfgStep1">
+                            <h3 style="margin-bottom:12px;">Connection Settings</h3>
+                            <p style="color:var(--text-secondary);margin-bottom:16px;">Configure how to connect to your SharePoint Online tenant.</p>
+                            
+                            <div style="display:grid;gap:16px;max-width:600px;">
+                                <div>
+                                    <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Admin URL *</label>
+                                    <input type="text" class="search-input" id="cfgAdminUrl" placeholder="https://contoso-admin.sharepoint.com" style="width:100%">
+                                </div>
+                                <div>
+                                    <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Authentication Method</label>
+                                    <div style="display:flex;gap:12px;margin-top:8px;">
+                                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-primary);">
+                                            <input type="radio" name="cfgAuth" value="interactive" checked> Interactive (browser login)
+                                        </label>
+                                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-primary);">
+                                            <input type="radio" name="cfgAuth" value="certificate"> Certificate (unattended)
+                                        </label>
+                                    </div>
+                                </div>
+                                <div id="cfgCertFields" style="display:none;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-sm);">
+                                    <div style="display:grid;gap:12px;">
+                                        <div><label style="font-size:11px;color:var(--text-muted);">Tenant ID</label><input type="text" class="search-input" id="cfgTenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="width:100%"></div>
+                                        <div><label style="font-size:11px;color:var(--text-muted);">Client ID</label><input type="text" class="search-input" id="cfgClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="width:100%"></div>
+                                        <div><label style="font-size:11px;color:var(--text-muted);">Certificate Thumbprint</label><input type="text" class="search-input" id="cfgThumbprint" placeholder="AABBCCDD..." style="width:100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="margin-top:20px;"><button class="btn btn-primary" onclick="cfgNext(2)">Continue →</button></div>
+                        </div>
+
+                        <!-- Step 2: Scope -->
+                        <div class="wizard-panel" id="cfgStep2">
+                            <h3 style="margin-bottom:12px;">Target Scope</h3>
+                            <p style="color:var(--text-secondary);margin-bottom:16px;">Define which sites to process.</p>
+                            
+                            <div style="display:grid;gap:12px;max-width:600px;">
+                                <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-sm);cursor:pointer;border:1px solid var(--border);">
+                                    <input type="radio" name="cfgScope" value="all" checked style="margin-top:3px">
+                                    <div><strong style="font-size:13px;">All Sites</strong><br><span style="font-size:11px;color:var(--text-muted)">Process every site in the tenant (respects exclusion list)</span></div>
+                                </label>
+                                <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-sm);cursor:pointer;border:1px solid var(--border);">
+                                    <input type="radio" name="cfgScope" value="csv" style="margin-top:3px">
+                                    <div><strong style="font-size:13px;">From CSV File</strong><br><span style="font-size:11px;color:var(--text-muted)">Only process sites listed in a CSV (column: Url)</span></div>
+                                </label>
+                                <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-sm);cursor:pointer;border:1px solid var(--border);">
+                                    <input type="radio" name="cfgScope" value="target" style="margin-top:3px">
+                                    <div><strong style="font-size:13px;">Target List (from Site Catalog)</strong><br><span style="font-size:11px;color:var(--text-muted)">Use the sites marked as "Target" in the dashboard Site Catalog</span></div>
+                                </label>
+                                <div id="cfgCsvPath" style="display:none;">
+                                    <label style="font-size:11px;color:var(--text-muted);">CSV file path</label>
+                                    <input type="text" class="search-input" id="cfgInclusionCsv" placeholder="C:\path\to\IncludeSites.csv" style="width:100%">
+                                </div>
+                                <div>
+                                    <label style="font-size:11px;color:var(--text-muted);">Exclusion CSV (optional — sites to skip)</label>
+                                    <input type="text" class="search-input" id="cfgExclusionCsv" placeholder="C:\path\to\ExcludeSites.csv (optional)" style="width:100%">
+                                </div>
+                            </div>
+                            <div style="margin-top:20px;display:flex;gap:8px;">
+                                <button class="btn" onclick="cfgNext(1)">← Back</button>
+                                <button class="btn btn-primary" onclick="cfgNext(3)">Continue →</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Policy -->
+                        <div class="wizard-panel" id="cfgStep3">
+                            <h3 style="margin-bottom:12px;">Version Policy</h3>
+                            <p style="color:var(--text-secondary);margin-bottom:16px;">Set how many versions to keep per file. Lower = more storage freed.</p>
+                            
+                            <div style="max-width:600px;">
+                                <div class="slider-container">
+                                    <div class="slider-label">
+                                        <span>Major Version Limit: <strong id="cfgMajorLabel">5</strong></span>
+                                        <span id="cfgMajorImpact" style="color:var(--green)"></span>
+                                    </div>
+                                    <input type="range" id="cfgMajorSlider" min="1" max="20" value="5" oninput="updateCfgPolicy()">
+                                    <div class="slider-label" style="margin-top:4px">
+                                        <span style="color:var(--red);font-size:10px">1 (max savings, risk)</span>
+                                        <span style="color:var(--text-muted);font-size:10px">20 (conservative)</span>
+                                    </div>
+                                </div>
+                                <div class="slider-container" style="margin-top:16px;">
+                                    <div class="slider-label">
+                                        <span>Minor Version Limit: <strong id="cfgMinorLabel">5</strong></span>
+                                    </div>
+                                    <input type="range" id="cfgMinorSlider" min="1" max="20" value="5" oninput="updateCfgPolicy()">
+                                </div>
+
+                                <div style="background:rgba(245,158,11,0.1);border:1px solid var(--yellow);border-radius:var(--radius-sm);padding:12px;margin-top:16px;">
+                                    <strong style="color:var(--yellow);font-size:12px;">Recommendation:</strong>
+                                    <p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">
+                                        • <strong>5 versions</strong> — Safe for most organizations (default)<br>
+                                        • <strong>3 versions</strong> — Good balance for storage-constrained tenants<br>
+                                        • <strong>2 versions</strong> — Aggressive, recommended only after initial cleanup<br>
+                                        • <strong>1 version</strong> — Maximum savings, no rollback capability
+                                    </p>
+                                </div>
+                            </div>
+                            <div style="margin-top:20px;display:flex;gap:8px;">
+                                <button class="btn" onclick="cfgNext(2)">← Back</button>
+                                <button class="btn btn-primary" onclick="cfgNext(4)">Continue →</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Options -->
+                        <div class="wizard-panel" id="cfgStep4">
+                            <h3 style="margin-bottom:12px;">Execution Options</h3>
+                            <p style="color:var(--text-secondary);margin-bottom:16px;">Configure how the execution will run.</p>
+                            
+                            <div style="display:grid;gap:16px;max-width:600px;">
+                                <div>
+                                    <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Execution Mode</label>
+                                    <div style="display:grid;gap:8px;margin-top:8px;">
+                                        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                                            <input type="radio" name="cfgMode" value="full" checked> <strong>Full</strong> — Sync policy + Delete versions
+                                        </label>
+                                        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                                            <input type="radio" name="cfgMode" value="sync"> <strong>Sync Only</strong> — Set version limit (no deletion)
+                                        </label>
+                                        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                                            <input type="radio" name="cfgMode" value="delete"> <strong>Delete Only</strong> — Delete excess versions (policy already set)
+                                        </label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Concurrent Jobs: <strong id="cfgJobsLabel">10</strong></label>
+                                    <input type="range" id="cfgJobsSlider" min="1" max="30" value="10" oninput="document.getElementById('cfgJobsLabel').textContent=this.value">
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:8px;">
+                                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                                        <input type="checkbox" id="cfgUnattended"> <strong>Unattended</strong> — No interactive prompts (auto-confirm all)
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                                        <input type="checkbox" id="cfgUseCache"> <strong>Use File Cache</strong> — Skip re-exporting sites (faster restart)
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                                        <input type="checkbox" id="cfgManageRetention"> <strong>Manage Retention</strong> — Auto-suspend holds that block deletion
+                                    </label>
+                                </div>
+                            </div>
+                            <div style="margin-top:20px;display:flex;gap:8px;">
+                                <button class="btn" onclick="cfgNext(3)">← Back</button>
+                                <button class="btn btn-primary" onclick="cfgGenerate()">Generate Command →</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 5: Generated Command -->
+                        <div class="wizard-panel" id="cfgStep5">
+                            <h3 style="margin-bottom:12px;">Ready to Run!</h3>
+                            <p style="color:var(--text-secondary);margin-bottom:16px;">Copy and paste this command into PowerShell to start execution:</p>
+                            
+                            <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:20px;font-family:'Cascadia Code',monospace;font-size:12px;line-height:1.8;position:relative;overflow-x:auto;">
+                                <code id="cfgGeneratedCommand" style="white-space:pre-wrap;color:var(--cyan);"></code>
+                                <button class="btn" style="position:absolute;top:8px;right:8px;font-size:10px;" onclick="copyCfgCommand()">Copy</button>
+                            </div>
+
+                            <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                                <div style="background:rgba(16,185,129,0.1);border:1px solid var(--green);border-radius:var(--radius-sm);padding:16px;">
+                                    <strong style="color:var(--green);font-size:12px;">Quick Run (saved profile)</strong>
+                                    <p style="font-size:11px;color:var(--text-secondary);margin-top:8px;">Profile saved to <code>config/ExecutionProfile.json</code>. Next time just run:</p>
+                                    <code style="display:block;margin-top:8px;font-size:12px;color:var(--cyan);">.\Start-SPOVersionManagement.ps1 -Profile default</code>
+                                </div>
+                                <div style="background:rgba(59,130,246,0.1);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:16px;">
+                                    <strong style="color:var(--accent);font-size:12px;">Schedule (optional)</strong>
+                                    <p style="font-size:11px;color:var(--text-secondary);margin-top:8px;">To run automatically on a schedule, use the Task Scheduler in the Windows app or set up a Windows Scheduled Task.</p>
+                                </div>
+                            </div>
+
+                            <div style="margin-top:20px;display:flex;gap:8px;">
+                                <button class="btn" onclick="cfgNext(4)">← Back</button>
+                                <button class="btn btn-primary" onclick="cfgSaveProfile()">Save Profile</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Config Section -->
+                <div class="section" style="margin-top:16px;">
+                    <div class="section-header"><span class="section-title">Dashboard Settings</span></div>
+                    <div class="section-body">
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;max-width:800px;">
+                            <div>
+                                <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Cost per GB/month (USD)</label>
+                                <input type="number" class="search-input" id="cfgCostPerGB" value="0.20" step="0.01" style="width:100%" onchange="updateDashConfig()">
+                            </div>
+                            <div>
+                                <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Copilot License (USD/month)</label>
+                                <input type="number" class="search-input" id="cfgCopilotCost" value="30" style="width:100%" onchange="updateDashConfig()">
+                            </div>
+                            <div>
+                                <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Growth rate (TB/month)</label>
+                                <input type="number" class="search-input" id="cfgGrowthRate" value="6.6" step="0.1" style="width:100%" onchange="updateDashConfig()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== JAVASCRIPT ========== -->
+    <script>
+    // ===== Configuration =====
+    const CONFIG = {
+        costPerGBMonth: 0.20,      // USD per GB/month overage
+        copilotLicenseCostMonth: 30, // USD per Copilot license/month
+        refreshInterval: 5000,
+        currency: 'USD',
+        currencySymbol: '$'
+    };
+
+    // ===== State =====
+    let tenantStorage = null;
+    let allSitesData = null;
+    let executionHistory = null;
+    let currentRoute = 'overview';
+
+    // ===== Router =====
+    function initRouter() {
+        window.addEventListener('hashchange', handleRoute);
+        handleRoute();
+    }
+
+    function handleRoute() {
+        const hash = window.location.hash || '#/overview';
+        const route = hash.replace('#/', '') || 'overview';
+        navigateTo(route);
+    }
+
+    function navigateTo(route) {
+        currentRoute = route;
+
+        // Update pages
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        const page = document.getElementById('page-' + route);
+        if (page) page.classList.add('active');
+
+        // Update nav
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.route === route);
+        });
+
+        // Update header title
+        const titles = {
+            overview: 'Investment Overview',
+            optimize: 'Storage Optimizer',
+            governance: 'Governance Maturity',
+            copilot: 'Copilot Readiness',
+            sites: 'Site Catalog',
+            execution: 'Execution Monitor',
+            files: 'File Intelligence',
+            archive: 'Archive Management',
+            history: 'Execution History',
+            settings: 'Settings'
+        };
+        document.getElementById('pageTitle').textContent = titles[route] || route;
+
+        // Trigger page-specific renders
+        if (route === 'optimize') renderOptimize();
+        if (route === 'sites') renderSites();
+    }
+
+    // ===== Sidebar =====
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+    }
+
+    // ===== Data Loading =====
+    async function loadData() {
+        try {
+            // Load TenantStorage
+            const tsResp = await fetch('./TenantStorage.json?t=' + Date.now());
+            if (tsResp.ok) {
+                const newTs = await tsResp.json();
+                // Only re-render if data changed
+                if (!tenantStorage || newTs.LastUpdated !== tenantStorage.LastUpdated) {
+                    tenantStorage = newTs;
+                    renderOverview();
+                    if (currentRoute === 'optimize') renderOptimize();
+                }
+            }
+
+            // Load AppPaths for version (once)
+            if (!document.getElementById('appVersion').dataset.loaded) {
+                const apResp = await fetch('./AppPaths.json?t=' + Date.now());
+                if (apResp.ok) {
+                    const ap = await apResp.json();
+                    if (ap.AppVersion) {
+                        document.getElementById('appVersion').textContent = 'v' + ap.AppVersion;
+                        document.getElementById('appVersion').dataset.loaded = '1';
+                    }
+                }
+            }
+
+            // Load execution history
+            const ehResp = await fetch('./SiteExecutionHistory.json?t=' + Date.now());
+            if (ehResp.ok) {
+                const newEh = await ehResp.json();
+                if (JSON.stringify(Object.keys(newEh || {})) !== JSON.stringify(Object.keys(executionHistory || {}))) {
+                    executionHistory = newEh;
+                    renderOverview();
+                }
+            }
+
+            // Load AllSites (only once — large file)
+            if (!allSitesData) {
+                const asResp = await fetch('./AllSites.json?t=' + Date.now());
+                if (asResp.ok) {
+                    allSitesData = await asResp.json();
+                    loadSitesData();
+                }
+            }
+        } catch (e) {
+            console.error('Data load error:', e);
+        }
+    }
+
+    // ===== Rendering: Overview =====
+    function renderOverview() {
+        if (!tenantStorage) return;
+
+        const ts = tenantStorage;
+        const quotaGB = ts.TenantQuotaGB || 0;
+        const usedGB = ts.StorageUsedGB || 0;
+        const overageGB = Math.max(0, usedGB - quotaGB);
+        const versionGB = ts.TotalVersionSizeGB || 0;
+
+        // Calculate financials
+        const overageCostYear = overageGB * CONFIG.costPerGBMonth * 12;
+        const copilotLicenseYear = CONFIG.copilotLicenseCostMonth * 12;
+        const wasteLicenses = Math.round(overageCostYear / copilotLicenseYear);
+
+        // Calculate freed (from execution history)
+        let freedGB = 0;
+        if (executionHistory) {
+            Object.values(executionHistory).forEach(site => {
+                freedGB += (parseInt(site.TotalStorageReleasedBytes || 0)) / (1024*1024*1024);
+            });
+        }
+        const freedCostYear = freedGB * CONFIG.costPerGBMonth * 12;
+        const freedLicenses = Math.round(freedCostYear / copilotLicenseYear);
+
+        // Growth estimate (from version % — rough estimate)
+        const growthTBMonth = 6.6; // TODO: calculate from TenantStorageTimeline
+        const growthCostYear = growthTBMonth * 1024 * CONFIG.costPerGBMonth * 12;
+        const growthLicensesMonth = Math.round((growthTBMonth * 1024 * CONFIG.costPerGBMonth) / CONFIG.copilotLicenseCostMonth);
+
+        // Total potential
+        const totalWasteYear = overageCostYear + growthCostYear;
+        const totalLicenses = Math.round(totalWasteYear / copilotLicenseYear);
+
+        // Render cards
+        document.getElementById('cardRecovered').textContent = formatCurrency(freedCostYear) + '/yr';
+        document.getElementById('cardRecoveredLicenses').textContent = freedLicenses + ' Copilot licenses equivalent';
+
+        document.getElementById('cardWasting').textContent = formatCurrency(overageCostYear) + '/yr';
+        document.getElementById('cardWastingLicenses').textContent = wasteLicenses + ' licenses burning';
+
+        document.getElementById('cardGrowth').textContent = formatCurrency(growthCostYear) + '/yr';
+        document.getElementById('cardGrowthLicenses').textContent = growthLicensesMonth + ' licenses/month bleeding';
+
+        document.getElementById('cardPotential').textContent = totalLicenses + ' licenses';
+        document.getElementById('cardPotentialDetail').textContent = formatCurrency(totalWasteYear) + '/yr total waste convertible';
+
+        // Update header
+        document.getElementById('lastUpdate').textContent = 'Updated: ' + new Date(ts.LastUpdated).toLocaleString();
+
+        // Render treemap
+        renderTreemap(ts, versionGB, overageGB);
+
+        // Render actions
+        renderActions(overageCostYear, versionGB, freedGB);
+
+        // Render gauges
+        renderGauge('gaugeStorage', 78, 'var(--green)');
+        renderGauge('gaugeGovernance', 45, 'var(--yellow)');
+        renderGauge('gaugeCopilot', 62, 'var(--accent)');
+    }
+
+    // ===== Treemap =====
+    function renderTreemap(ts, versionGB, overageGB) {
+        const container = document.getElementById('storageTreemap');
+        container.innerHTML = '';
+        const width = container.clientWidth;
+        const height = container.clientHeight || 320;
+
+        const data = {
+            name: 'Storage',
+            children: [
+                { name: 'Versions', value: versionGB, color: '#f59e0b', recoverable: true },
+                { name: 'Active Content', value: (ts.StorageUsedGB || 0) - versionGB - overageGB, color: '#3b82f6', recoverable: false },
+                { name: 'Overage Cost', value: overageGB, color: '#ef4444', recoverable: true },
+            ].filter(d => d.value > 0)
+        };
+
+        const root = d3.hierarchy(data).sum(d => d.value);
+        d3.treemap().size([width, height]).padding(3)(root);
+
+        const svg = d3.select(container).append('svg').attr('width', width).attr('height', height);
+
+        const nodes = svg.selectAll('g').data(root.leaves()).enter().append('g')
+            .attr('transform', d => `translate(${d.x0},${d.y0})`);
+
+        nodes.append('rect')
+            .attr('width', d => d.x1 - d.x0)
+            .attr('height', d => d.y1 - d.y0)
+            .attr('rx', 4)
+            .attr('fill', d => d.data.color)
+            .attr('opacity', 0.85);
+
+        nodes.append('text')
+            .attr('x', 8).attr('y', 20)
+            .text(d => d.data.name)
+            .attr('font-weight', '600');
+
+        nodes.append('text')
+            .attr('x', 8).attr('y', 38)
+            .text(d => formatStorage(d.data.value))
+            .attr('opacity', 0.8)
+            .attr('font-size', '10px');
+
+        nodes.filter(d => d.data.recoverable).append('text')
+            .attr('x', 8).attr('y', 54)
+            .text(d => '💰 ' + formatCurrency(d.data.value * CONFIG.costPerGBMonth * 12) + '/yr')
+            .attr('font-size', '10px')
+            .attr('opacity', 0.7);
+    }
+
+    // ===== Action Center =====
+    function renderActions(overageCostYear, versionGB, freedGB) {
+        const actions = [
+            { priority: 'high', title: 'Reduce versions to 2 (all sites)', detail: 'Removes ~55% of remaining version storage', save: versionGB * 0.55 * CONFIG.costPerGBMonth * 12, effort: '1 day' },
+            { priority: 'high', title: 'Address growth rate (+6.6 TB/mo)', detail: 'Identify uploaders, set quotas, move bulk data', save: 6.6 * 1024 * CONFIG.costPerGBMonth * 12 * 0.5, effort: 'Ongoing' },
+            { priority: 'medium', title: 'Archive inactive sites', detail: 'Sites not modified in 180+ days', save: overageCostYear * 0.2, effort: '1 week' },
+            { priority: 'medium', title: 'Clear recycle bins (tenant-wide)', detail: 'Delete items in 1st and 2nd stage recycle bins', save: 800, effort: '1 hour' },
+            { priority: 'low', title: 'Move .pbix/.mp4 to Azure Blob', detail: 'Large static files cheaper on Blob vs SPO', save: overageCostYear * 0.15, effort: '2 weeks' },
+        ].sort((a, b) => b.save - a.save);
+
+        const list = document.getElementById('actionList');
+        list.innerHTML = actions.map(a => `
+            <li class="action-item">
+                <span class="action-priority ${a.priority}"></span>
+                <div class="action-text">
+                    <div class="action-title">${a.title}</div>
+                    <div class="action-detail">${a.detail}</div>
+                </div>
+                <div class="action-value">
+                    <div class="money">${formatCurrency(a.save)}/yr</div>
+                    <div class="effort">${a.effort}</div>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    // ===== Gauge =====
+    function renderGauge(containerId, value, color) {
+        const container = document.getElementById(containerId);
+        const radius = 32;
+        const circumference = 2 * Math.PI * radius;
+        const offset = circumference - (value / 100) * circumference;
+
+        container.innerHTML = `
+            <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="${radius}" fill="none" stroke="var(--border)" stroke-width="6"/>
+                <circle cx="40" cy="40" r="${radius}" fill="none" stroke="${color}" stroke-width="6"
+                    stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
+                    stroke-linecap="round"/>
+            </svg>
+            <span class="gauge-value" style="color:${color}">${value}</span>
+        `;
+    }
+
+    // ===== Utilities =====
+    function formatCurrency(value) {
+        if (value >= 1000000) return CONFIG.currencySymbol + (value / 1000000).toFixed(1) + 'M';
+        if (value >= 1000) return CONFIG.currencySymbol + (value / 1000).toFixed(0) + 'K';
+        return CONFIG.currencySymbol + Math.round(value);
+    }
+
+    function formatStorage(gb) {
+        if (gb >= 1024) return (gb / 1024).toFixed(1) + ' TB';
+        return Math.round(gb) + ' GB';
+    }
+
+    // ===== Init =====
+    let sitesData = [];
+    let sitesSortKey = 'storageGB';
+    let sitesSortDir = -1;
+    let storageCompositionChart = null;
+    let growthForecastChart = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initRouter();
+        loadData();
+        setInterval(loadData, CONFIG.refreshInterval);
+
+        // Nav click handlers
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const route = item.dataset.route;
+                window.location.hash = '#/' + route;
+            });
+        });
+    });
+
+    // ===== Rendering: Optimize Page =====
+    function renderOptimize() {
+        if (!tenantStorage) return;
+        const ts = tenantStorage;
+        const quotaGB = ts.TenantQuotaGB || 0;
+        const usedGB = ts.StorageUsedGB || 0;
+        const versionGB = ts.TotalVersionSizeGB || 0;
+        const usedPct = quotaGB > 0 ? ((usedGB / quotaGB) * 100).toFixed(1) : 0;
+        const verPct = usedGB > 0 ? ((versionGB / usedGB) * 100).toFixed(1) : 0;
+
+        document.getElementById('optQuota').textContent = formatStorage(quotaGB);
+        document.getElementById('optUsed').textContent = formatStorage(usedGB);
+        document.getElementById('optUsedPct').textContent = usedPct + '% of quota';
+        document.getElementById('optVersions').textContent = formatStorage(versionGB);
+        document.getElementById('optVersionsPct').textContent = verPct + '% of used storage';
+
+        let freedGB = 0;
+        if (executionHistory) {
+            Object.values(executionHistory).forEach(site => {
+                freedGB += (parseInt(site.TotalStorageReleasedBytes || 0)) / (1024*1024*1024);
+            });
+        }
+        document.getElementById('optFreed').textContent = formatStorage(freedGB);
+        document.getElementById('optFreedCost').textContent = formatCurrency(freedGB * CONFIG.costPerGBMonth * 12) + ' saved annually';
+
+        // Set slider to current assumed value (5)
+        updateVersionSimulator(document.getElementById('versionSlider').value);
+
+        // Render charts
+        renderStorageComposition(usedGB, versionGB, quotaGB);
+        renderGrowthForecast(usedGB, quotaGB);
+        renderTopWasteSites();
+    }
+
+    function updateVersionSimulator(value) {
+        if (!tenantStorage) return;
+        const versionGB = tenantStorage.TotalVersionSizeGB || 0;
+        const currentVersions = 5; // current policy
+        const targetVersions = parseInt(value);
+
+        document.getElementById('simVersionCount').textContent = targetVersions;
+
+        // Estimate: proportion of versions removable
+        let reduction = 0;
+        if (targetVersions < currentVersions) {
+            reduction = ((currentVersions - targetVersions) / currentVersions) * versionGB;
+        }
+
+        const savedCost = reduction * CONFIG.costPerGBMonth * 12;
+        const licenses = Math.round(savedCost / (CONFIG.copilotLicenseCostMonth * 12));
+
+        document.getElementById('simStorageFreed').textContent = formatStorage(reduction);
+        document.getElementById('simCostSaved').textContent = formatCurrency(savedCost) + '/yr';
+        document.getElementById('simLicenses').textContent = licenses;
+        document.getElementById('simSavings').textContent = 'Estimated savings: ' + formatStorage(reduction) + ' = ' + formatCurrency(savedCost) + '/yr';
+    }
+
+    function renderStorageComposition(usedGB, versionGB, quotaGB) {
+        const ctx = document.getElementById('storageCompositionChart');
+        if (!ctx) return;
+        const contentGB = usedGB - versionGB;
+        const freeGB = Math.max(0, quotaGB - usedGB);
+
+        if (storageCompositionChart) {
+            // Update data without rebuilding
+            storageCompositionChart.data.datasets[0].data = [contentGB, versionGB, freeGB];
+            storageCompositionChart.update('none');
+            return;
+        }
+
+        storageCompositionChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Content', 'Versions (reducible)', 'Free Quota'],
+                datasets: [{
+                    data: [contentGB, versionGB, freeGB],
+                    backgroundColor: ['#3b82f6', '#f59e0b', '#1e293b'],
+                    borderColor: ['#3b82f6', '#f59e0b', '#334155'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } },
+                    tooltip: { callbacks: { label: (c) => c.label + ': ' + formatStorage(c.raw) } }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+
+    function renderGrowthForecast(usedGB, quotaGB) {
+        const ctx = document.getElementById('growthForecastChart');
+        if (!ctx) return;
+
+        const growthGBMonth = 6.6 * 1024;
+        const months = ['Now', '+1mo', '+2mo', '+3mo', '+4mo', '+5mo', '+6mo'];
+        const projectedUsed = months.map((_, i) => Math.round(usedGB + (growthGBMonth * i)));
+        const quotaLine = months.map(() => quotaGB);
+
+        if (growthForecastChart) {
+            growthForecastChart.data.datasets[0].data = projectedUsed;
+            growthForecastChart.data.datasets[1].data = quotaLine;
+            growthForecastChart.update('none');
+            return;
+        }
+
+        growthForecastChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [
+                    { label: 'Projected Used', data: projectedUsed, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.3 },
+                    { label: 'Quota', data: quotaLine, borderColor: '#10b981', borderDash: [5, 5], pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b', callback: v => formatStorage(v) } },
+                    x: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' } }
+                },
+                plugins: {
+                    legend: { labels: { color: '#94a3b8', font: { size: 11 } } },
+                    tooltip: { callbacks: { label: (c) => c.dataset.label + ': ' + formatStorage(c.raw) } }
+                }
+            }
+        });
+    }
+
+    function renderTopWasteSites() {
+        if (!sitesData || sitesData.length === 0) return;
+        const top = [...sitesData].sort((a, b) => b.wasteCost - a.wasteCost).slice(0, 15);
+        const tbody = document.getElementById('topWasteSitesBody');
+        tbody.innerHTML = top.map(s => `
+            <tr>
+                <td class="site-name" title="${s.url}">${s.title || s.name}</td>
+                <td class="num">${formatStorage(s.storageGB)}</td>
+                <td class="num">${formatStorage(s.versionGB)}</td>
+                <td class="num"><span class="tag ${s.versionPct > 40 ? 'tag-red' : s.versionPct > 20 ? 'tag-yellow' : 'tag-green'}">${s.versionPct}%</span></td>
+                <td class="num" style="color:var(--green);font-weight:600">${formatCurrency(s.wasteCost)}/yr</td>
+            </tr>
+        `).join('');
+    }
+
+    // ===== Sites Catalog =====
+    function loadSitesData() {
+        if (!allSitesData || !allSitesData.Sites) return;
+        sitesData = allSitesData.Sites.map(s => {
+            const storageGB = parseFloat(s.StorageUsageCurrentGB) || 0;
+            const versionGB = parseFloat(s.VersionSizeGB) || 0;
+            const versionPct = storageGB > 0 ? Math.round((versionGB / storageGB) * 100) : 0;
+            const wasteCost = versionGB * CONFIG.costPerGBMonth * 12;
+            return {
+                title: s.Title || '',
+                name: (s.Url || '').replace(/https:\/\/[^/]+\/(sites|teams)\//i, ''),
+                url: s.Url || '',
+                storageGB, versionGB, versionPct, wasteCost,
+                versionCount: parseInt(s.VersionCount) || 0,
+                template: s.Template || ''
+            };
+        });
+        renderSites();
+    }
+
+    function renderSites() {
+        if (!sitesData.length) return;
+        const search = (document.getElementById('siteSearch')?.value || '').toLowerCase();
+        let filtered = sitesData;
+        if (search) {
+            filtered = sitesData.filter(s => s.title.toLowerCase().includes(search) || s.url.toLowerCase().includes(search));
+        }
+        filtered.sort((a, b) => (b[sitesSortKey] - a[sitesSortKey]) * sitesSortDir || 0);
+
+        // Stats
+        document.getElementById('sitesTotal').textContent = sitesData.length.toLocaleString();
+        const totalStor = sitesData.reduce((sum, s) => sum + s.storageGB, 0);
+        document.getElementById('sitesStorage').textContent = formatStorage(totalStor);
+        const avgVer = sitesData.length > 0 ? Math.round(sitesData.reduce((sum, s) => sum + s.versionPct, 0) / sitesData.length) : 0;
+        document.getElementById('sitesAvgVer').textContent = avgVer + '%';
+        document.getElementById('sitesOver100').textContent = sitesData.filter(s => s.storageGB > 100).length;
+        document.getElementById('sitesShowing').textContent = 'Showing ' + filtered.length + ' sites';
+
+        // Render table (limit to 200 for performance)
+        const display = filtered.slice(0, 200);
+        const tbody = document.getElementById('siteCatalogBody');
+        tbody.innerHTML = display.map(s => `
+            <tr>
+                <td class="site-name" title="${s.url}">${s.title || s.name}</td>
+                <td class="num">${formatStorage(s.storageGB)}</td>
+                <td class="num">${formatStorage(s.versionGB)}</td>
+                <td class="num"><span class="tag ${s.versionPct > 40 ? 'tag-red' : s.versionPct > 20 ? 'tag-yellow' : 'tag-green'}">${s.versionPct}%</span></td>
+                <td class="num">${s.versionCount.toLocaleString()}</td>
+                <td class="num" style="color:var(--green);font-weight:600">${s.wasteCost > 100 ? formatCurrency(s.wasteCost) + '/yr' : '--'}</td>
+                <td style="font-size:10px;color:var(--text-muted)">${s.template}</td>
+            </tr>
+        `).join('');
+    }
+
+    function filterSites() { renderSites(); }
+
+    function sortSites(key) {
+        if (sitesSortKey === key) sitesSortDir *= -1;
+        else { sitesSortKey = key; sitesSortDir = -1; }
+        renderSites();
+    }
+
+    function exportSitesCsv() {
+        if (!sitesData.length) return;
+        const header = 'Title,URL,StorageGB,VersionGB,VersionPct,VersionCount,AnnualWasteUSD,Template\n';
+        const rows = sitesData.map(s => `"${s.title}","${s.url}",${s.storageGB.toFixed(2)},${s.versionGB.toFixed(2)},${s.versionPct},${s.versionCount},${s.wasteCost.toFixed(2)},"${s.template}"`).join('\n');
+        const blob = new Blob([header + rows], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'SiteCatalog_Export.csv';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
+
+    // ===== Configuration Wizard =====
+    function cfgNext(step) {
+        document.querySelectorAll('#page-settings .wizard-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('cfgStep' + step).classList.add('active');
+        document.getElementById('configStepBadge').textContent = 'Step ' + step + ' of 5';
+        // Update indicators
+        for (let i = 1; i <= 5; i++) {
+            const ind = document.getElementById('cfgStep' + i + 'Ind');
+            ind.classList.remove('active', 'done');
+            if (i < step) ind.classList.add('done');
+            else if (i === step) ind.classList.add('active');
+        }
+    }
+
+    function updateCfgPolicy() {
+        const major = document.getElementById('cfgMajorSlider').value;
+        const minor = document.getElementById('cfgMinorSlider').value;
+        document.getElementById('cfgMajorLabel').textContent = major;
+        document.getElementById('cfgMinorLabel').textContent = minor;
+        // Estimate impact
+        if (tenantStorage && tenantStorage.TotalVersionSizeGB) {
+            const vGB = tenantStorage.TotalVersionSizeGB;
+            const reduction = Math.max(0, ((5 - major) / 5) * vGB);
+            document.getElementById('cfgMajorImpact').textContent = reduction > 0 ? 'Est. savings: ' + formatStorage(reduction) : '';
+        }
+    }
+
+    function cfgGenerate() {
+        cfgNext(5);
+        const adminUrl = document.getElementById('cfgAdminUrl').value || 'https://contoso-admin.sharepoint.com';
+        const auth = document.querySelector('input[name="cfgAuth"]:checked').value;
+        const scope = document.querySelector('input[name="cfgScope"]:checked').value;
+        const mode = document.querySelector('input[name="cfgMode"]:checked').value;
+        const major = document.getElementById('cfgMajorSlider').value;
+        const minor = document.getElementById('cfgMinorSlider').value;
+        const jobs = document.getElementById('cfgJobsSlider').value;
+        const unattended = document.getElementById('cfgUnattended').checked;
+        const useCache = document.getElementById('cfgUseCache').checked;
+        const retention = document.getElementById('cfgManageRetention').checked;
+        const inclusionCsv = document.getElementById('cfgInclusionCsv').value;
+        const exclusionCsv = document.getElementById('cfgExclusionCsv').value;
+
+        let cmd = '.\\Start-SPOVersionManagement.ps1';
+        cmd += ' `\n    -AdminUrl "' + adminUrl + '"';
+        cmd += ' `\n    -MajorVersionLimit ' + major;
+        cmd += ' `\n    -MajorWithMinorVersionsLimit ' + minor;
+        cmd += ' `\n    -MaxConcurrentJobs ' + jobs;
+        if (mode === 'sync') cmd += ' `\n    -SyncOnly';
+        if (mode === 'delete') cmd += ' `\n    -DeleteOnly';
+        if (scope === 'csv' && inclusionCsv) cmd += ' `\n    -InputSiteListCSV "' + inclusionCsv + '"';
+        if (exclusionCsv) cmd += ' `\n    -InputExclusionSiteListCSV "' + exclusionCsv + '"';
+        if (unattended) cmd += ' `\n    -Unattended';
+        if (useCache) cmd += ' `\n    -UseFileCache';
+        if (retention) cmd += ' `\n    -ManageRetentionPolicy';
+
+        document.getElementById('cfgGeneratedCommand').textContent = cmd;
+    }
+
+    function copyCfgCommand() {
+        const cmd = document.getElementById('cfgGeneratedCommand').textContent;
+        navigator.clipboard.writeText(cmd).then(() => alert('Command copied to clipboard!'));
+    }
+
+    function cfgSaveProfile() {
+        const profile = {
+            AdminUrl: document.getElementById('cfgAdminUrl').value,
+            AuthMethod: document.querySelector('input[name="cfgAuth"]:checked').value,
+            Scope: document.querySelector('input[name="cfgScope"]:checked').value,
+            MajorVersionLimit: parseInt(document.getElementById('cfgMajorSlider').value),
+            MinorVersionLimit: parseInt(document.getElementById('cfgMinorSlider').value),
+            MaxConcurrentJobs: parseInt(document.getElementById('cfgJobsSlider').value),
+            Mode: document.querySelector('input[name="cfgMode"]:checked').value,
+            Unattended: document.getElementById('cfgUnattended').checked,
+            UseFileCache: document.getElementById('cfgUseCache').checked,
+            ManageRetention: document.getElementById('cfgManageRetention').checked,
+            InclusionCsv: document.getElementById('cfgInclusionCsv').value,
+            ExclusionCsv: document.getElementById('cfgExclusionCsv').value,
+            SavedAt: new Date().toISOString()
+        };
+        // Save via POST to server
+        fetch('./ExecutionProfile.json', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(profile, null, 2)
+        }).then(r => { if (r.ok) alert('Profile saved!'); else alert('Save failed — run Start-Dashboard.ps1 first'); })
+          .catch(() => alert('Could not save. Ensure the dashboard server is running.'));
+    }
+
+    // Show/hide cert fields based on auth selection
+    document.addEventListener('change', (e) => {
+        if (e.target.name === 'cfgAuth') {
+            document.getElementById('cfgCertFields').style.display = e.target.value === 'certificate' ? 'block' : 'none';
+        }
+        if (e.target.name === 'cfgScope') {
+            document.getElementById('cfgCsvPath').style.display = e.target.value === 'csv' ? 'block' : 'none';
+        }
+    });
+
+    // ===== Archive Wizard =====
+    let archiveCandidates = [];
+    let archiveQueue = [];
+    let archiveSelectedUrls = new Set();
+
+    function archiveGoToStep(step) {
+        document.querySelectorAll('#page-archive .wizard-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('archiveStep' + step).classList.add('active');
+        document.getElementById('archiveStepBadge').textContent = 'Step ' + step + ' of 4';
+        for (let i = 1; i <= 4; i++) {
+            const ind = document.getElementById('archStep' + i + 'Indicator');
+            ind.classList.remove('active', 'done');
+            if (i < step) ind.classList.add('done');
+            else if (i === step) ind.classList.add('active');
+        }
+        if (step === 3) renderArchiveQueue();
+    }
+
+    function findArchiveCandidates() {
+        if (!sitesData.length) { alert('Sites data not loaded yet. Wait for AllSites.json to load.'); return; }
+        const inactiveDays = parseInt(document.getElementById('archInactiveDays').value) || 180;
+        const minStorage = parseFloat(document.getElementById('archMinStorage').value) || 1;
+        const maxResults = parseInt(document.getElementById('archMaxResults').value) || 100;
+
+        const cutoffDate = new Date(); cutoffDate.setDate(cutoffDate.getDate() - inactiveDays);
+
+        // Use allSitesData for dates
+        archiveCandidates = [];
+        if (allSitesData && allSitesData.Sites) {
+            allSitesData.Sites.forEach(s => {
+                const storGB = parseFloat(s.StorageUsageCurrentGB) || 0;
+                if (storGB < minStorage) return;
+                const lastMod = s.LastContentModifiedDate ? new Date(s.LastContentModifiedDate) : null;
+                if (lastMod && lastMod < cutoffDate) {
+                    archiveCandidates.push({
+                        url: s.Url, title: s.Title || s.Url.split('/').pop(),
+                        storageGB: storGB, lastModified: lastMod.toISOString().split('T')[0],
+                        template: s.Template || ''
+                    });
+                }
+            });
+        }
+        archiveCandidates.sort((a, b) => b.storageGB - a.storageGB);
+        archiveCandidates = archiveCandidates.slice(0, maxResults);
+
+        const totalGB = archiveCandidates.reduce((sum, s) => sum + s.storageGB, 0);
+        document.getElementById('archiveCandidatesResult').innerHTML = `
+            <div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-sm);border:1px solid var(--border);">
+                <strong style="color:var(--accent)">${archiveCandidates.length} candidates found</strong>
+                <span style="color:var(--text-muted);margin-left:12px;">${formatStorage(totalGB)} total storage • Inactive >${inactiveDays} days</span>
+                <button class="btn btn-primary" style="float:right" onclick="archiveGoToStep(2); renderArchiveCandidatesTable();">Review & Select →</button>
+            </div>`;
+    }
+
+    function renderArchiveCandidatesTable() {
+        const html = `<table class="data-table"><thead><tr>
+            <th style="width:30px"><input type="checkbox" onchange="archiveToggleAll(this.checked)"></th>
+            <th>Site</th><th class="num">Storage</th><th class="num">Last Modified</th><th>Template</th>
+        </tr></thead><tbody>` + archiveCandidates.map(s => `
+            <tr>
+                <td><input type="checkbox" class="arch-check" value="${s.url}" ${archiveSelectedUrls.has(s.url)?'checked':''} onchange="archiveToggleSite(this)"></td>
+                <td class="site-name" title="${s.url}">${s.title}</td>
+                <td class="num">${formatStorage(s.storageGB)}</td>
+                <td class="num">${s.lastModified}</td>
+                <td style="font-size:10px;color:var(--text-muted)">${s.template}</td>
+            </tr>`).join('') + '</tbody></table>';
+        document.getElementById('archiveCandidatesTable').innerHTML = html;
+        updateArchiveSelectedCount();
+    }
+
+    function archiveToggleSite(el) {
+        if (el.checked) archiveSelectedUrls.add(el.value); else archiveSelectedUrls.delete(el.value);
+        updateArchiveSelectedCount();
+    }
+    function archiveToggleAll(checked) {
+        document.querySelectorAll('.arch-check').forEach(cb => { cb.checked = checked; if (checked) archiveSelectedUrls.add(cb.value); else archiveSelectedUrls.delete(cb.value); });
+        updateArchiveSelectedCount();
+    }
+    function archiveSelectAll() { archiveToggleAll(true); }
+    function archiveDeselectAll() { archiveToggleAll(false); }
+    function updateArchiveSelectedCount() {
+        document.getElementById('archiveSelectedCount').textContent = archiveSelectedUrls.size + ' selected';
+    }
+
+    function archiveAddToQueue() {
+        archiveCandidates.filter(s => archiveSelectedUrls.has(s.url)).forEach(s => {
+            if (!archiveQueue.find(q => q.url === s.url)) archiveQueue.push(s);
+        });
+        document.getElementById('archiveQueueCount').textContent = 'Queue: ' + archiveQueue.length + ' sites';
+        archiveGoToStep(3);
+    }
+
+    function renderArchiveQueue() {
+        const totalGB = archiveQueue.reduce((sum, s) => sum + s.storageGB, 0);
+        const savings = totalGB * CONFIG.costPerGBMonth * 12;
+        document.getElementById('archQueueSiteCount').textContent = archiveQueue.length;
+        document.getElementById('archQueueStorage').textContent = formatStorage(totalGB);
+        document.getElementById('archQueueSavings').textContent = formatCurrency(savings) + '/yr';
+
+        const html = `<table class="data-table"><thead><tr><th>Site</th><th class="num">Storage</th><th class="num">Last Modified</th><th>Action</th></tr></thead><tbody>` +
+            archiveQueue.map((s, i) => `<tr><td class="site-name">${s.title}</td><td class="num">${formatStorage(s.storageGB)}</td><td class="num">${s.lastModified}</td><td><button class="btn" style="font-size:10px;padding:4px 8px" onclick="archiveRemoveFromQueue(${i})">Remove</button></td></tr>`).join('') +
+            '</tbody></table>';
+        document.getElementById('archiveQueueTable').innerHTML = html;
+    }
+
+    function archiveRemoveFromQueue(idx) { archiveQueue.splice(idx, 1); renderArchiveQueue(); }
+    function archiveClearQueue() { archiveQueue = []; renderArchiveQueue(); }
+
+    function archiveSaveAndProceed() {
+        const queueData = { Sites: archiveQueue.map(s => ({ Url: s.url, Title: s.title, StorageGB: s.storageGB, QueuedAt: new Date().toISOString() })), SavedAt: new Date().toISOString() };
+        fetch('./ArchiveQueue.json', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(queueData, null, 2)
+        }).then(r => { if (r.ok) { archiveGoToStep(4); } else alert('Save failed'); })
+          .catch(() => alert('Could not save. Ensure dashboard server is running.'));
+    }
+
+    function copyArchiveCommand() {
+        navigator.clipboard.writeText('.\\Start-ArchiveWebsites.ps1').then(() => alert('Copied!'));
+    }
+
+    function updateDashConfig() {
+        CONFIG.costPerGBMonth = parseFloat(document.getElementById('cfgCostPerGB').value) || 0.20;
+        CONFIG.copilotLicenseCostMonth = parseFloat(document.getElementById('cfgCopilotCost').value) || 30;
+        renderOverview();
+    }
+    </script>
+</body>
+</html>

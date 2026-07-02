@@ -61,6 +61,14 @@ Write-Host "Starting server on port $Port..." -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Open in browser:" -ForegroundColor Green
 Write-Host "  http://localhost:$Port/Dashboard.html" -ForegroundColor White
+Write-Host "  http://localhost:$Port/Dashboard2.html  (NEW - Investment Optimizer)" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Direct routes (Dashboard2):" -ForegroundColor Gray
+Write-Host "  http://localhost:$Port/Dashboard2.html#/overview" -ForegroundColor Gray
+Write-Host "  http://localhost:$Port/Dashboard2.html#/optimize" -ForegroundColor Gray
+Write-Host "  http://localhost:$Port/Dashboard2.html#/governance" -ForegroundColor Gray
+Write-Host "  http://localhost:$Port/Dashboard2.html#/copilot" -ForegroundColor Gray
+Write-Host "  http://localhost:$Port/Dashboard2.html#/sites" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Press Ctrl+C to stop" -ForegroundColor Gray
 Write-Host "========================================" -ForegroundColor Cyan
@@ -108,7 +116,7 @@ try {
             try {
                 # Handle POST requests - save JSON files to config folder
                 if ($request.HttpMethod -eq 'POST') {
-                    $allowedFiles = @('ArchiveQueue.json', 'DashboardConfig.json')
+                    $allowedFiles = @('ArchiveQueue.json', 'DashboardConfig.json', 'ExecutionProfile.json')
                     $fileName = $localPath.TrimStart('/')
                     if ($fileName -in $allowedFiles) {
                         $reader = [System.IO.StreamReader]::new($request.InputStream, $request.ContentEncoding)
