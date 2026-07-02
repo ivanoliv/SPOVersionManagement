@@ -5329,6 +5329,9 @@ function Export-AllSitesDataForDashboard {
     # Save to JSON file
     $exportData | ConvertTo-Json -Depth 10 | Set-Content -Path $script:AllSitesFile -Encoding UTF8
     
+    # Invalidate in-memory cache so subsequent reads (e.g. Update-TenantStorageStatus) use fresh data
+    $script:AllSitesJsonCache = $null
+    
     Write-Host "  [OK] Exported $($finalSitesData.Count) sites to: $script:AllSitesFile" -ForegroundColor Green
     
     return $exportData

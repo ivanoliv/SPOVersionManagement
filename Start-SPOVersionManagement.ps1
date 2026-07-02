@@ -795,6 +795,14 @@ if (-not $useCache) {
             Export-AllSitesDataForDashboard -Upsert
         }
         Write-Host "  [OK] Site list exported (AllSites.json)" -ForegroundColor Green
+        
+        # Refresh TenantStorage.json from the freshly-exported AllSites data
+        try {
+            $script:AllSitesJsonCache = $null  # Invalidate stale in-memory cache
+            Update-TenantStorageStatus -UseFileCache | Out-Null
+            Write-Host "  [OK] Tenant storage refreshed from updated site data" -ForegroundColor Green
+        }
+        catch { Write-Warning "Could not refresh tenant storage: $_" }
     }
     catch { Write-Warning "Error exporting site list: $_" }
 }

@@ -8190,6 +8190,11 @@
                         const tsData = JSON.parse(tsText);
                         console.log('TenantStorage loaded:', tsData);
                         data.TenantStorage = tsData;
+                        // Cache immediately for metrics tab (don't wait for overview render)
+                        cachedTenantStorage = tsData;
+                        if (!originalTenantData) {
+                            originalTenantData = JSON.parse(JSON.stringify(tsData));
+                        }
                     } else {
                         console.log('TenantStorage.json not found, status:', tsResponse.status);
                     }
@@ -12975,8 +12980,19 @@
         // Render Consumption Metrics tab
         function renderMetricsTab() {
             if (!cachedTenantStorage) {
-                console.log('No cached tenant storage data for metrics tab');
-                document.getElementById('trendAnalysisSectionMetrics').style.display = 'none';
+                console.log('No cached tenant storage data for metrics tab - will retry on next refresh');
+                // Try loading from fetch directly as fallback
+                const tenantStoragePath = getFilePath('TenantStorage');
+                fetch(tenantStoragePath + '?t=' + Date.now())
+                    .then(r => r.ok ? r.json() : null)
+                    .then(ts => {
+                        if (ts) {
+                            cachedTenantStorage = ts;
+                            if (!originalTenantData) originalTenantData = JSON.parse(JSON.stringify(ts));
+                            renderMetricsTab();
+                        }
+                    })
+                    .catch(() => {});
                 return;
             }
             
