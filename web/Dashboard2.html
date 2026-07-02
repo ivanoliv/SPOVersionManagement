@@ -949,22 +949,44 @@
                             <h3 style="margin-bottom:12px;">Identify Archive Candidates</h3>
                             <p style="color:var(--text-secondary);margin-bottom:16px;">Find sites that haven't been used recently and are consuming storage. These are candidates for archival.</p>
                             
-                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
-                                <div>
-                                    <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Inactive threshold (days)</label>
-                                    <input type="number" class="search-input" id="archInactiveDays" value="180" style="width:100%">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+                                <!-- Option A: Auto-detect from data -->
+                                <div style="padding:16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);">
+                                    <strong style="font-size:13px;">Auto-Detect (from AllSites.json)</strong>
+                                    <p style="font-size:11px;color:var(--text-muted);margin:8px 0 12px;">Find inactive sites based on last modified date and storage threshold.</p>
+                                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                        <div>
+                                            <label style="font-size:11px;color:var(--text-muted);">Inactive days</label>
+                                            <input type="number" class="search-input" id="archInactiveDays" value="180" style="width:100%">
+                                        </div>
+                                        <div>
+                                            <label style="font-size:11px;color:var(--text-muted);">Min storage (GB)</label>
+                                            <input type="number" class="search-input" id="archMinStorage" value="1" style="width:100%">
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-primary" style="margin-top:12px;width:100%;" onclick="findArchiveCandidates()">Find Candidates</button>
                                 </div>
-                                <div>
-                                    <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Minimum storage (GB)</label>
-                                    <input type="number" class="search-input" id="archMinStorage" value="1" style="width:100%">
-                                </div>
-                                <div>
-                                    <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Max sites to show</label>
-                                    <input type="number" class="search-input" id="archMaxResults" value="100" style="width:100%">
+
+                                <!-- Option B: Import from CSV -->
+                                <div style="padding:16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);">
+                                    <strong style="font-size:13px;">Import from CSV</strong>
+                                    <span class="field-info" onclick="toggleDoc('archiveCsvDoc')">ℹ️</span>
+                                    <p style="font-size:11px;color:var(--text-muted);margin:8px 0 12px;">Upload a CSV file with site URLs to add directly to the archive queue.</p>
+                                    <input type="file" id="archiveCsvFile" accept=".csv" style="display:none" onchange="importArchiveCsv(this)">
+                                    <button class="btn" style="width:100%;" onclick="document.getElementById('archiveCsvFile').click()">📁 Select CSV File</button>
+                                    <div id="archiveCsvStatus" style="margin-top:8px;font-size:11px;color:var(--text-muted);"></div>
                                 </div>
                             </div>
-                            <button class="btn btn-primary" onclick="findArchiveCandidates()">Find Candidates</button>
-                            
+
+                            <div class="inline-doc" id="archiveCsvDoc" style="display:none;">
+                                <strong>CSV Format</strong>
+                                <p>The CSV must have a <code>Url</code> column (header required). Optional columns: <code>Title</code>, <code>Reason</code>.</p>
+                                <pre style="background:var(--bg-secondary);padding:8px;border-radius:4px;margin-top:8px;font-size:11px;">Url,Title,Reason
+https://contoso.sharepoint.com/sites/OldProject,Old Project,Inactive 2+ years
+https://contoso.sharepoint.com/sites/Archive2023,Archive 2023,Completed project</pre>
+                                <a href="https://ivanoliv.github.io/SPOVersionManagement/guides/tool-manual/" target="_blank" style="font-size:11px;color:var(--accent);">📖 Full documentation →</a>
+                            </div>
+
                             <div id="archiveCandidatesResult" style="margin-top:16px;"></div>
                         </div>
 
@@ -1788,12 +1810,23 @@
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         const panel = document.getElementById('settingsTab-' + tab);
         if (panel) panel.classList.add('active');
+        // Fallback: if no tab panel found, show wizard panels (backward compat)
+        if (!panel) {
+            document.querySelectorAll('#page-settings .wizard-panel').forEach(p => p.classList.remove('active'));
+            const stepMap = { connection:1, scope:2, policy:3, options:4, run:5 };
+            const stepEl = document.getElementById('cfgStep' + (stepMap[tab] || 1));
+            if (stepEl) stepEl.classList.add('active');
+        }
         const btn = document.querySelector('.tab-btn[data-tab="' + tab + '"]');
         if (btn) btn.classList.add('active');
-        // Update breadcrumb
-        const names = { connection:'Connection', scope:'Scope', policy:'Policy', options:'Options', run:'Run', dashboard:'Dashboard' };
-        document.getElementById('settingsSubBreadcrumb').textContent = names[tab] ? '›' : '';
-        document.getElementById('settingsSubName').textContent = names[tab] || '';
+        // Update breadcrumb (safe - check element exists)
+        const subBreadcrumb = document.getElementById('settingsSubBreadcrumb');
+        const subName = document.getElementById('settingsSubName');
+        if (subBreadcrumb && subName) {
+            const names = { connection:'Connection', scope:'Scope', policy:'Policy', options:'Options', run:'Run', dashboard:'Dashboard' };
+            subBreadcrumb.textContent = names[tab] ? '›' : '';
+            subName.textContent = names[tab] || '';
+        }
     }
 
     function showAuthFields(type) {
@@ -1928,7 +1961,7 @@
         if (!sitesData.length) { alert('Sites data not loaded yet. Wait for AllSites.json to load.'); return; }
         const inactiveDays = parseInt(document.getElementById('archInactiveDays').value) || 180;
         const minStorage = parseFloat(document.getElementById('archMinStorage').value) || 1;
-        const maxResults = parseInt(document.getElementById('archMaxResults').value) || 100;
+        const maxResults = 200;
 
         const cutoffDate = new Date(); cutoffDate.setDate(cutoffDate.getDate() - inactiveDays);
 
@@ -2025,6 +2058,60 @@
 
     function copyArchiveCommand() {
         navigator.clipboard.writeText('.\\Start-ArchiveWebsites.ps1').then(() => alert('Copied!'));
+    }
+
+    function importArchiveCsv(fileInput) {
+        const file = fileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            const lines = text.split(/\r?\n/).filter(l => l.trim());
+            if (lines.length < 2) { document.getElementById('archiveCsvStatus').innerHTML = '<span style="color:var(--red)">❌ Empty or invalid CSV</span>'; return; }
+            
+            // Parse header
+            const header = lines[0].split(/[,;\t]/);
+            const urlIdx = header.findIndex(h => h.trim().toLowerCase() === 'url');
+            const titleIdx = header.findIndex(h => h.trim().toLowerCase() === 'title');
+            if (urlIdx === -1) { document.getElementById('archiveCsvStatus').innerHTML = '<span style="color:var(--red)">❌ CSV must have a "Url" column</span>'; return; }
+            
+            // Parse rows
+            const imported = [];
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(/[,;\t]/);
+                const url = (cols[urlIdx] || '').trim().replace(/^"|"$/g, '');
+                if (!url || !url.startsWith('http')) continue;
+                const title = titleIdx >= 0 ? (cols[titleIdx] || '').trim().replace(/^"|"$/g, '') : url.split('/').pop();
+                imported.push({ url, title, storageGB: 0, lastModified: '--' });
+            }
+            
+            // Cross-reference with AllSites for storage data
+            if (allSitesData && allSitesData.Sites) {
+                const lookup = {};
+                allSitesData.Sites.forEach(s => { lookup[s.Url.toLowerCase().replace(/\/$/,'')] = s; });
+                imported.forEach(item => {
+                    const match = lookup[item.url.toLowerCase().replace(/\/$/,'')];
+                    if (match) {
+                        item.storageGB = parseFloat(match.StorageUsageCurrentGB) || 0;
+                        item.title = match.Title || item.title;
+                        item.lastModified = match.LastContentModifiedDate ? match.LastContentModifiedDate.split(' ')[0] : '--';
+                    }
+                });
+            }
+            
+            archiveCandidates = imported;
+            archiveSelectedUrls = new Set(imported.map(s => s.url));
+            document.getElementById('archiveCsvStatus').innerHTML = '<span style="color:var(--green)">✅ ' + imported.length + ' sites imported</span>';
+            
+            const totalGB = imported.reduce((sum, s) => sum + s.storageGB, 0);
+            document.getElementById('archiveCandidatesResult').innerHTML = `
+                <div style="padding:12px;background:var(--bg-secondary);border-radius:var(--radius-sm);border:1px solid var(--border);">
+                    <strong style="color:var(--accent)">${imported.length} sites imported from CSV</strong>
+                    <span style="color:var(--text-muted);margin-left:12px;">${formatStorage(totalGB)} total storage</span>
+                    <button class="btn btn-primary" style="float:right" onclick="archiveGoToStep(2); renderArchiveCandidatesTable();">Review & Select →</button>
+                </div>`;
+        };
+        reader.readAsText(file);
     }
 
     function updateDashConfig() {
